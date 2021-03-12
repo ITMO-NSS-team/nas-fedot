@@ -4,7 +4,7 @@ import os
 
 import pandas as pd
 
-from core.utils import project_root
+from fedot.core.utils import project_root
 from typing import Tuple
 
 

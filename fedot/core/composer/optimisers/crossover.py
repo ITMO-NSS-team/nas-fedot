@@ -4,7 +4,7 @@ from random import randint, choice
 from random import random
 from typing import Any, List
 
-from core.composer.optimisers.gp_operators import nodes_from_height, node_depth, equivalent_subtree
+from fedot.core.composer.optimisers.gp_operators import nodes_from_height, node_depth, equivalent_subtree
 
 
 class CrossoverTypesEnum(Enum):

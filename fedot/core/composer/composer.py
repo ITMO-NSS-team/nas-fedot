@@ -9,9 +9,9 @@ from typing import (
     Any
 )
 
-from core.composer.chain import Chain
-from core.composer.node import NodeGenerator
-from core.models.data import InputData
+from fedot.core.composer.chain import Chain
+from fedot.core.composer.node import NodeGenerator
+from fedot.core.models.data import InputData
 
 
 @dataclass

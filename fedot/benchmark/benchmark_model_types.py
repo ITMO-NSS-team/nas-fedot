@@ -1,5 +1,5 @@
 from enum import Enum
-from core.repository.model_types_repository import ModelTypesIdsEnum
+from fedot.core.repository.model_types_repository import ModelTypesIdsEnum
 
 
 class BenchmarkModelTypesEnum(Enum):

@@ -2,7 +2,7 @@ import numpy as np
 from statsmodels.tsa.ar_model import AutoReg
 from statsmodels.tsa.arima_model import ARIMA
 
-from core.models.data import InputData, OutputData
+from fedot.core.models.data import InputData, OutputData
 
 
 def fit_ar(train_data: InputData):

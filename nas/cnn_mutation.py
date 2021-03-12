@@ -2,13 +2,13 @@ from random import random, choice
 from typing import Any
 from random import randint
 from functools import partial
-from core.composer.optimisers.mutation import MutationTypesEnum, MutationParams, get_mutation_prob
-from core.composer.optimisers.gp_operators import nodes_from_height, node_height, node_depth
+from fedot.core.composer.optimisers.mutation import MutationTypesEnum, MutationParams, get_mutation_prob
+from fedot.core.composer.optimisers.gp_operators import nodes_from_height, node_height, node_depth
 from nas.cnn_gp_operators import get_random_layer_params, random_nn_branch, random_cnn, \
     conv_output_shape
 from nas.keras_eval import generate_structure
 from nas.layer import LayerTypesIdsEnum, LayerParams
-from core.composer.visualisation import ComposerVisualiser
+from fedot.core.composer.visualisation import ComposerVisualiser
 
 
 def cnn_simple_mutation(chain: Any, parameters: MutationParams, node_mutation_probability: float = 0.6) -> Any:

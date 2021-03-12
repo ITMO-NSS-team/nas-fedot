@@ -4,8 +4,8 @@ from uuid import uuid4
 
 import networkx as nx
 
-from core.composer.node import Node, SharedCache, FittedModelCache
-from core.models.data import InputData
+from fedot.core.composer.node import Node, SharedCache, FittedModelCache
+from fedot.core.models.data import InputData
 
 ERROR_PREFIX = 'Invalid chain configuration:'
 

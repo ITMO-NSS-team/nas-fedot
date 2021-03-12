@@ -5,19 +5,19 @@ from typing import (
     Optional,
 )
 
-from core.chain_validation import validate
-from core.composer.chain import Chain, SharedChain
-from core.composer.composer import Composer, ComposerRequirements
-from core.composer.node import NodeGenerator
-from core.composer.optimisers.crossover import CrossoverTypesEnum, crossover_by_type
-from core.composer.optimisers.gp_operators import random_ml_chain
-from core.composer.optimisers.gp_optimiser import GPChainOptimiser, GPChainOptimiserParameters
-from core.composer.optimisers.mutation import MutationTypesEnum, MutationStrengthEnum, mutation_by_type
-from core.composer.optimisers.selection import SelectionTypesEnum
-from core.composer.visualisation import ComposerVisualiser
-from core.composer.write_history import write_composer_history_to_csv
-from core.models.data import InputData
-from core.models.data import train_test_data_setup
+from fedot.core.chain_validation import validate
+from fedot.core.composer.chain import Chain, SharedChain
+from fedot.core.composer.composer import Composer, ComposerRequirements
+from fedot.core.composer.node import NodeGenerator
+from fedot.core.composer.optimisers.crossover import CrossoverTypesEnum, crossover_by_type
+from fedot.core.composer.optimisers.gp_operators import random_ml_chain
+from fedot.core.composer.optimisers.gp_optimiser import GPChainOptimiser, GPChainOptimiserParameters
+from fedot.core.composer.optimisers.mutation import MutationTypesEnum, MutationStrengthEnum, mutation_by_type
+from fedot.core.composer.optimisers.selection import SelectionTypesEnum
+from fedot.core.composer.visualisation import ComposerVisualiser
+from fedot.core.composer.write_history import write_composer_history_to_csv
+from fedot.core.models.data import InputData
+from fedot.core.models.data import train_test_data_setup
 
 
 @dataclass

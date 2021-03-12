@@ -15,12 +15,12 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 
-from benchmark.benchmark_model_types import BenchmarkModelTypesEnum
-from benchmark.tpot.b_tpot import fit_tpot, predict_tpot
-from core.models.data import InputData, OutputData
-from core.models.evaluation.automl_eval import fit_h2o, predict_h2o
-from core.models.evaluation.stats_models_eval import fit_ar, fit_arima, predict_ar, predict_arima
-from core.repository.model_types_repository import ModelTypesIdsEnum
+from fedot.benchmark.benchmark_model_types import BenchmarkModelTypesEnum
+from fedot.benchmark.tpot.b_tpot import fit_tpot, predict_tpot
+from fedot.core.models.data import InputData, OutputData
+from fedot.core.models.evaluation.automl_eval import fit_h2o, predict_h2o
+from fedot.core.models.evaluation.stats_models_eval import fit_ar, fit_arima, predict_ar, predict_arima
+from fedot.core.repository.model_types_repository import ModelTypesIdsEnum
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

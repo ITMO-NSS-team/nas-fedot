@@ -9,12 +9,12 @@ from typing import (
 )
 
 import numpy as np
-from core.composer.optimisers.crossover import CrossoverTypesEnum, crossover
-from core.composer.optimisers.heredity import heredity, GeneticSchemeTypesEnum
-from core.composer.optimisers.mutation import MutationTypesEnum, mutation
-from core.composer.optimisers.regularization import RegularizationTypesEnum, regularized_population
-from core.composer.optimisers.selection import SelectionTypesEnum, selection
-from core.composer.timer import CompositionTimer
+from fedot.core.composer.optimisers.crossover import CrossoverTypesEnum, crossover
+from fedot.core.composer.optimisers.heredity import heredity, GeneticSchemeTypesEnum
+from fedot.core.composer.optimisers.mutation import MutationTypesEnum, mutation
+from fedot.core.composer.optimisers.regularization import RegularizationTypesEnum, regularized_population
+from fedot.core.composer.optimisers.selection import SelectionTypesEnum, selection
+from fedot.core.composer.timer import CompositionTimer
 
 
 @dataclass

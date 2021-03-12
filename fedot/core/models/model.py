@@ -3,14 +3,14 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from core.models.data import (
+from fedot.core.models.data import (
     InputData,
 )
-from core.models.evaluation.evaluation import SkLearnClassificationStrategy, \
+from fedot.core.models.evaluation.evaluation import SkLearnClassificationStrategy, \
     StatsModelsAutoRegressionStrategy, SkLearnRegressionStrategy, SkLearnClusteringStrategy, AutoMLEvaluationStrategy
-from core.repository.model_types_repository import ModelTypesIdsEnum
-from core.repository.model_types_repository import ModelTypesRepository
-from core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum, \
+from fedot.core.repository.model_types_repository import ModelTypesIdsEnum
+from fedot.core.repository.model_types_repository import ModelTypesRepository
+from fedot.core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum, \
     compatible_task_types
 
 

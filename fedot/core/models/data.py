@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
 
-from core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum
+from fedot.core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum
 
 
 @dataclass

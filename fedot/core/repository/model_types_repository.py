@@ -6,8 +6,8 @@ from typing import (
 
 from anytree import Node, RenderTree, findall
 
-from core.repository.dataset_types import NumericalDataTypesEnum, DataTypesEnum, CategoricalDataTypesEnum
-from core.repository.task_types import MachineLearningTasksEnum, TaskTypesEnum
+from fedot.core.repository.dataset_types import NumericalDataTypesEnum, DataTypesEnum, CategoricalDataTypesEnum
+from fedot.core.repository.task_types import MachineLearningTasksEnum, TaskTypesEnum
 
 
 class ModelTypesIdsEnum(Enum):
