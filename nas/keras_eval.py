@@ -4,13 +4,14 @@ from keras import layers
 from keras import models
 from keras import optimizers
 
-from core.models.data import InputData, OutputData
+from fedot.core.models.data import InputData, OutputData
 from nas.layer import LayerTypesIdsEnum
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
+from sklearn.metrics import log_loss
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
-                    epochs: int = 15):
+                    epochs: int = 10):
     earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('.mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, epsilon=1e-4, mode='min')
@@ -18,13 +19,19 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
               batch_size=batch_size,
               epochs=epochs,
               verbose=verbose,
-              validation_split=0.25,
+              validation_split=0.2,
               callbacks=[earlyStopping, reduce_lr_loss, mcp_save])
     return keras_model_predict(model, input_data)
 
+import numpy as np
 
 def keras_model_predict(model, input_data: InputData):
-    evaluation_result = model.predict(input_data.features)
+    # evaluation_result = model.predict(input_data.features)
+    evaluation_result = model.predict_proba(input_data.features)
+    # sum_rows = np.sum(evaluation_result,axis=1).tolist()
+    # print(sum_rows)
+    # print(np.sum(evaluation_result))
+    # evaluation_result = log_loss(input_data.target, eval)
     return OutputData(idx=input_data.idx,
                       features=input_data.features,
                       predict=evaluation_result,
@@ -47,7 +54,7 @@ def generate_structure(node: Any):
         return [node]
 
 
-def create_nn_model(chain: Any, input_shape: tuple, classes: int = 2):
+def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
     nn_structure = chain.cnn_nodes + generate_structure(chain.root_node)
     model = models.Sequential()
     for i, layer in enumerate(nn_structure):
@@ -66,6 +73,8 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 2):
                     model.add(
                         layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
                                       strides=conv_strides))
+                    # model.add(layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
+                    #                   strides=conv_strides, data_format='channels_first'))
             if layer.layer_params.pool_size:
                 pool_size = layer.layer_params.pool_size
                 pool_strides = layer.layer_params.pool_strides
@@ -86,7 +95,7 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 2):
             model.add(layers.Dense(neurons_num, activation='relu'))
     # Output
     output_shape = 1 if classes == 2 else classes
-    model.add(layers.Dense(output_shape, activation="sigmoid"))
-    model.compile(loss='binary_crossentropy', optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
+    model.add(layers.Dense(output_shape, activation="softmax"))
+    model.compile(loss='categorical_crossentropy', optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
     model.summary()
     return model

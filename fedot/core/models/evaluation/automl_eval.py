@@ -6,8 +6,8 @@ from h2o import H2OFrame
 from h2o.automl import H2OAutoML
 from tpot import TPOTClassifier, TPOTRegressor
 
-from core.models.data import InputData
-from core.repository.task_types import MachineLearningTasksEnum
+from fedot.core.models.data import InputData
+from fedot.core.repository.task_types import MachineLearningTasksEnum
 
 
 def fit_tpot(data: InputData):

@@ -3,14 +3,14 @@ from collections import namedtuple
 from copy import copy
 from typing import (List, Optional)
 
-from core.models.data import Data, OutputData
-from core.models.data import (
+from fedot.core.models.data import Data, OutputData
+from fedot.core.models.data import (
     InputData,
 )
-from core.models.model import Model
-from core.models.preprocessing import *
-from core.repository.model_types_repository import ModelTypesIdsEnum
-from core.repository.task_types import MachineLearningTasksEnum
+from fedot.core.models.model import Model
+from fedot.core.models.preprocessing import *
+from fedot.core.repository.model_types_repository import ModelTypesIdsEnum
+from fedot.core.repository.task_types import MachineLearningTasksEnum
 
 CachedState = namedtuple('CachedState', 'preprocessor model')
 

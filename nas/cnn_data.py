@@ -1,11 +1,18 @@
+from os.path import isfile, join
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import cv2
-from core.models.data import InputData
-from core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum
+from fedot.core.models.data import InputData
+from fedot.core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum
+import os
+from sklearn.preprocessing import LabelEncoder
+from keras.utils import np_utils
 
-def from_json(file_path, task_type: TaskTypesEnum = MachineLearningTasksEnum.classification, train_size=0.75):
+
+
+def from_json(file_path, task_type: TaskTypesEnum = MachineLearningTasksEnum.classification):
     df_train = pd.read_json(file_path)
     Xtrain = get_scaled_imgs(df_train)
     Ytrain = np.array(df_train['is_iceberg'])

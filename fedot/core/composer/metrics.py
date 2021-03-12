@@ -2,10 +2,10 @@ from abc import abstractmethod
 
 from sklearn.metrics import mean_squared_error, roc_auc_score, log_loss, accuracy_score
 
-from core.chain_validation import validate
+from fedot.core.chain_validation import validate
 import numpy as np
-from core.composer.chain import Chain
-from core.models.data import InputData
+from fedot.core.composer.chain import Chain
+from fedot.core.models.data import InputData
 
 
 def from_maximised_metric(metric_func):
@@ -68,6 +68,22 @@ class LogLossMetric(ChainMetric):
         return score
 
 
+class LogLossMulticlassMetric(ChainMetric):
+    @staticmethod
+    def get_value(chain: Chain, reference_data: InputData) -> float:
+        try:
+            # validate(chain)
+            results = chain.predict(reference_data)
+            y_pred = [np.float64(predict) for predict in results.predict]
+            score = round(log_loss(y_true=reference_data.target,
+                                   y_pred=y_pred), 3)
+        except Exception as ex:
+            print(ex)
+            score = 0.5
+
+        return score
+
+
 class AccuracyScore(ChainMetric):
     @staticmethod
     @from_maximised_metric
@@ -84,6 +100,21 @@ class AccuracyScore(ChainMetric):
 
         return score
 
+class AccuracyMulticlassScore(ChainMetric):
+    @staticmethod
+    @from_maximised_metric
+    def get_value(chain: Chain, reference_data: InputData) -> float:
+        try:
+            # validate(chain)
+            results = chain.predict(reference_data)
+            y_pred = [round(predict) for predict in results.predict]
+            score = round(accuracy_score(y_true=reference_data.target,
+                                         y_pred=y_pred), 3)
+        except Exception as ex:
+            print(ex)
+            score = 0.5
+
+        return score
 
 # TODO: reference_data = None ?
 class StructuralComplexityMetric(ChainMetric):

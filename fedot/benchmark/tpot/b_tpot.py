@@ -4,10 +4,10 @@ import joblib
 from sklearn.metrics import mean_squared_error as mse
 from sklearn.metrics import roc_auc_score
 
-from benchmark.benchmark_utils import get_scoring_case_data_paths, get_models_hyperparameters
-from core.models.data import InputData
-from core.models.evaluation.automl_eval import fit_tpot, predict_tpot
-from core.repository.task_types import MachineLearningTasksEnum
+from fedot.benchmark.benchmark_utils import get_scoring_case_data_paths, get_models_hyperparameters
+from fedot.core.models.data import InputData
+from fedot.core.models.evaluation.automl_eval import fit_tpot, predict_tpot
+from fedot.core.repository.task_types import MachineLearningTasksEnum
 
 
 def run_tpot(train_file_path: str, test_file_path: str, task: MachineLearningTasksEnum,

@@ -4,8 +4,8 @@ from enum import Enum
 from random import random, choice, randint
 from typing import (Any, Callable)
 from functools import partial
-from core.composer.chain import Chain, List
-from core.composer.optimisers.gp_operators import nodes_from_height, node_depth, random_ml_chain, node_height
+from fedot.core.composer.chain import Chain, List
+from fedot.core.composer.optimisers.gp_operators import nodes_from_height, node_depth, random_ml_chain, node_height
 
 
 class MutationTypesEnum(Enum):
