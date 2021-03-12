@@ -3,7 +3,6 @@ import random
 import datetime
 
 import numpy as np
-import tensorflow as tf
 
 from nas.patches.utils import project_root, set_tf_compat
 
@@ -21,14 +20,15 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from nas.graph_cnn_mutations import cnn_simple_mutation
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
+from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation
 from nas.composer.metrics import calculate_validation_metric
 
 from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
 
 root = project_root()
-random.seed(2)
-np.random.seed(2)
+random.seed(7)
+np.random.seed(7)
 
 
 def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None):
@@ -39,15 +39,17 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
-    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
+    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value,
+                 LayerTypesIdsEnum.batch_normalization.value]
     conv_types = [LayerTypesIdsEnum.conv2d.value]
     pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
     nn_primary = [LayerTypesIdsEnum.dense.value]
-    rules = [has_no_self_cycled_nodes, has_no_cycle]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation],
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation,
+                                                                                 single_edge_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
@@ -62,9 +64,10 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
     optimiser = GPNNGraphOptimiser(
         initial_graph=None, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_parameters,
-        log=default_log(logger_name='Bayesian', verbose_level=0))
+        log=default_log(logger_name='Bayesian', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
+    print('save best graph structure...')
     optimized_network.show(path='../graph_patches_result.png')
 
     print('Best model structure:')
@@ -94,7 +97,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    path = os.path.join(root, 'Generated_dataset.pickle')
+    path = os.path.join(root, '_compressed_Generated_dataset.pickle')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
-    run_patches_classification(file_path=path, epochs=1)
+    run_patches_classification(file_path=path, epochs=20)

@@ -1,12 +1,12 @@
 import os
 import datetime
+import random
 
-from typing import List
 from nas.patches.utils import project_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
-from nas.layer import LayerParams, LayerTypesIdsEnum
+from nas.layer import LayerTypesIdsEnum
 from nas.patches.load_images import from_images
 from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, GPNNGraphOptimiser
@@ -18,27 +18,62 @@ from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameter
     GeneticSchemeTypesEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from nas.graph_cnn_mutations import cnn_simple_mutation
+from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
 from nas.composer.metrics import calculate_validation_metric
 
 root = project_root()
 
 
-def create_graph(graph: NNGraph, node_type: str, params: List[LayerParams], parent=None):
+def add_skip_connections(graph: NNGraph):
+    res_blocks_num = random.randint(0, graph.cnn_depth - 1)
+    for _ in range(res_blocks_num):
+        is_residual = random.randint(0, 1)
+        for conv_id in range(graph.cnn_depth - 1):
+            conv_node = graph.nodes[conv_id]
+            if is_residual:
+                res_depth = random.randint(conv_id, graph.cnn_depth - 1)
+                if res_depth == 1:
+                    continue
+                if len(graph.nodes[res_depth].nodes_from) > 1:
+                    continue
+                graph.nodes[res_depth].nodes_from.append(conv_node)
+    return graph
+
+
+def create_graph(graph: NNGraph, node_type: str, params: dict, parent=None, residual_parent=None,
+                 prev_conv: bool = False):
     parent = None if not parent else [parent]
+    is_residual = 0
+    drop = node_type.startswith('drop')
+    is_skip = not drop and residual_parent is None
+    is_end = not drop and residual_parent is not None
+
     if node_type.startswith('conv'):
-        new_node = NNNode(nodes_from=parent, content={'name': params[0].layer_type,
+        new_node = NNNode(nodes_from=parent, content={'name': params[0]['layer_type'],
                                                       'params': params[0], 'conv': True})
+        prev_conv = True
     elif node_type.startswith('drop'):
         new_node = NNNode(nodes_from=parent,
                           content={'name': LayerTypesIdsEnum.dropout.value,
-                                   'params': LayerParams(layer_type=LayerTypesIdsEnum.dropout.value,
-                                                         drop=0.2)})
+                                   'params': {'layer_type': LayerTypesIdsEnum.dropout.value,
+                                              'drop': 0.2}})
     else:
-        new_node = NNNode(nodes_from=parent, content={'name': params[1].layer_type,
+        new_node = NNNode(nodes_from=parent, content={'name': params[1]['layer_type'],
                                                       'params': params[1]})
+    if is_residual and is_end:
+        new_node.nodes_from.append(residual_parent)
+        residual_parent.content['skip_connection_to'] = new_node
+        new_node.content['skip_connection_from'] = residual_parent
+        residual_parent = None
+    if is_residual and is_skip:
+        residual_parent = new_node
+    if prev_conv and not node_type.startswith('conv'):
+        new_node.content['conv'] = True
+        prev_conv = False
+
     graph.add_node(new_node)
-    return new_node
+    return new_node, residual_parent, prev_conv
 
 
 def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None):
@@ -61,19 +96,24 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     num_of_filters = 16
     rules = [has_no_self_cycled_nodes, has_no_cycle]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    conv_layer_params = LayerParams(layer_type=cnn_node_types[0], activation=activation, kernel_size=conv_kernel_size,
-                                    conv_strides=conv_strides, num_of_filters=num_of_filters, pool_size=pool_size,
-                                    pool_strides=pool_strides, pool_type=pool_types[0])
-    nn_layer_params = LayerParams(activation='relu', layer_type=nn_node_types[0], neurons=121)
+    conv_layer_params = {'layer_type': cnn_node_types[0], 'activation': activation, 'kernel_size': conv_kernel_size,
+                         'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
+                         'pool_strides': pool_strides, 'pool_type': pool_types[0]}
+    nn_layer_params = {'activation': 'relu', 'layer_type': nn_node_types[0], 'neurons': 121}
     params = [conv_layer_params, nn_layer_params]
-    nodes_list = ['conv_1', 'drop_1', 'conv_2', 'drop_2', 'nn_node_1', 'drop_nn_1', 'nn_node_2', 'drop_nn_2',
-                  'nn_node_3']
+    nodes_list = ['conv_1', 'drop_1', 'conv_2', 'drop_2', 'conv_3', 'drop_3', 'conv_4', 'drop_4',
+                  'nn_node_1', 'drop_nn_1', 'nn_node_2', 'drop_nn_2', 'nn_node_3']
     initial_graph = NNGraph()
 
     parent_node = None
+    residual_parent = None
+    prev_conv = False
     for ind, type in enumerate(nodes_list):
-        parent_node = create_graph(graph=initial_graph, node_type=type, params=params, parent=parent_node)
-
+        parent_node, residual_parent, prev_conv = create_graph(graph=initial_graph, node_type=type, params=params,
+                                                               parent=parent_node, residual_parent=residual_parent,
+                                                               prev_conv=prev_conv)
+    initial_graph = add_skip_connections(initial_graph)
+    initial_graph.show()
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
@@ -92,7 +132,7 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     optimiser = GPNNGraphOptimiser(
         initial_graph=[initial_graph], requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
-        log=default_log(logger_name='Bayesian', verbose_level=0))
+        log=default_log(logger_name='Bayesian', verbose_level=1))
 
     optimized_graph = optimiser.compose(data=dataset_to_compose)
     optimized_graph.show(path='../test_result.png')
@@ -100,7 +140,7 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_graph)
 
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
-                          epochs=20, classes=num_of_classes, verbose=False)
+                          epochs=20, classes=num_of_classes, verbose=True)
 
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)

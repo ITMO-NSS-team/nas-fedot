@@ -25,10 +25,12 @@ class LayerTypesIdsEnum(Enum):
     maxpool2d = 'maxpool2d'
     averagepool2d = 'averagepool2d'
     serial_connection = 'serial_connection'
+    skip_connection = 'skip_connection'
+    batch_normalization = 'batch_norm'
 
 @dataclass
 class LayerParams:
-    layer_type: LayerTypesIdsEnum
+    layer_type: str
     pool_type: Optional[LayerTypesIdsEnum] = None
     neurons: int = None
     activation: str = None
@@ -39,3 +41,5 @@ class LayerParams:
     pool_strides: Tuple[int, int] = None
     num_of_filters: int = None
     output_shape: List[float] = None
+    momentum: float = None
+    epsilon: float = None

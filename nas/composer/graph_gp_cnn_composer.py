@@ -1,4 +1,3 @@
-import random
 from dataclasses import dataclass
 from functools import partial
 from copy import deepcopy
@@ -8,10 +7,8 @@ from typing import (
     Any,
     Optional
 )
-from uuid import uuid4
 
 import numpy as np
-import pandas as pd
 
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
@@ -19,11 +16,10 @@ from fedot.core.data.data import InputData, OutputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
-from nas.layer import LayerTypesIdsEnum, activation_types, LayerParams
+from nas.layer import activation_types
 from nas.graph_cnn_gp_operators import random_cnn_graph
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
 
 from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
 from nas.graph_cnn_gp_operators import *
@@ -134,6 +130,21 @@ class NNGraph(OptGraph):
 
     def __eq__(self, other) -> bool:
         return self is other
+
+    @property
+    def nodes_without_skip_connections(self):
+        free_nodes = []
+        skip_connections_start_nodes = set()
+        reversed_graph = deepcopy(self.nodes)[::-1]
+        for node in reversed_graph:
+            is_skip_connection_end = len(node.nodes_from) > 1
+            if len(skip_connections_start_nodes) == 0:
+                free_nodes.append(node)
+            if is_skip_connection_end:
+                skip_connections_start_nodes.update(node.nodes_from[1:])
+            if node in skip_connections_start_nodes:
+                skip_connections_start_nodes.remove(node)
+        return free_nodes
 
     @property
     def cnn_depth(self):

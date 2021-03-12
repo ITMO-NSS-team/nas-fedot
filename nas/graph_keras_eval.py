@@ -2,8 +2,8 @@ import numpy as np
 
 from typing import Any
 
+from tensorflow import keras
 from tensorflow.keras import layers
-from tensorflow.keras import models
 from tensorflow.keras import optimizers
 
 from nas.layer import LayerTypesIdsEnum
@@ -13,6 +13,8 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.models import Model
 from tensorflow.python.keras.layers import deserialize, serialize
 from tensorflow.python.keras.saving import saving_utils
+
+from nas import nn_layers
 
 
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
@@ -49,10 +51,10 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
 def keras_model_predict(model, input_data: InputData, output_mode: str = 'default',
                         is_multiclass: bool = False) -> OutputData:
     if output_mode == 'label':
-        evaluation_result = model.predict_proba(input_data.features)
+        evaluation_result = model.predict_on_batch(input_data.features)
         evaluation_result = _keras_model_prob2labels(predictions=evaluation_result, is_multiclass=is_multiclass)
     elif output_mode == 'default':
-        evaluation_result = model.predict_proba(input_data.features)
+        evaluation_result = model.predict_on_batch(input_data.features)
     else:
         raise ValueError('Wrong mode')
     return OutputData(idx=input_data.idx,
@@ -110,53 +112,55 @@ def make_keras_picklable():
 
 
 def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
-    generated_struc = generate_structure(graph.root_node)
-    nn_structure = generated_struc[::-1]
+    def _get_skip_connection_list(graph_structure):
+        sc_layers = {}
+        for node in graph_structure.nodes:
+            if len(node.nodes_from) > 1:
+                for n in node.nodes_from[1:]:
+                    sc_layers[n] = node
+        return sc_layers
+
+    nn_structure = graph.nodes[::-1]
     make_keras_picklable()
-    model = models.Sequential()
+    inputs = keras.Input(shape=input_shape)
     cnn_nodes_count = 0
+    skip_connection_nodes_dict = _get_skip_connection_list(graph)
+    skip_connection_destination_dict = {}
     for i, layer in enumerate(nn_structure):
-        type = layer.content['params'].layer_type
+        layer_type = layer.content['params']["layer_type"]
+        is_free_node = layer in graph.nodes_without_skip_connections
+        if i == 0:
+            in_layer = inputs
+        if layer in skip_connection_nodes_dict:
+            skip_connection_id = skip_connection_nodes_dict.pop(layer)
+            if skip_connection_id not in skip_connection_destination_dict:
+                skip_connection_destination_dict[skip_connection_id] = [in_layer]
+            else:
+                skip_connection_destination_dict[skip_connection_id].append(in_layer)
+        in_layer = nn_layers.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
+                                                        layers_dict=skip_connection_destination_dict)
+        if layer_type == LayerTypesIdsEnum.conv2d.value:
+            in_layer = nn_layers.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
+                                                 is_free_node=is_free_node)
+        elif layer_type == LayerTypesIdsEnum.dropout.value:
+            in_layer = nn_layers.make_dropout_layer(idx=i, input_layer=in_layer, current_node=layer)
+        elif layer_type == LayerTypesIdsEnum.batch_normalization.value:
+            in_layer = nn_layers.make_batch_norm_layer(idx=i, input_layer=in_layer, current_node=layer)
+        elif type == LayerTypesIdsEnum.dense.value:
+            in_layer = nn_layers.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
+        if cnn_nodes_count == graph.cnn_depth - 1:
+            flatten = layers.Flatten()
+            in_layer = flatten(in_layer)
+            cnn_nodes_count = None
         if 'conv' in layer.content and cnn_nodes_count is not None:
             cnn_nodes_count += 1
-        if type == LayerTypesIdsEnum.conv2d.value:
-            activation = layer.content['params'].activation
-            kernel_size = layer.content['params'].kernel_size
-            conv_strides = layer.content['params'].conv_strides
-            filters_num = layer.content['params'].num_of_filters
-            if i == 0:
-                model.add(
-                    layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation, input_shape=input_shape,
-                                  strides=conv_strides))
-            else:
-                if not all([size == 1 for size in kernel_size]):
-                    model.add(
-                        layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
-                                      strides=conv_strides))
-            if layer.content['params'].pool_size:
-                pool_size = layer.content['params'].pool_size
-                pool_strides = layer.content['params'].pool_strides
-                if layer.content['params'].pool_type == LayerTypesIdsEnum.maxpool2d.value:
-                    model.add(layers.MaxPooling2D(pool_size=pool_size, strides=pool_strides))
-                elif layer.content['params'].pool_type == LayerTypesIdsEnum.averagepool2d.value:
-                    model.add(layers.AveragePooling2D(pool_size=pool_size, strides=pool_strides))
-        elif type == LayerTypesIdsEnum.dropout.value:
-            drop = layer.content['params'].drop
-            model.add(layers.Dropout(drop))
-        elif type == LayerTypesIdsEnum.dense.value:
-            activation = layer.content['params'].activation
-            neurons_num = layer.content['params'].neurons
-            model.add(layers.Dense(neurons_num, activation=activation))
-        # adding Flatten layer after last layer from cnn part of the graph
-        if cnn_nodes_count == graph.cnn_depth:
-            model.add(layers.Flatten())
-            cnn_nodes_count = None
     # Output
     output_shape = 1 if classes == 2 else classes
     activation_func = 'sigmoid' if classes == 2 else 'softmax'
     loss_func = 'binary_crossentropy' if classes == 2 else 'categorical_crossentropy'
-    model.add(layers.Dense(output_shape, activation=activation_func))
-
+    dense = layers.Dense(output_shape, activation=activation_func)
+    outputs = dense(in_layer)
+    model = keras.Model(inputs=inputs, outputs=outputs, name='custom_model')
     model.compile(loss=loss_func, optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
     model.summary()
     return model

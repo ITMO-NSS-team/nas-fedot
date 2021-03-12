@@ -20,7 +20,8 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from nas.graph_cnn_mutations import cnn_simple_mutation
+from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
 from nas.composer.metrics import calculate_validation_metric
 
 root = project_root()
@@ -34,16 +35,17 @@ def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta =
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
-    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
+    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value,
+                 LayerTypesIdsEnum.batch_normalization.value]
     conv_types = [LayerTypesIdsEnum.conv2d.value]
     pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
     nn_primary = [LayerTypesIdsEnum.dense.value]
-    rules = [has_no_self_cycled_nodes, has_no_cycle]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-        mutation_types=[cnn_simple_mutation],
+        mutation_types=[single_edge_mutation],
         crossover_types=[CrossoverTypesEnum.subtree],
         regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
