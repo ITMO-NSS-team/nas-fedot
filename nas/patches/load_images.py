@@ -9,9 +9,9 @@ from sklearn.model_selection import train_test_split
 
 
 def load_images(file_path, size=120, is_train=True):
-    with open('labels.json', 'r') as fp:
+    with open('dataset_files/labels.json', 'r') as fp:
         labels_dict = json.load(fp)
-    with open('encoded_labels.json', 'r') as fp:
+    with open('dataset_files/encoded_labels.json', 'r') as fp:
         encoded_labels = json.load(fp)
     Xarr = []
     Yarr = []
