@@ -2,18 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f5f30e4e-faaf-4d04-b768-6c58057de78a" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/nas-fedot-master.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/nas-fedot-master.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.mdl_wts.hdf5" beforeDir="false" afterPath="$PROJECT_DIR$/.mdl_wts.hdf5" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/3classes_preprocess.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/patches/3classes_preprocess.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/all_possible_labels.txt" beforeDir="false" afterPath="$PROJECT_DIR$/dataset_files/all_possible_labels.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/counted_classes.json" beforeDir="false" afterPath="$PROJECT_DIR$/dataset_files/counted_classes.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/encoded_labels.json" beforeDir="false" afterPath="$PROJECT_DIR$/dataset_files/encoded_labels.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fedot/core/composer/visualisation.py" beforeDir="false" afterPath="$PROJECT_DIR$/fedot/core/composer/visualisation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/labels.json" beforeDir="false" afterPath="$PROJECT_DIR$/dataset_files/labels.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocess.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/patches/preprocess.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/patches_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/patches_classification.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -227,7 +218,7 @@
       <workItem from="1610994007315" duration="6054000" />
       <workItem from="1611167387435" duration="8188000" />
       <workItem from="1611259747004" duration="802000" />
-      <workItem from="1615634259407" duration="1412000" />
+      <workItem from="1615634259407" duration="3143000" />
     </task>
     <task id="LOCAL-00001" summary="parameters">
       <created>1605602655011</created>
@@ -334,11 +325,6 @@
           <line>140</line>
           <option name="timeStamp" value="66" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/patches_classification.py</url>
-          <line>54</line>
-          <option name="timeStamp" value="67" />
-        </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
@@ -351,7 +337,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$preprocess_.coverage" NAME="preprocess  Coverage Results" MODIFIED="1610842819733" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/nas_fedot$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1615634946692" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/nas_fedot$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1615636226827" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$3classes_preprocess.coverage" NAME="3classes_preprocess Coverage Results" MODIFIED="1610967363108" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1611260542139" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
