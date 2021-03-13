@@ -45,7 +45,7 @@ class GPNNComposerRequirements(GPComposerRequirements):
     batch_size: int = 24
     num_of_classes = 3
     activation_types = activation_types
-    max_num_of_conv_layers = 5
+    max_num_of_conv_layers = 6
     min_num_of_conv_layers = 3
 
     def __post_init__(self):
