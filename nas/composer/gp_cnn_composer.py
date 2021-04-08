@@ -43,12 +43,12 @@ class GPNNComposerRequirements(GPComposerRequirements):
     conv_types: List[LayerTypesIdsEnum] = None
     cnn_secondary: List[LayerTypesIdsEnum] = None
     pool_types: List[LayerTypesIdsEnum] = None
-    train_epochs_num: int = 10
-    batch_size: int = 24
+    train_epochs_num: int = 5
+    batch_size: int = 72
     num_of_classes = 3
     activation_types = activation_types
-    max_num_of_conv_layers = 6
-    min_num_of_conv_layers = 3
+    max_num_of_conv_layers = 7
+    min_num_of_conv_layers = 2
 
     def __post_init__(self):
         if not self.cnn_secondary:

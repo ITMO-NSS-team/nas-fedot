@@ -4,7 +4,10 @@
     <list default="true" id="f5f30e4e-faaf-4d04-b768-6c58057de78a" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.mdl_wts.hdf5" beforeDir="false" afterPath="$PROJECT_DIR$/.mdl_wts.hdf5" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model.json" beforeDir="false" afterPath="$PROJECT_DIR$/model.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/patches_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/patches_classification.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tmp/final_1615635001.3520496.gif" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,7 +35,10 @@
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="X:/code/rabota/doorman-tracker/yolobile-deepsort-tracking" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="restartRequiresConfirmation" value="false" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
@@ -218,7 +224,14 @@
       <workItem from="1610994007315" duration="6054000" />
       <workItem from="1611167387435" duration="8188000" />
       <workItem from="1611259747004" duration="802000" />
-      <workItem from="1615634259407" duration="3143000" />
+      <workItem from="1615634259407" duration="3546000" />
+      <workItem from="1615795419053" duration="1322000" />
+      <workItem from="1616103603885" duration="5879000" />
+      <workItem from="1616241851145" duration="365000" />
+      <workItem from="1616399536330" duration="109000" />
+      <workItem from="1616858767425" duration="850000" />
+      <workItem from="1617216348867" duration="2998000" />
+      <workItem from="1617405277806" duration="2602000" />
     </task>
     <task id="LOCAL-00001" summary="parameters">
       <created>1605602655011</created>
@@ -325,6 +338,11 @@
           <line>140</line>
           <option name="timeStamp" value="66" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/nas/patches/load_images.py</url>
+          <line>42</line>
+          <option name="timeStamp" value="68" />
+        </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
@@ -337,7 +355,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$preprocess_.coverage" NAME="preprocess  Coverage Results" MODIFIED="1610842819733" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/nas_fedot$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1615636226827" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/nas_fedot$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1617405330326" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$3classes_preprocess.coverage" NAME="3classes_preprocess Coverage Results" MODIFIED="1610967363108" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1611260542139" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
