@@ -2,12 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f5f30e4e-faaf-4d04-b768-6c58057de78a" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/10cls_patches_classification.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dataset_files/10_counted_classes.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dataset_files/10_encoded_labels.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dataset_files/10_labels.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dataset_files/10_possible_labels.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.mdl_wts.hdf5" beforeDir="false" afterPath="$PROJECT_DIR$/.mdl_wts.hdf5" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model.json" beforeDir="false" afterPath="$PROJECT_DIR$/model.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/patches_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/patches_classification.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tmp/final_1615635001.3520496.gif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/nas/patches/load_images.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/patches/load_images.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,7 +61,29 @@
       <recent name="X:\code\Maga_Nir\nas-fedot-master_signature\nas" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.patches_classification">
+  <component name="RunManager" selected="Python.10cls_patches_classification">
+    <configuration name="10cls_patches_classification" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="nas-fedot-master" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="X:\code\Maga_Nir\nas-fedot-master\venv1\Scripts\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/10cls_patches_classification.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="3classes_preprocess" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="nas-fedot-master" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -168,42 +194,20 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="signature_classification_problem" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="nas-fedot-master" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="X:\code\Maga_Nir\nas-fedot-master\venv1\Scripts\python.exe" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/signature_classification_problem.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <list>
       <item itemvalue="Python.imagecolor_correction" />
       <item itemvalue="Python.patches_classification" />
       <item itemvalue="Python.preprocess " />
-      <item itemvalue="Python.signature_classification_problem" />
       <item itemvalue="Python.3classes_preprocess" />
+      <item itemvalue="Python.10cls_patches_classification" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.10cls_patches_classification" />
         <item itemvalue="Python.patches_classification" />
         <item itemvalue="Python.3classes_preprocess" />
         <item itemvalue="Python.preprocess " />
         <item itemvalue="Python.imagecolor_correction" />
-        <item itemvalue="Python.signature_classification_problem" />
       </list>
     </recent_temporary>
   </component>
@@ -232,6 +236,7 @@
       <workItem from="1616858767425" duration="850000" />
       <workItem from="1617216348867" duration="2998000" />
       <workItem from="1617405277806" duration="2602000" />
+      <workItem from="1618152131838" duration="2042000" />
     </task>
     <task id="LOCAL-00001" summary="parameters">
       <created>1605602655011</created>
@@ -338,11 +343,6 @@
           <line>140</line>
           <option name="timeStamp" value="66" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/nas/patches/load_images.py</url>
-          <line>42</line>
-          <option name="timeStamp" value="68" />
-        </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
@@ -358,5 +358,6 @@
     <SUITE FILE_PATH="coverage/nas_fedot$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1617405330326" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$3classes_preprocess.coverage" NAME="3classes_preprocess Coverage Results" MODIFIED="1610967363108" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/nas_fedot_Earth_patches$patches_classification.coverage" NAME="patches_classification Coverage Results" MODIFIED="1611260542139" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/nas_fedot$10cls_patches_classification.coverage" NAME="10cls_patches_classification Coverage Results" MODIFIED="1618153864749" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
