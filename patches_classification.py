@@ -1,5 +1,12 @@
 import datetime
-import math
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+os.chdir(ROOT)
+sys.path.append(ROOT)
+sys.path.append(os.path.join(ROOT, "fedot"))
+
 import random
 import statistics
 from typing import Optional, Tuple
@@ -82,7 +89,7 @@ def run_patches_classification(file_path,
                                max_lead_time: datetime.timedelta = datetime.timedelta(minutes=150000),
                                gp_optimiser_params: Optional[GPChainOptimiserParameters] = None):
     size = 120
-    dataset_to_compose, dataset_to_validate = from_images(file_path)
+    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=3)
 
     # the search of the models provided by the framework that can be used as nodes in a chain for the selected task
     cnn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
