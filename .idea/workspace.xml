@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f5f30e4e-faaf-4d04-b768-6c58057de78a" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/10cls_patches_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/10cls_patches_classification.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dataset_files.zip" beforeDir="false" afterPath="$PROJECT_DIR$/dataset_files.zip" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dataset_files/10_counted_classes.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dataset_files/10_encoded_labels.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dataset_files/10_labels.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/composer/gp_cnn_composer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/nas/patches/load_images.py" beforeDir="false" afterPath="$PROJECT_DIR$/nas/patches/load_images.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/patches_classification.py" beforeDir="false" afterPath="$PROJECT_DIR$/patches_classification.py" afterDir="false" />
-    </list>
+    <list default="true" id="f5f30e4e-faaf-4d04-b768-6c58057de78a" name="Default Changelist" comment="del zips" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,6 +16,7 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
   </component>
   <component name="ProjectId" id="1iqIjtxNFheQzYhBP9SOS5ywXb5" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -306,7 +297,19 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/earth-patches-classification" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
           </value>
         </entry>
       </map>
