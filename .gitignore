@@ -1,0 +1,10 @@
+# Default ignored files
+.idea/
+/shelf/
+/workspace.xml
+# Datasource local storage ignored files
+/../../../../../:\PycharmProjects\nas-fedot multiclass\nas-fedot\.idea/dataSources/
+/../../../../../:\PycharmProjects\nas-fedot multiclass\nas-fedot\.idea
+/dataSources.local.xml
+# Editor-based HTTP Client requests
+/httpRequests/
