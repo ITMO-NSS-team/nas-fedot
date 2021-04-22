@@ -1,5 +1,12 @@
 import datetime
-import math
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+os.chdir(ROOT)
+sys.path.append(ROOT)
+sys.path.append(os.path.join(ROOT, "fedot"))
+
 import random
 import statistics
 from typing import Optional, Tuple
