@@ -45,7 +45,7 @@ class GPNNComposerRequirements(GPComposerRequirements):
     pool_types: List[LayerTypesIdsEnum] = None
     train_epochs_num: int = 5
     batch_size: int = 72
-    num_of_classes = 10
+    num_of_classes: int = 10
     activation_types = activation_types
     max_num_of_conv_layers = 7
     min_num_of_conv_layers = 2
