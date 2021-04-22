@@ -1,6 +1,13 @@
 import datetime
-import math
+import os
+import sys
 import random
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+os.chdir(ROOT)
+sys.path.append(ROOT)
+sys.path.append(os.path.join(ROOT, "fedot"))
+
 import statistics
 from typing import Optional, Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score

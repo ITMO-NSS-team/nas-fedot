@@ -1,5 +1,12 @@
 import datetime
-import math
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+os.chdir(ROOT)
+sys.path.append(ROOT)
+sys.path.append(os.path.join(ROOT, "fedot"))
+
 import random
 import statistics
 from typing import Optional, Tuple
@@ -82,8 +89,7 @@ def run_patches_classification(file_path,
                                max_lead_time: datetime.timedelta = datetime.timedelta(minutes=150000),
                                gp_optimiser_params: Optional[GPChainOptimiserParameters] = None):
     size = 120
-    number_of_classes = 3
-    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=number_of_classes)
+    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=3)
 
     # the search of the models provided by the framework that can be used as nodes in a chain for the selected task
     cnn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
@@ -104,7 +110,7 @@ def run_patches_classification(file_path,
         primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=2,
         max_depth=7, pop_size=15, num_of_generations=20,
         crossover_prob=0.8, mutation_prob=0.2, max_lead_time=max_lead_time,
-        image_size=[size, size], train_epochs_num=5, num_of_classes=number_of_classes)
+        image_size=[size, size], train_epochs_num=5)
 
     # Create GP-based composer
     composer = GPNNComposer()
@@ -118,7 +124,7 @@ def run_patches_classification(file_path,
                                                 is_visualise=True, optimiser_parameters=gp_optimiser_params)
 
     chain_evo_composed.fit(input_data=dataset_to_compose, verbose=True, input_shape=(size, size, 3), min_filters=32,
-                           max_filters=256, classes=number_of_classes, epochs=10)
+                           max_filters=256, epochs=10)
 
     json_file = 'model.json'
     model_json = chain_evo_composed.model.to_json()
