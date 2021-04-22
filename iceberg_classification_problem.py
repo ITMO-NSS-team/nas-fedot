@@ -1,5 +1,13 @@
-import datetime
+import os
+import sys
 import random
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+os.chdir(ROOT)
+sys.path.append(ROOT)
+sys.path.append(os.path.join(ROOT, "fedot"))
+
+import datetime
 from typing import Optional, Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
 from fedot.core.composer.optimisers.gp_optimiser import GPChainOptimiserParameters
@@ -42,7 +50,6 @@ def run_iceberg_classification_problem(file_path,
     pool_types = [LayerTypesIdsEnum.maxpool2d, LayerTypesIdsEnum.averagepool2d]
     nn_primary = [LayerTypesIdsEnum.dense]
     nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
-
     # the choice of the metric for the chain quality assessment during composition
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.log_loss)
     # additional metrics
@@ -53,7 +60,7 @@ def run_iceberg_classification_problem(file_path,
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
         primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=2,
         max_depth=3, pop_size=20, num_of_generations=20,
-        crossover_prob=0.8, mutation_prob=0.8, max_lead_time=max_lead_time, image_size=[75, 75], train_epochs_num=2)
+        crossover_prob=0.8, mutation_prob=0.8, max_lead_time=max_lead_time, image_size=[75, 75], train_epochs_num=10)
 
     # Create GP-based composer
     composer = GPNNComposer()
@@ -66,8 +73,13 @@ def run_iceberg_classification_problem(file_path,
                                                 metrics=metric_function,
                                                 is_visualise=True, optimiser_parameters=gp_optimiser_params)
 
-    chain_evo_composed.fit(input_data=dataset_to_compose, verbose=True, input_shape=(75, 75, 3), min_filters=64,
-                           max_filters=128, epochs=30)
+    chain_evo_composed.fit(input_data=dataset_to_compose, verbose=True, input_shape=(75, 75, 3), epochs=25)
+
+    print('Best model structure:')
+    for node in chain_evo_composed.cnn_nodes:
+        print(node)
+    for node in chain_evo_composed.nodes:
+        print(node)
 
     json_file = 'model.json'
     model_json = chain_evo_composed.model.to_json()
@@ -93,7 +105,7 @@ if __name__ == '__main__':
 
     # a dataset that will be used as a train and test set during composition
 
-    file_path = 'iceberg_data/iceberg_train.json'
+    file_path = 'data/iceberg/train.json'
     full_path = file_path
 
     run_iceberg_classification_problem(full_path)

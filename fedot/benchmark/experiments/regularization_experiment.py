@@ -2,6 +2,7 @@ import csv
 import datetime
 import gc
 import os
+import sys
 import numpy as np
 from benchmark.experiments.credit_scoring_experiment import run_credit_scoring_problem
 from core.composer.optimisers.crossover import CrossoverTypesEnum
@@ -12,6 +13,10 @@ from core.composer.optimisers.selection import SelectionTypesEnum
 from core.composer.optimisers.gp_optimiser import GeneticSchemeTypesEnum
 from core.utils import project_root
 from benchmark.experiments.viz import show_history_optimization_comparison
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.chdir(ROOT)
+sys.path.append(ROOT)
+sys.path.append(os.path.join(ROOT, "fedot"))
 
 
 def write_header_to_csv(f):

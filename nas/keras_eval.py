@@ -9,8 +9,8 @@ from nas.layer import LayerTypesIdsEnum
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
 
-def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
-                    epochs: int = 15):
+def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24, epochs: int = 15):
+
     earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('.mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, epsilon=1e-4, mode='min')

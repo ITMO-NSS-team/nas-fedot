@@ -1,3 +1,5 @@
+import gc
+import keras
 from dataclasses import dataclass
 from functools import partial
 from typing import (
@@ -106,9 +108,9 @@ class GPNNComposer(Composer):
                       is_visualise: bool = False) -> NASChain:
         train_data, test_data = train_test_data_setup(data, 0.8)
 
-        input_shape = [size for size in composer_requirements.image_size]
-        input_shape.append(composer_requirements.channels_num)
-        input_shape = tuple(input_shape)
+        self.input_shape = [size for size in composer_requirements.image_size]
+        self.input_shape.append(composer_requirements.channels_num)
+        self.input_shape = tuple(self.input_shape)
 
         if not optimiser_parameters:
             self.optimiser_parameters = GPChainOptimiserParameters(chain_generation_function=random_cnn_chain,
@@ -120,8 +122,7 @@ class GPNNComposer(Composer):
         else:
             self.optimiser_parameters = optimiser_parameters
         metric_function_for_nodes = partial(self.metric_for_nodes,
-                                            metrics, train_data, test_data, input_shape,
-                                            composer_requirements.min_filters, composer_requirements.max_filters,
+                                            metrics, train_data, test_data, self.input_shape,
                                             composer_requirements.num_of_classes, composer_requirements.batch_size,
                                             composer_requirements.train_epochs_num)
 
@@ -144,8 +145,11 @@ class GPNNComposer(Composer):
         print('GP composition finished')
         return best_chain
 
-    def metric_for_nodes(self, metric_function, train_data: InputData,
-                         test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
-                         chain: NASChain) -> float:
-        chain.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        return metric_function(chain, test_data)
+    def metric_for_nodes(self, metric_function, train_data: InputData, test_data: InputData, input_shape, classes,
+                         batch_size, epochs, chain: NASChain) -> float:
+        chain.fit(train_data, True, input_shape, classes, batch_size, epochs)
+        metric = metric_function(chain, test_data)
+        keras.backend.clear_session()
+        gc.collect()
+        del chain.model
+        return metric
