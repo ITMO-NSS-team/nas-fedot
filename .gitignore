@@ -1,7 +1,10 @@
 # Default ignored files
+*.hdf5
+# IDEA config files
 .idea/
+.idea/workspace.xml
+
 /shelf/
-/workspace.xml
 # Datasource local storage ignored files
 /../../../../../:\PycharmProjects\nas-fedot multiclass\nas-fedot\.idea/dataSources/
 /../../../../../:\PycharmProjects\nas-fedot multiclass\nas-fedot\.idea
