@@ -1,27 +1,22 @@
 import os
-import random
 import sys
-
-import numpy as np
+import random
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 sys.path.append(ROOT)
-sys.path.append(os.path.join(ROOT, "fedot_old"))
+sys.path.append(os.path.join(ROOT, "fedot"))
 
+import datetime
 from typing import Optional, Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
-from fedot_old.core.composer.optimisers.gp_optimiser import GPChainOptimiserParameters
-# from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiser, GPGraphOptimiserParameters
-
-from fedot_old.core.composer.visualisation import ComposerVisualiser
-from fedot_old.core.composer.chain import Chain
-# from fedot_old.core.models.model import *
+from fedot.core.composer.optimisers.gp_optimiser import GPChainOptimiserParameters
+from fedot.core.composer.visualisation import ComposerVisualiser
+from fedot.core.composer.chain import Chain
+from fedot.core.models.model import *
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-# from fedot_old.core.models.data import InputData
-from fedot.core.data.data import InputData
+from fedot.core.models.data import InputData
 from nas.composer.gp_cnn_composer import GPNNComposer, GPNNComposerRequirements
-# from fedot.core.composer.composer import ComposerRequirements
 from nas.layer import LayerTypesIdsEnum
 from nas.cnn_data import from_json
 
@@ -46,6 +41,7 @@ def calculate_validation_metric(chain: Chain, dataset_to_validate: InputData) ->
 
 
 def run_iceberg_classification_problem(file_path,
+                                       max_lead_time: datetime.timedelta = datetime.timedelta(days=2),
                                        gp_optimiser_params: Optional[GPChainOptimiserParameters] = None, ):
     num_of_classes = 2
     dataset_to_compose, dataset_to_validate = from_json(file_path)
@@ -56,27 +52,26 @@ def run_iceberg_classification_problem(file_path,
     nn_primary = [LayerTypesIdsEnum.dense]
     nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
     # the choice of the metric for the chain quality assessment during composition
-    metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
+    metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.log_loss)
     # additional metrics
     # metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.ROCAUC)
     # metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.accuracy)
 
     composer_requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=50,
-        max_num_of_neurons=200, min_filters=64, max_filters=128, image_size=[75, 75],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
         primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=2,
         max_depth=3, pop_size=1, num_of_generations=1,
-        crossover_prob=0.8, mutation_prob=0.8,
-        train_epochs_num=1, num_of_classes=num_of_classes)
+        crossover_prob=0.8, mutation_prob=0.8, max_lead_time=max_lead_time,
+        image_size=[75, 75], train_epochs_num=1, num_of_classes=num_of_classes)
 
     # Create GP-based composer
-    composer = GPNNComposer(composer_requirements)
+    composer = GPNNComposer()
 
     gp_optimiser_params = gp_optimiser_params if gp_optimiser_params else None
     # the optimal chain generation by composition - the most time-consuming task
     chain_evo_composed = composer.compose_chain(data=dataset_to_compose,
                                                 initial_chain=None,
+                                                composer_requirements=composer_requirements,
                                                 metrics=metric_function,
                                                 is_visualise=True, optimiser_parameters=gp_optimiser_params)
 
