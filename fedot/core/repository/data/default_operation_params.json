@@ -1,0 +1,72 @@
+{
+  "catboost": {
+    "allow_writing_files": false,
+    "verbose": false
+  },
+  "catboostreg": {
+    "allow_writing_files": false,
+    "verbose": false
+  },
+  "lgbm": {
+    "num_leaves": 32,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8,
+    "subsample_freq": 10,
+    "learning_rate": 0.03,
+    "n_estimators": 3000,
+    "verbose": -1
+  },
+  "lgbmreg": {
+    "num_leaves": 32,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8,
+    "subsample_freq": 10,
+    "learning_rate": 0.03,
+    "n_estimators": 3000,
+    "verbose": -1
+  },
+  "lagged": {
+    "window_size": 10
+  },
+  "sparse_lagged": {
+    "window_size": 10,
+    "n_components": 0.5,
+    "sparse_transform": true,
+    "use_svd": false
+  },
+  "ar": {
+    "lag_1": 7,
+    "lag_2": 12
+  },
+  "arima": {
+    "p": 2,
+    "d": 0,
+    "q": 2
+  },
+  "ransac_lin_reg": {
+    "min_samples": 0.4,
+    "residual_threshold": 10,
+    "max_trials": 100,
+    "max_skips": 1000
+  },
+  "ransac_non_lin_reg": {
+    "min_samples": 0.4,
+    "residual_threshold": 10,
+    "max_trials": 100,
+    "max_skips": 1000
+  },
+  "clstm": {
+    "window_size": 24,
+    "hidden_size": 200,
+    "learning_rate": 0.001,
+    "cnn1_kernel_size": 5,
+    "cnn1_output_size": 16,
+    "cnn2_kernel_size": 3,
+    "cnn2_output_size": 32,
+    "batch_size": 64,
+    "num_epochs": 10,
+    "teacher_forcing": 0.8,
+    "optimizer": "adam",
+    "loss": "mse"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "base_repository": "model_repository.json",
+  "metadata": {
+    "automl": {
+      "description": "Implementations of the regression and classification AutoML models from the H2O and TPOT frameworks",
+      "forbidden_node_types": "[]",
+      "input_type": "[DataTypesEnum.table]",
+      "output_type": "[DataTypesEnum.table]",
+      "strategies": [
+        "fedot.core.operations.evaluation.old_strategies",
+        "AutoMlStrategy"
+      ],
+      "tags": [
+        "expensive",
+        "automl",
+        "non-default"
+      ],
+      "tasks": "[TaskTypesEnum.classification, TaskTypesEnum.regression]"
+    }
+  },
+  "operations": {
+    "tpot": {
+      "meta": "automl",
+      "tags": [
+        "automl",
+        "non-default"
+      ]
+    }
+  }
+}

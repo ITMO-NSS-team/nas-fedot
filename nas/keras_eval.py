@@ -4,11 +4,13 @@ from keras import layers
 from keras import models
 from keras import optimizers
 
-from fedot.core.models.data import InputData, OutputData
+# from fedot_old.core.models.data import InputData, OutputData
+from fedot.core.data.data import InputData, OutputData
 from nas.layer import LayerTypesIdsEnum
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
 from sklearn.metrics import log_loss
+
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
                     epochs: int = 10):
@@ -35,7 +37,7 @@ def keras_model_predict(model, input_data: InputData):
     return OutputData(idx=input_data.idx,
                       features=input_data.features,
                       predict=evaluation_result,
-                      task_type=input_data.task_type)
+                      task=input_data.task, data_type=input_data.data_type)
 
 
 def generate_structure(node: Any):
@@ -95,7 +97,10 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
             model.add(layers.Dense(neurons_num, activation='relu'))
     # Output
     output_shape = 1 if classes == 2 else classes
-    model.add(layers.Dense(output_shape, activation="softmax"))
-    model.compile(loss='categorical_crossentropy', optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
+    activation_func = 'sigmoid' if classes == 2 else 'softmax'
+    loss_func = 'binary_crossentropy' if classes == 2 else 'categorical_crossentropy'
+    model.add(layers.Dense(output_shape, activation=activation_func))
+
+    model.compile(loss=loss_func, optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
     model.summary()
     return model

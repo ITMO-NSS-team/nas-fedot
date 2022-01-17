@@ -1,5 +1,6 @@
-from fedot.core.composer.chain import Chain
-from fedot.core.models.data import InputData
+from fedot_old.core.composer.chain import Chain
+# from fedot_old.core.models.data import InputData
+from fedot.core.data.data import InputData
 from nas.nas_node import NNNode
 from nas.keras_eval import create_nn_model, keras_model_fit, keras_model_predict
 
