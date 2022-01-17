@@ -2,7 +2,8 @@ from random import randint
 from typing import Any
 from nas.layer import LayerTypesIdsEnum, LayerParams
 from nas.nas_node import NNNodeGenerator
-from fedot.core.composer.optimisers.crossover import CrossoverTypesEnum, subtree_crossover
+from fedot_old.core.composer.optimisers.crossover import subtree_crossover
+from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 
 
 def cnn_subtree_crossover(chain_first: Any, chain_second: Any, requirements) -> Any:

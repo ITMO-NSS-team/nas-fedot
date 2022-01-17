@@ -1,28 +1,38 @@
 import datetime
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from typing import (
-    List,
-    Callable,
-    Optional,
-    Any
-)
+from typing import (List, Optional, Union)
 
-from fedot.core.composer.chain import Chain
-from fedot.core.composer.node import NodeGenerator
-from fedot.core.models.data import InputData
+from fedot.core.composer.advisor import PipelineChangeAdvisor
+from fedot.core.data.data import InputData
+from fedot.core.log import Log, default_log
+from fedot.core.pipelines.pipeline import Pipeline
+from fedot.core.repository.quality_metrics_repository import (MetricsEnum)
 
 
 @dataclass
 class ComposerRequirements:
-    primary: List[Enum]
-    secondary: List[Enum]
-    max_lead_time: Optional[datetime.timedelta] = datetime.timedelta(minutes=30)
-    min_depth: int = 2
+    """
+    This dataclass is for defining the requirements of composition process
+
+    :attribute primary: List of operation types (str) for Primary Nodes
+    :attribute secondary: List of operation types (str) for Secondary Nodes
+    :attribute timeout: max time in minutes available for composition process
+    :attribute max_depth: max depth of the result pipeline
+    :attribute max_pipeline_fit_time: time constraint for operation fitting (minutes)
+    :attribute max_arity: maximal number of parent for node
+    :attribute min_arity: minimal number of parent for node
+    :attribute cv_folds: integer or None to use cross validation
+    """
+    primary: List[str]
+    secondary: List[str]
+    timeout: Optional[datetime.timedelta] = datetime.timedelta(minutes=5)
+    max_pipeline_fit_time: Optional[datetime.timedelta] = None
     max_depth: int = 3
     max_arity: int = 2
     min_arity: int = 2
+    cv_folds: Optional[int] = None
+    advisor: Optional[PipelineChangeAdvisor] = PipelineChangeAdvisor()
 
     def __post_init__(self):
         if self.max_depth < 0:
@@ -31,59 +41,42 @@ class ComposerRequirements:
             raise ValueError(f'invalid max_arity value')
         if self.min_arity < 0:
             raise ValueError(f'invalid min_arity value')
+        if self.cv_folds is not None and self.cv_folds <= 1:
+            raise ValueError(f'Number of folds for KFold cross validation must be 2 or more.')
 
 
 class Composer(ABC):
-    def __init__(self):
-        self.history = None
+    """
+    Base class used for receiving composite operations via optimization
+    :param optimiser: optimiser generated in GPComposerBuilder
+    :param metrics: metrics used to define the quality of found solution.
+    :param composer_requirements: requirements for composition process
+    :param initial_pipeline: defines the initial state of the population. If None then initial population is random.
+    :param log: optional parameter for log oject
+    """
+
+    def __init__(self, optimiser=None,
+                 composer_requirements: Optional[ComposerRequirements] = None,
+                 metrics: Union[List[MetricsEnum], MetricsEnum] = None,
+                 initial_pipeline: Optional[Pipeline] = None,
+                 logger: Log = None):
+        self.metrics = metrics
+        self.composer_requirements = composer_requirements
+        self.initial_pipeline = initial_pipeline
+
+        if not logger:
+            self.log = default_log(__name__)
+        else:
+            self.log = logger
 
     @abstractmethod
-    def compose_chain(self, data: InputData,
-                      initial_chain: Optional[Chain],
-                      composer_requirements: ComposerRequirements,
-                      metrics: Callable,
-                      optimiser_parameters: Any = None,
-                      is_visualise: bool = False) -> Chain:
+    def compose_pipeline(self, data: InputData,
+                         is_visualise: bool = False) -> Pipeline:
+        """
+        Base method to run the composition process
+
+        :param data: data used for problem solving
+        :param is_visualise: flag to enable visualization. Default False.
+        :return: Pipeline object
+        """
         raise NotImplementedError()
-
-
-class DummyChainTypeEnum(Enum):
-    flat = 1,
-    hierarchical = 2
-
-
-class DummyComposer(Composer):
-    def __init__(self, dummy_chain_type):
-        super(Composer, self).__init__()
-        self.dummy_chain_type = dummy_chain_type
-
-    def compose_chain(self, data: InputData,
-                      initial_chain: Optional[Chain],
-                      composer_requirements: ComposerRequirements,
-                      metrics: Optional[Callable],
-                      optimiser_parameters=None,
-                      is_visualise: bool = False) -> Chain:
-        new_chain = Chain()
-
-        if self.dummy_chain_type == DummyChainTypeEnum.hierarchical:
-            # (y1, y2) -> y
-            last_node = NodeGenerator.secondary_node(composer_requirements.secondary[0])
-
-            for requirement_model in composer_requirements.primary:
-                new_node = NodeGenerator.primary_node(requirement_model)
-                new_chain.add_node(new_node)
-                last_node.nodes_from.append(new_node)
-            new_chain.add_node(last_node)
-        elif self.dummy_chain_type == DummyChainTypeEnum.flat:
-            # (y1) -> (y2) -> y
-            first_node = NodeGenerator.primary_node(composer_requirements.primary[0])
-            new_chain.add_node(first_node)
-            prev_node = first_node
-            for requirement_model in composer_requirements.secondary:
-                new_node = NodeGenerator.secondary_node(requirement_model)
-                new_node.nodes_from = [prev_node]
-                prev_node = new_node
-                new_chain.add_node(new_node)
-        else:
-            raise NotImplementedError()
-        return new_chain

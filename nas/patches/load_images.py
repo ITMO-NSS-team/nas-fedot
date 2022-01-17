@@ -1,11 +1,14 @@
-from fedot.core.models.data import InputData
-from fedot.core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum
-import numpy as np
-import cv2
 import json
 import os
 from os.path import isfile, join
+
+import cv2.cv2 as cv2
+import numpy as np
 from sklearn.model_selection import train_test_split
+
+from fedot.core.data.data import InputData
+from fedot.core.repository.dataset_types import DataTypesEnum
+from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 
 def load_images(file_path, size=120, number_of_classes=10, is_train=True):
@@ -45,13 +48,14 @@ def load_images(file_path, size=120, number_of_classes=10, is_train=True):
     return Xarr, Yarr
 
 
-def from_images(file_path, num_classes, task_type: TaskTypesEnum = MachineLearningTasksEnum.classification):
+def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum.classification):
     Xtrain, Ytrain = load_images(file_path, size=120, number_of_classes=num_classes, is_train=True)
     Xtrain, Xval, Ytrain, Yval = train_test_split(Xtrain, Ytrain, random_state=1, train_size=0.8)
+    task = Task(task_type=task_type, task_params=None)
     train_input_data = InputData(idx=np.arange(0, len(Xtrain)), features=Xtrain, target=np.array(Ytrain),
-                                 task_type=task_type)
+                                 task=task, data_type=DataTypesEnum.image)
     val_input_data = InputData(idx=np.arange(0, len(Xval)), features=Xval, target=np.array(Yval),
-                               task_type=task_type)
+                               task=task, data_type=DataTypesEnum.image)
     # test_input_data = InputData(idx=np.arange(0, len(Xtest)), features=Xtest, target=np.array(Ytest),
     #                            task_type=task_type)
 

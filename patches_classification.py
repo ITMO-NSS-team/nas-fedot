@@ -5,18 +5,18 @@ import sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 sys.path.append(ROOT)
-sys.path.append(os.path.join(ROOT, "fedot"))
+sys.path.append(os.path.join(ROOT, "fedot_old"))
 
 import random
 import statistics
 from typing import Optional, Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
-from fedot.core.composer.optimisers.gp_optimiser import GPChainOptimiserParameters
-from fedot.core.composer.visualisation import ComposerVisualiser
-from fedot.core.composer.chain import Chain
-from fedot.core.models.model import *
-from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from fedot.core.models.data import InputData
+from fedot_old.core.composer.optimisers.gp_optimiser import GPChainOptimiserParameters
+from fedot_old.core.composer.visualisation import ComposerVisualiser
+from fedot_old.core.composer.chain import Chain
+from fedot_old.core.models.model import *
+from fedot_old.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from fedot_old.core.models.data import InputData
 from nas.composer.gp_cnn_composer import GPNNComposer, GPNNComposerRequirements
 from nas.layer import LayerTypesIdsEnum
 from nas.patches.load_images import from_images
@@ -109,18 +109,17 @@ def run_patches_classification(file_path,
     composer_requirements = GPNNComposerRequirements(
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
         primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=2,
-        max_depth=7, pop_size=15, num_of_generations=20,
-        crossover_prob=0.8, mutation_prob=0.2, max_lead_time=max_lead_time,
-        image_size=[size, size], train_epochs_num=5, num_of_classes=number_of_classes)
+        max_depth=7, pop_size=3, num_of_generations=3,
+        crossover_prob=0.8, mutation_prob=0.2,
+        image_size=[size, size], train_epochs_num=1, num_of_classes=number_of_classes)
 
     # Create GP-based composer
-    composer = GPNNComposer()
+    composer = GPNNComposer(composer_requirements=composer_requirements, )
 
     gp_optimiser_params = gp_optimiser_params if gp_optimiser_params else None
     # the optimal chain generation by composition - the most time-consuming task
     chain_evo_composed = composer.compose_chain(data=dataset_to_compose,
                                                 initial_chain=None,
-                                                composer_requirements=composer_requirements,
                                                 metrics=metric_function,
                                                 is_visualise=True, optimiser_parameters=gp_optimiser_params)
 

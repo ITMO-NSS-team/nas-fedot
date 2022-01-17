@@ -1,86 +1,325 @@
+import gc
+import platform
 from dataclasses import dataclass
 from functools import partial
-from typing import (
-    Callable,
-    Optional,
-)
+from multiprocessing import set_start_method
+from typing import Any, Callable, List, Optional, Tuple, Union
 
-from fedot.core.chain_validation import validate
-from fedot.core.composer.chain import Chain, SharedChain
+from deap import tools
+
+from fedot.core.composer.advisor import PipelineChangeAdvisor
+from fedot.core.composer.cache import OperationsCache
 from fedot.core.composer.composer import Composer, ComposerRequirements
-from fedot.core.composer.node import NodeGenerator
-from fedot.core.composer.optimisers.crossover import CrossoverTypesEnum, crossover_by_type
-from fedot.core.composer.optimisers.gp_operators import random_ml_chain
-from fedot.core.composer.optimisers.gp_optimiser import GPChainOptimiser, GPChainOptimiserParameters
-from fedot.core.composer.optimisers.mutation import MutationTypesEnum, MutationStrengthEnum, mutation_by_type
-from fedot.core.composer.optimisers.selection import SelectionTypesEnum
-from fedot.core.composer.visualisation import ComposerVisualiser
-from fedot.core.composer.write_history import write_composer_history_to_csv
-from fedot.core.models.data import InputData
-from fedot.core.models.data import train_test_data_setup
+from fedot.core.composer.gp_composer.specific_operators import boosting_mutation, parameter_change_mutation
+from fedot.core.data.data import InputData
+from fedot.core.data.data_split import train_test_data_setup
+from fedot.core.data.multi_modal import MultiModalData
+from fedot.core.log import Log, default_log
+from fedot.core.optimisers.adapters import PipelineAdapter
+from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiser, GPGraphOptimiserParameters, \
+    GraphGenerationParams
+from fedot.core.optimisers.gp_comp.operators.inheritance import GeneticSchemeTypesEnum
+from fedot.core.optimisers.gp_comp.operators.mutation import MutationStrengthEnum, single_add_mutation, \
+    single_change_mutation, single_drop_mutation, single_edge_mutation, MutationTypesEnum
+from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
+from fedot.core.optimisers.gp_comp.param_free_gp_optimiser import GPGraphParameterFreeOptimiser
+from fedot.core.pipelines.pipeline import Pipeline
+from fedot.core.pipelines.validation import validate, ts_rules, common_rules
+from fedot.core.repository.operation_types_repository import OperationTypesRepository, get_operations_for_task
+from fedot.core.repository.quality_metrics_repository import (ClassificationMetricsEnum, MetricsEnum,
+                                                              MetricsRepository, RegressionMetricsEnum)
+from fedot.core.repository.tasks import Task, TaskTypesEnum
+from fedot.core.validation.compose.tabular import table_metric_calculation
+from fedot.core.validation.compose.time_series import ts_metric_calculation
+
+sample_split_ratio_for_tasks = {
+    TaskTypesEnum.classification: 0.8,
+    TaskTypesEnum.regression: 0.8,
+    TaskTypesEnum.ts_forecasting: 0.5
+}
+
+
+def set_multiprocess_start_method():
+    system = platform.system()
+    if system == 'Linux':
+        set_start_method("spawn", force=True)
 
 
 @dataclass
 class GPComposerRequirements(ComposerRequirements):
-    pop_size: Optional[int] = 50
-    num_of_generations: Optional[int] = 50
-    crossover_prob: Optional[float] = None
-    mutation_prob: Optional[float] = None
+    """
+    Dataclass is for defining the requirements for composition process of genetic programming composer
+
+    :attribute pop_size: population size
+    :attribute num_of_generations: maximal number of evolutionary algorithm generations
+    :attribute crossover_prob: crossover probability (the chance that two chromosomes exchange some of their parts)
+    :attribute mutation_prob: mutation probability
+    :attribute mutation_strength: strength of mutation in tree (using in certain mutation types)
+    :attribute start_depth: start value of tree depth
+    :attribute validation_blocks: number of validation blocks for time series validation
+    """
+    pop_size: Optional[int] = 20
+    num_of_generations: Optional[int] = 20
+    crossover_prob: Optional[float] = 0.8
+    mutation_prob: Optional[float] = 0.8
     mutation_strength: MutationStrengthEnum = MutationStrengthEnum.mean
+    start_depth: int = None
+    validation_blocks: int = None
 
 
 class GPComposer(Composer):
-    def __init__(self):
-        super().__init__()
-        self.shared_cache = {}
+    """
+    Genetic programming based composer
+    :param optimiser: optimiser generated in GPComposerBuilder
+    :param metrics: metrics used to define the quality of found solution.
+    :param composer_requirements: requirements for composition process
+    :param initial_pipeline: defines the initial state of the population. If None then initial population is random.
+    """
 
-    def compose_chain(self, data: InputData, initial_chain: Optional[Chain],
-                      composer_requirements: Optional[GPComposerRequirements],
-                      metrics: Optional[Callable], optimiser_parameters: GPChainOptimiserParameters = None,
-                      is_visualise: bool = False) -> Chain:
+    def __init__(self, optimiser=None,
+                 composer_requirements: Optional[GPComposerRequirements] = None,
+                 metrics: Union[List[MetricsEnum], MetricsEnum] = None,
+                 initial_pipeline: Optional[Pipeline] = None,
+                 logger: Log = None):
 
-        train_data, test_data = train_test_data_setup(data, 0.8)
-        self.shared_cache.clear()
+        super().__init__(metrics=metrics, composer_requirements=composer_requirements,
+                         initial_pipeline=initial_pipeline)
 
-        if not optimiser_parameters:
-            self.optimiser_parameters = GPChainOptimiserParameters(chain_generation_function=random_ml_chain,
-                                                                   crossover_types=[CrossoverTypesEnum.subtree,
-                                                                                    CrossoverTypesEnum.onepoint],
-                                                                   crossover_types_dict=crossover_by_type,
-                                                                   mutation_types=[MutationTypesEnum.simple,
-                                                                                   MutationTypesEnum.local_growth,
-                                                                                   MutationTypesEnum.reduce],
-                                                                   mutation_types_dict=mutation_by_type,
-                                                                   selection_types=[SelectionTypesEnum.tournament])
+        self.cache = OperationsCache()
+
+        self.optimiser = optimiser
+        self.cache_path = None
+        self.use_existing_cache = False
+
+        if not logger:
+            self.log = default_log(__name__)
         else:
-            self.optimiser_parameters = optimiser_parameters
+            self.log = logger
 
-        metric_function_for_nodes = partial(self.metric_for_nodes,
-                                            metrics, train_data, test_data, True)
+    def compose_pipeline(self, data: Union[InputData, MultiModalData], is_visualise: bool = False,
+                         is_tune: bool = False,
+                         on_next_iteration_callback: Optional[Callable] = None) -> Union[Pipeline, List[Pipeline]]:
+        """ Function for optimal pipeline structure searching
+        :param data: InputData for pipeline composing
+        :param is_visualise: is it needed to visualise
+        :param is_tune: is it needed to tune pipeline after composing TODO integrate new tuner
+        :param on_next_iteration_callback: TODO add description
+        :return best_pipeline: obtained result after composing: one pipeline for single-objective optimization;
+            For the multi-objective case, the list of the graph is returned.
+            In the list, the pipelines are ordered by the descending of primary metric (the first is the best)
+        """
 
-        optimiser = GPChainOptimiser(initial_chain=initial_chain,
-                                     requirements=composer_requirements,
-                                     primary_node_func=NodeGenerator.primary_node,
-                                     secondary_node_func=NodeGenerator.secondary_node, chain_class=Chain,
-                                     parameters=self.optimiser_parameters)
+        self.optimiser.graph_generation_params.advisor.task = data.task
 
-        best_chain, self.history = optimiser.optimise(metric_function_for_nodes)
-        historical_fitness = [chain.fitness for chain in self.history]
+        if data.task == TaskTypesEnum.ts_forecasting:
+            self.optimiser.graph_generation_params.rules_for_constraint = ts_rules + common_rules
+        else:
+            self.optimiser.graph_generation_params.rules_for_constraint = common_rules
 
-        if is_visualise:
-            ComposerVisualiser.visualise_history(self.history, historical_fitness)
+        if self.composer_requirements.max_pipeline_fit_time:
+            set_multiprocess_start_method()
 
-        write_composer_history_to_csv(historical_fitness=historical_fitness, historical_chains=self.history,
-                                      pop_size=composer_requirements.pop_size)
+        if not self.optimiser:
+            raise AttributeError(f'Optimiser for graph composition is not defined')
 
-        print('GP composition finished')
-        return best_chain
+        # shuffle data if necessary
+        data.shuffle()
 
-    def metric_for_nodes(self, metric_function, train_data: InputData,
-                         test_data: InputData, is_chain_shared: bool,
-                         chain: Chain) -> float:
-        validate(chain)
-        if is_chain_shared:
-            chain = SharedChain(base_chain=chain, shared_cache=self.shared_cache)
-        chain.fit(input_data=train_data)
-        return metric_function(chain, test_data)
+        if self.composer_requirements.cv_folds is not None:
+            objective_function_for_pipeline = self._cv_validation_metric_build(data)
+        else:
+            self.log.info("Hold out validation for graph composing was applied.")
+            split_ratio = sample_split_ratio_for_tasks[data.task.task_type]
+            train_data, test_data = train_test_data_setup(data, split_ratio)
+            objective_function_for_pipeline = partial(self.composer_metric, self.metrics, train_data, test_data)
+
+        if self.cache_path is None:
+            self.cache.clear()
+        else:
+            self.cache.clear(tmp_only=True)
+            self.cache = OperationsCache(self.cache_path, clear_exiting=not self.use_existing_cache)
+
+        best_pipeline = self.optimiser.optimise(objective_function_for_pipeline,
+                                                on_next_iteration_callback=on_next_iteration_callback)
+
+        self.log.info('GP composition finished')
+        self.cache.clear()
+        if is_tune:
+            self.tune_pipeline(best_pipeline, data, self.composer_requirements.timeout)
+        return best_pipeline
+
+    def _cv_validation_metric_build(self, data):
+        """ Prepare function for metric evaluation based on task """
+        if isinstance(data, MultiModalData):
+            raise NotImplementedError('Cross-validation is not supported for multi-modal data')
+        task_type = data.task.task_type
+        if task_type is TaskTypesEnum.ts_forecasting:
+            # Perform time series cross validation
+            self.log.info("Time series cross validation for pipeline composing was applied.")
+            if self.composer_requirements.validation_blocks is None:
+                self.log.info('For ts cross validation validation_blocks number was changed from None to 3 blocks')
+                self.composer_requirements.validation_blocks = 3
+            metric_function_for_nodes = partial(ts_metric_calculation, data,
+                                                self.composer_requirements.cv_folds,
+                                                self.composer_requirements.validation_blocks,
+                                                self.metrics,
+                                                log=self.log)
+        else:
+            self.log.info("KFolds cross validation for pipeline composing was applied.")
+            metric_function_for_nodes = partial(table_metric_calculation, data,
+                                                self.composer_requirements.cv_folds,
+                                                self.metrics,
+                                                log=self.log)
+
+        return metric_function_for_nodes
+
+    def composer_metric(self, metrics,
+                        train_data: Union[InputData, MultiModalData],
+                        test_data: Union[InputData, MultiModalData],
+                        pipeline: Pipeline) -> Optional[Tuple[Any]]:
+        try:
+            validate(pipeline, task=train_data.task)
+            pipeline.log = self.log
+
+            if type(metrics) is not list:
+                metrics = [metrics]
+
+            if self.cache is not None:
+                # TODO improve cache
+                pipeline.fit_from_cache(self.cache)
+
+            if not pipeline.is_fitted:
+                self.log.debug(f'Pipeline {pipeline.root_node.descriptive_id} fit started')
+                pipeline.fit(input_data=train_data,
+                             time_constraint=self.composer_requirements.max_pipeline_fit_time)
+                try:
+                    self.cache.save_pipeline(pipeline)
+                except Exception as ex:
+                    self.log.info(f'Cache can not be saved: {ex}. Continue.')
+
+            evaluated_metrics = ()
+            for metric in metrics:
+                if callable(metric):
+                    metric_func = metric
+                else:
+                    metric_func = MetricsRepository().metric_by_id(metric)
+                evaluated_metrics = evaluated_metrics + (metric_func(pipeline, reference_data=test_data),)
+
+            self.log.debug(f'Pipeline {pipeline.root_node.descriptive_id} with metrics: {list(evaluated_metrics)}')
+
+            # enforce memory cleaning
+            pipeline.unfit()
+            gc.collect()
+        except Exception as ex:
+            self.log.info(f'Pipeline assessment warning: {ex}. Continue.')
+            evaluated_metrics = None
+
+        return evaluated_metrics
+
+    @staticmethod
+    def tune_pipeline(pipeline: Pipeline, data: InputData, time_limit):
+        raise NotImplementedError()
+
+    @property
+    def history(self):
+        return self.optimiser.history
+
+
+class GPComposerBuilder:
+    def __init__(self, task: Task):
+        self._composer = GPComposer()
+        self.optimiser_parameters = GPGraphOptimiserParameters()
+        self.task = task
+        self.set_default_composer_params()
+
+    def can_be_secondary_requirement(self, operation):
+        models_repo = OperationTypesRepository()
+        data_operations_repo = OperationTypesRepository(operation_type='data_operation')
+
+        operation_name = models_repo.operation_info_by_id(operation)
+        if operation_name is None:
+            operation_name = data_operations_repo.operation_info_by_id(operation)
+        operation_tags = operation_name.tags
+
+        secondary_model = True
+        # TODO remove 'data_model'
+        if 'data_model' in operation_tags:
+            secondary_model = False
+        return secondary_model
+
+    def with_optimiser_parameters(self, optimiser_parameters: GPGraphOptimiserParameters):
+        self.optimiser_parameters = optimiser_parameters
+        return self
+
+    def with_requirements(self, requirements: GPComposerRequirements):
+        # TODO move this functionality in composer
+        requirements.secondary = list(filter(self.can_be_secondary_requirement, requirements.secondary))
+        self._composer.composer_requirements = requirements
+        return self
+
+    def with_metrics(self, metrics: Union[List[MetricsEnum], MetricsEnum]):
+        if type(metrics) is not list:
+            metrics = [metrics]
+        self._composer.metrics = metrics
+        return self
+
+    def with_initial_pipeline(self, initial_pipeline: Optional[Pipeline]):
+        self._composer.initial_pipeline = initial_pipeline
+        return self
+
+    def with_logger(self, logger):
+        self._composer.log = logger
+        return self
+
+    def with_cache(self, cache_path: str = None, use_existing=False):
+        self._composer.cache_path = cache_path
+        self._composer.use_existing_cache = use_existing
+        return self
+
+    def set_default_composer_params(self):
+        """ Method set metrics and composer requirements """
+        if not self._composer.composer_requirements:
+            # Get all available operations for task
+            operations = get_operations_for_task(task=self.task, mode='all')
+
+            # Set protected attributes to composer
+            self._composer.composer_requirements = GPComposerRequirements(primary=operations, secondary=operations)
+        if not self._composer.metrics:
+            metric_function = ClassificationMetricsEnum.ROCAUC_penalty
+            if self.task.task_type in (TaskTypesEnum.regression, TaskTypesEnum.ts_forecasting):
+                metric_function = RegressionMetricsEnum.RMSE
+
+            # Set metric
+            self._composer.metrics = [metric_function]
+
+    def build(self) -> Composer:
+        optimiser_type = GPGraphOptimiser
+        if self.optimiser_parameters.genetic_scheme_type == GeneticSchemeTypesEnum.parameter_free:
+            optimiser_type = GPGraphParameterFreeOptimiser
+
+        graph_generation_params = GraphGenerationParams(adapter=PipelineAdapter(self._composer.log),
+                                                        advisor=PipelineChangeAdvisor())
+
+        archive_type = None
+        if len(self._composer.metrics) > 1:
+            archive_type = tools.ParetoFront()
+            # TODO add possibility of using regularization in MO alg
+            self.optimiser_parameters.regularization_type = RegularizationTypesEnum.none
+            self.optimiser_parameters.multi_objective = True
+
+        if self.optimiser_parameters.mutation_types is None:
+            self.optimiser_parameters.mutation_types = [boosting_mutation, parameter_change_mutation,
+                                                        MutationTypesEnum.single_edge,
+                                                        MutationTypesEnum.single_change,
+                                                        MutationTypesEnum.single_drop,
+                                                        MutationTypesEnum.single_add]
+
+        optimiser = optimiser_type(initial_graph=self._composer.initial_pipeline,
+                                   requirements=self._composer.composer_requirements,
+                                   graph_generation_params=graph_generation_params,
+                                   parameters=self.optimiser_parameters, log=self._composer.log,
+                                   archive_type=archive_type, metrics=self._composer.metrics)
+
+        self._composer.optimiser = optimiser
+
+        return self._composer

@@ -1,29 +1,24 @@
 from copy import copy
 from functools import partial
 from random import randint
-from typing import (
-    List,
-    Callable,
-    Optional,
-    Any
-)
+from typing import (Any, Callable, List, Optional)
 
 from numpy import random
 
-from core.composer.chain import Chain, Node
-from core.composer.composer import ComposerRequirements
-from core.composer.node import NodeGenerator
-from core.models.data import InputData
+from fedot.core.composer.composer import ComposerRequirements
+from fedot.core.data.data import InputData
+from fedot.core.pipelines.node import PrimaryNode, SecondaryNode
+from fedot.core.pipelines.pipeline import Node, Pipeline
 
 
 class RandomSearchComposer:
     def __init__(self, iter_num: int = 10):
         self.__iter_num = iter_num
 
-    def compose_chain(self, data: InputData,
-                      initial_chain: Optional[Chain],
-                      composer_requirements: ComposerRequirements,
-                      metrics: Optional[Callable]) -> Chain:
+    def compose_pipeline(self, data: InputData,
+                         initial_pipeline: Optional[Pipeline],
+                         composer_requirements: ComposerRequirements,
+                         metrics: Optional[Callable]) -> Pipeline:
         # TODO: fix this later?
         train_data = data
         test_data = data
@@ -32,29 +27,27 @@ class RandomSearchComposer:
                                             train_data=train_data,
                                             test_data=test_data)
 
-        optimiser = RandomSearchOptimiser(self.__iter_num,
-                                          NodeGenerator.primary_node,
-                                          NodeGenerator.secondary_node)
+        optimiser = RandomSearchOptimiser(self.__iter_num, PrimaryNode, SecondaryNode)
         best_nodes_set, history = optimiser.optimise(metric_function_for_nodes,
                                                      composer_requirements.primary,
                                                      composer_requirements.secondary)
 
-        best_chain = Chain()
-        [best_chain.add_node(nodes) for nodes in best_nodes_set]
+        best_pipeline = Pipeline()
+        [best_pipeline.add_node(nodes) for nodes in best_nodes_set]
 
-        return best_chain
+        return best_pipeline
 
 
-def nodes_to_chain(nodes: List[Node]) -> Chain:
-    chain = Chain()
-    [chain.add_node(nodes) for nodes in nodes]
-    return chain
+def nodes_to_pipeline(nodes: List[Node]) -> Pipeline:
+    pipeline = Pipeline()
+    [pipeline.add_node(nodes) for nodes in nodes]
+    return pipeline
 
 
 def metric_for_nodes(metric_function, nodes: List[Node], train_data: InputData, test_data: InputData) -> float:
-    chain = nodes_to_chain(nodes)
-    chain.fit(input_data=train_data)
-    return metric_function(chain, test_data)
+    pipeline = nodes_to_pipeline(nodes)
+    pipeline.fit(input_data=train_data)
+    return metric_function(pipeline, test_data)
 
 
 class RandomSearchOptimiser:
@@ -79,7 +72,7 @@ class RandomSearchOptimiser:
             if new_metric_value < best_metric_value:
                 best_metric_value = new_metric_value
                 best_set = new_nodeset
-                print(f'Better chain found: metric {best_metric_value}')
+                print(f'Better pipeline found: metric {best_metric_value}')
 
         return best_set, history
 
@@ -88,13 +81,13 @@ class RandomSearchOptimiser:
 
         # random primary nodes
         num_of_primary = randint(1, len(primary_requirements))
-        random_first_models = random.choice(primary_requirements, num_of_primary, replace=False)
-        [new_set.append(self.__primary_node_func(model)) for model in random_first_models]
+        random_first_operations = random.choice(primary_requirements, num_of_primary, replace=False)
+        [new_set.append(self.__primary_node_func(operation)) for operation in random_first_operations]
 
         # random final node
         if len(new_set) > 1:
-            random_final_model = random.choice(secondary_requirements, replace=False)
+            random_final_operation = random.choice(secondary_requirements, replace=False)
             parent_nodes = copy(new_set)
-            new_set.append(self.__secondary_node_func(random_final_model, parent_nodes))
+            new_set.append(self.__secondary_node_func(random_final_operation, parent_nodes))
 
         return new_set

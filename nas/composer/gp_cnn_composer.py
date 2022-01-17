@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 from functools import partial
 from typing import (
@@ -7,15 +8,30 @@ from typing import (
     List
 )
 
+import numpy as np
+import pandas as pd
+
+# from fedot_old.core.composer.composer import Composer
 from fedot.core.composer.composer import Composer
 from fedot.core.composer.gp_composer.gp_composer import GPComposerRequirements
-from fedot.core.composer.optimisers.gp_optimiser import GPChainOptimiser, GPChainOptimiserParameters
-from fedot.core.composer.optimisers.selection import SelectionTypesEnum
-from fedot.core.composer.visualisation import ComposerVisualiser
-from fedot.core.composer.write_history import write_composer_history_to_csv
-from fedot.core.models.data import InputData
-from fedot.core.models.data import train_test_data_setup
-from nas.cnn_crossover import CrossoverTypesEnum
+# from fedot.core.optimisers.opt_history import OptHistory
+# from fedot_old.core.models.data import InputData
+from fedot.core.data.data import InputData
+# from fedot_old.core.models.data import train_test_data_setup
+from fedot.core.data.data_split import train_test_data_setup
+from fedot.core.log import default_log
+from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiser, GPGraphOptimiserParameters, \
+    GeneticSchemeTypesEnum
+from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
+from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
+# from fedot_old.core.composer.optimisers.selection import SelectionTypesEnum
+from fedot.core.optimisers.gp_comp.operators.selection import SelectionTypesEnum
+from fedot.core.optimisers.graph import OptGraph, OptNode
+from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+from fedot_old.core.composer.optimisers.gp_optimiser import GPChainOptimiser, GPChainOptimiserParameters
+from fedot_old.core.composer.visualisation import ComposerVisualiser
+from fedot_old.core.composer.write_history import write_composer_history_to_csv
+# from nas.cnn_crossover import CrossoverTypesEnum
 from nas.cnn_crossover import crossover_by_type
 from nas.cnn_gp_operators import permissible_kernel_parameters_correct, random_cnn_chain
 from nas.cnn_mutation import MutationTypesEnum
@@ -23,6 +39,10 @@ from nas.cnn_mutation import mutation_by_type
 from nas.layer import LayerTypesIdsEnum, activation_types
 from nas.nas_chain import NASChain
 from nas.nas_node import NNNodeGenerator
+
+# from fedot_old.core.composer.gp_composer.gp_composer import GPComposerRequirements
+random.seed(1)
+np.random.seed(1)
 
 
 @dataclass
@@ -33,9 +53,9 @@ class GPNNComposerRequirements(GPComposerRequirements):
     pool_strides: Tuple[int, int] = (2, 2)
     min_num_of_neurons: int = 50
     max_num_of_neurons: int = 200
-    min_filters = 64
-    max_filters = 128
-    channels_num = 3
+    min_filters: int = 64
+    max_filters: int = 128
+    channels_num: int = 3
     max_drop_size: int = 0.5
     image_size: List[int] = None
     conv_types: List[LayerTypesIdsEnum] = None
@@ -45,7 +65,7 @@ class GPNNComposerRequirements(GPComposerRequirements):
     batch_size: int = 72
     num_of_classes: int = 10
     activation_types = activation_types
-    max_num_of_conv_layers = 7
+    max_num_of_conv_layers = 4
     min_num_of_conv_layers = 2
 
     def __post_init__(self):
@@ -97,15 +117,20 @@ class GPNNComposerRequirements(GPComposerRequirements):
 
 
 class GPNNComposer(Composer):
-    def __init__(self):
+    def __init__(self, composer_requirements: 'GPNNComposerRequirements'):
         super().__init__()
+        self.composer_requirements = composer_requirements
+
+    def compose_pipeline(self, data: InputData,
+                         is_visualise: bool = False):
+        pass
 
     def compose_chain(self, data: InputData, initial_chain: Optional[NASChain],
-                      composer_requirements: Optional[GPNNComposerRequirements],
+                      # composer_requirements: Optional[GPNNComposerRequirements] = composer_requirements,
                       metrics: Optional[Callable], optimiser_parameters: GPChainOptimiserParameters = None,
                       is_visualise: bool = False) -> NASChain:
         train_data, test_data = train_test_data_setup(data, 0.8)
-
+        composer_requirements = self.composer_requirements
         input_shape = [size for size in composer_requirements.image_size]
         input_shape.append(composer_requirements.channels_num)
         input_shape = tuple(input_shape)
@@ -130,9 +155,7 @@ class GPNNComposer(Composer):
                                      primary_node_func=NNNodeGenerator.primary_node,
                                      secondary_node_func=NNNodeGenerator.secondary_node, chain_class=NASChain,
                                      parameters=self.optimiser_parameters)
-
         best_chain, self.history = optimiser.optimise(metric_function_for_nodes)
-
         historical_fitness = [chain.fitness for chain in self.history]
 
         if is_visualise:

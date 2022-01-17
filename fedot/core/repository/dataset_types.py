@@ -1,22 +1,15 @@
-from enum import Enum
+from fedot.core.utils import ComparableEnum as Enum
 
 
 class DataTypesEnum(Enum):
-    pass
+    # Table with columns as features for predictions
+    table = 'feature_table'
 
+    # One dimensional array - time series
+    ts = 'time_series'
 
-class NumericalDataTypesEnum(DataTypesEnum):
-    vector = 'numerical_vector'
-    table = 'numerical_table'
-    ts = 'numerical_timeseries'
-
-
-class CategoricalDataTypesEnum(DataTypesEnum):
-    vector = 'categoriсal_vector'
-    table = 'categoriсal_table'
-    ts = 'categoriсal_timeseries'
-
-
-class SpecialDataTypesEnum(DataTypesEnum):
+    # Table, where cells contains text
     text = 'text'
-    binary = 'binary'
+
+    # Images represented as 3d arrays
+    image = 'image'
