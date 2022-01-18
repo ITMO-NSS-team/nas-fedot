@@ -11,7 +11,6 @@ from nas.graph_nas_node import NNNode
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 sys.path.append(ROOT)
-sys.path.append(os.path.join(ROOT, "fedot_old"))
 
 from typing import Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
@@ -47,7 +46,6 @@ class CustomGraphNode(NNNode):
         super().__init__(content, nodes_from, layer_params)
 
     def __repr__(self):
-        # return f"{self.layer_params.activation.name},{self.layer_params.layer_type.name},{self.layer_params.neurons}"
         return f"Node_repr_{self.layer_params.layer_type.name}"
 
 
@@ -58,14 +56,10 @@ def _has_no_duplicates(graph):
     return True
 
 
-def calculate_validation_metric_multiclass(chain: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[
+def calculate_validation_metric_multiclass(graph: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[
     float, float, float]:
     # the execution of the obtained composite models
-    predicted = chain.predict(dataset_to_validate)
-    # the quality assessment for the simulation results
-    # roc_auc_value = roc_auc(y_true=dataset_to_validate.target,
-    #                         y_score=predicted.predict,
-    #                         multi_class="ovr", average="weighted")
+    predicted = graph.predict(dataset_to_validate)
     y_pred = []
     roc_auc_values = []
     for predict, true in zip(predicted.predict, dataset_to_validate.target):
@@ -88,32 +82,24 @@ def calculate_validation_metric_multiclass(chain: CustomGraphModel, dataset_to_v
     return roc_auc_value, log_loss_value, accuracy_score_value
 
 
-def calculate_validation_metric(chain: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[float, float, float]:
+def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[float, float, float]:
     # the execution of the obtained composite models
-    predicted = chain.predict(dataset_to_validate)
+    predicted = graph.predict(dataset_to_validate)
     # the quality assessment for the simulation results
     roc_auc_value = roc_auc(y_true=dataset_to_validate.target,
                             y_score=predicted.predict,
                             multi_class="ovo", average="macro")
-    y_pred = []
     y_values_pred = [[0, 0, 0] for _ in range(predicted.idx.size)]
     for i, predict in enumerate(predicted.predict):
-        # true_class = dataset_to_validate.target[i]
-        # y_class_pred = predict[true_class]
         y_class_pred = np.argmax(predict)
-        # y_class_pred2 = np.argmax(predict)
         y_values_pred[i][y_class_pred] = 1
 
-        # y_pred.append(predicted.predict)
     y_pred = np.array([predict for predict in predicted.predict])
     y_values_pred = np.array(y_values_pred)
     log_loss_value = log_loss(y_true=dataset_to_validate.target,
                               y_pred=y_pred)
-    # y_pred = [round(predict[0]) for predict in predicted.predict]
-    # y_pred_acc = [predict for predict in y_values_pred]
     accuracy_score_value = accuracy_score(dataset_to_validate.target,
                                           y_values_pred)
-    # np.ones((len(y_pred), len(dataset_to_validate.target))))
 
     return roc_auc_value, log_loss_value, accuracy_score_value
 
@@ -145,7 +131,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
         primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=3,
-        max_depth=6, pop_size=2, num_of_generations=2, crossover_prob=0.8, mutation_prob=0.8,
+        max_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     optimiser = GPNNGraphOptimiser(
         initial_graph=None, requirements=requirements, graph_generation_params=graph_generation_params,
@@ -172,13 +158,13 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = 'model.json'
+    json_file = 'model_3cls.json'
     model_json = optimized_network.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
-
-    # return roc_on_valid_evo_composed, chain_evo_composed
+    # saving the weights of the model
+    optimized_network.model.save_weights('model_3cls.h5')
     return optimized_network
 
 

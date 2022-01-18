@@ -140,8 +140,8 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
         primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=3,
         max_depth=6, pop_size=5, num_of_generations=5,
-        crossover_prob=0.8, mutation_prob=0.8,
-        train_epochs_num=1, num_of_classes=num_of_classes, timeout=timeout)
+        crossover_prob=0, mutation_prob=0,
+        train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
 
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     optimiser = GPNNGraphOptimiser(
@@ -152,13 +152,7 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
         parameters=optimiser_parameters,
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
-    # optimiser = GPGraphOptimiser(initial_graph=initial_graph, requirements=requirements,
-    #                              graph_generation_params=graph_generation_params,
-    #                              metrics=[], parameters=optimiser_parameters,
-    #                              log=default_log(logger_name='Bayesian', verbose_level=1))
-
     optimized_network = optimiser.compose(data=dataset_to_compose)
-    # optimized_network = optimiser.optimise(partial(custom_metric, data=data))
     optimized_network.show(path='result.png')
 
     print('Best model structure:')
@@ -177,6 +171,13 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
+    json_file = 'model_ice.json'
+    model_json = optimized_network.model.to_json()
+
+    with open(json_file, 'w') as f:
+        f.write(model_json)
+    # saving the weights of the model
+    optimized_network.model.save_weights('model_ice.h5')
 
 if __name__ == '__main__':
     # the dataset was obtained from https://www.kaggle.com/c/GiveMeSomeCredit
