@@ -9,6 +9,7 @@ class NNNode(OptNode):
     def __init__(self, content, nodes_from: Optional[List['NNNode']], layer_params: LayerParams):
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from
+        self.content = content
         self.layer_params = layer_params
 
     def __str__(self):
@@ -28,33 +29,38 @@ class NNNode(OptNode):
             layer_name = type.value
         return layer_name
 
+    def __repr__(self):
+        return self.__str__()
+
     @property
     def ordered_subnodes_hierarchy(self) -> List['NNNode']:
         nodes = [self]
         if self.nodes_from:
             for parent in self.nodes_from:
-                nodes += parent.ordered_subnodes_hierarchy
+                # TODO packed in a list
+                nodes += [parent.ordered_subnodes_hierarchy]
         return nodes
 
 
 class NNNodeGenerator:
     @staticmethod
-    def primary_node(layer_params: LayerParams) -> NNNode:
-        return PrimaryNode(layer_params=layer_params)
+    def primary_node(layer_params: LayerParams, content) -> NNNode:
+        return PrimaryNode(layer_params=layer_params, content=content)
 
     @staticmethod
     def secondary_node(layer_params: LayerParams = None,
-                       nodes_from: Optional[List['NNNode']] = None) -> NNNode:
-        return SecondaryNode(nodes_from=nodes_from, layer_params=layer_params)
+                       nodes_from: Optional[List['NNNode']] = None,
+                       content=None) -> NNNode:
+        return SecondaryNode(nodes_from=nodes_from, layer_params=layer_params, content=content)
 
 
 class PrimaryNode(NNNode):
-    def __init__(self, layer_params: LayerParams):
-        super().__init__(nodes_from=None, layer_params=layer_params)
+    def __init__(self, layer_params: LayerParams, content):
+        super().__init__(nodes_from=None, layer_params=layer_params, content=content)
 
 
 class SecondaryNode(NNNode):
     def __init__(self, nodes_from: Optional[List['NNNode']],
-                 layer_params: LayerParams):
+                 layer_params: LayerParams, content):
         nodes_from = [] if nodes_from is None else nodes_from
-        super().__init__(nodes_from=nodes_from, layer_params=layer_params)
+        super().__init__(nodes_from=nodes_from, layer_params=layer_params, content=content)

@@ -179,6 +179,7 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
     # saving the weights of the model
     optimized_network.model.save_weights('model_ice.h5')
 
+
 if __name__ == '__main__':
     # the dataset was obtained from https://www.kaggle.com/c/GiveMeSomeCredit
 

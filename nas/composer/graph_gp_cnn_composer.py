@@ -1,4 +1,6 @@
 import random
+from copy import deepcopy
+
 from dataclasses import dataclass
 from functools import partial
 from typing import (
@@ -28,7 +30,7 @@ class GPNNComposerRequirements(GPComposerRequirements):
     pool_strides: Tuple[int, int] = (2, 2)
     min_num_of_neurons: int = 50
     max_num_of_neurons: int = 200
-    min_filters: int = 64
+    min_filters: int = 16
     max_filters: int = 128
     channels_num: int = 3
     max_drop_size: int = 0.5
@@ -124,6 +126,14 @@ class CustomGraphModel(OptGraph):
         """
         self.cnn_nodes.append(new_node)
 
+    # def replace_node_with_parents(self, old_node: Node, new_node: Node):
+    #     new_node = deepcopy(new_node)
+    #     self._actualise_old_node_childs(old_node, new_node)
+    #     new_nodes = [parent for parent in new_node.ordered_subnodes_hierarchy if not parent in self.nodes]
+    #     old_nodes = [node for node in self.nodes if not node in old_node.ordered_subnodes_hierarchy]
+    #     self.nodes = new_nodes + old_nodes
+    #     self.sort_nodes()
+
     def update_cnn_node(self, old_node: OptNode, new_node: OptNode):
         index = self.cnn_nodes.index(old_node)
         self.cnn_nodes[index] = new_node
@@ -134,7 +144,10 @@ class CustomGraphModel(OptGraph):
     def fit(self, input_data: InputData, verbose=False, input_shape: tuple = None,
             min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
         if not self.model:
-            self.model = create_nn_model(self, input_shape, classes)
+            print('creating model')
+        else:
+            print('model is loading from graph')
+        self.model = create_nn_model(self, input_shape, classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=True, batch_size=batch_size, epochs=epochs)
         # TODO mb need to add target in output
         return train_predicted

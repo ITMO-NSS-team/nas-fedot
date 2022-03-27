@@ -23,6 +23,7 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
     earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('.mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, epsilon=1e-4, mode='min')
+    model.summary()
     model.fit(input_data.features, input_data.target,
               batch_size=batch_size,
               epochs=epochs,
@@ -143,5 +144,5 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
     model.add(layers.Dense(output_shape, activation=activation_func))
 
     model.compile(loss=loss_func, optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
-    model.summary()
+    # model.summary()
     return model
