@@ -10,7 +10,7 @@ from nas.cnn_gp_operators import get_random_layer_params, random_nn_branch, rand
     conv_output_shape
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
 from nas.graph_nas_node import NNNodeGenerator
-from nas.keras_eval import generate_structure
+from nas.graph_keras_eval import generate_structure
 from nas.layer import LayerTypesIdsEnum, LayerParams
 
 
@@ -38,7 +38,8 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
             else:
                 node_type = choice(requirements.secondary)
                 new_layer_params = get_random_layer_params(node_type, requirements)
-            new_node = NNNodeGenerator.secondary_node(layer_params=new_layer_params, content={'name': 'new_node'})
+            new_node = NNNodeGenerator.secondary_node(layer_params=new_layer_params,
+                                                      content={'name': new_layer_params.layer_type})
             graph.update_cnn_node(node, new_node)
     secondary_nodes = requirements.secondary
     primary_nodes = requirements.primary
@@ -47,12 +48,17 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
             if node.nodes_from:
                 new_node_type = choice(secondary_nodes)
                 new_layer_params = get_random_layer_params(new_node_type, requirements)
-                new_node = NNNodeGenerator.secondary_node(layer_params=new_layer_params, content={'name': 'new_node'})
+                new_node = NNNodeGenerator.secondary_node(layer_params=new_layer_params,
+                                                          content={'name': new_layer_params.layer_type})
             else:
                 new_node_type = choice(primary_nodes)
                 new_layer_params = get_random_layer_params(new_node_type, requirements)
-                new_node = NNNodeGenerator.primary_node(layer_params=new_layer_params, content={'name': 'new_node'})
-            graph.update_node(node, new_node)
+                new_node = NNNodeGenerator.primary_node(layer_params=new_layer_params,
+                                                        content={'name': new_layer_params.layer_type})
+            try:
+                graph.update_node(node, new_node)
+            except Exception as ex:
+                print(f'error in updating nodes: {ex}')
     return graph
 
 

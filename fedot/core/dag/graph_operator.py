@@ -49,8 +49,7 @@ class GraphOperator:
             new_node.nodes_from = old_node.nodes_from
         self._graph.nodes.remove(old_node)
         self._graph.nodes.append(new_node)
-        # TODO commented sort
-        # self.sort_nodes()
+        self.sort_nodes()
 
     def update_subtree(self, old_node: GraphNode, new_node: GraphNode):
         """Exchange subtrees with old and new nodes as roots of subtrees"""
@@ -58,8 +57,7 @@ class GraphOperator:
         self.actualise_old_node_children(old_node, new_node)
         self.delete_subtree(old_node)
         self.add_node(new_node)
-        # TODO commented sort
-        # self.sort_nodes()
+        self.sort_nodes()
 
     def add_node(self, node: GraphNode):
         """

@@ -64,10 +64,9 @@ def cnn_crossover(graph_first: Any, graph_second: Any, max_depth, params) -> Any
 
 
 def cnn_subtree_crossover(graph_first: Any, graph_second: Any, max_depth, params) -> Any:
-    # if graph_first.depth - 1 == 0 and graph_second.depth - 1 == 0:
-    # graph_first.replace_node_with_parents(graph_first.root_node, graph_second.root_node)
-    # else:
-    graph_first1, graph_second1 = subtree_crossover(graph_first, graph_second, max_depth)
-
-    graph_first2 = cnn_crossover(graph_first1, graph_second1, max_depth, params)
-    return graph_first2
+    if graph_first.depth - 1 == 0 and graph_second.depth - 1 == 0:
+        graph_first.replace_node_with_parents(graph_first.root_node, graph_second.root_node)
+    else:
+        graph_first, graph_second = subtree_crossover(graph_first, graph_second, max_depth)
+    graph_first_res = cnn_crossover(graph_first, graph_second, max_depth, params)
+    return graph_first_res

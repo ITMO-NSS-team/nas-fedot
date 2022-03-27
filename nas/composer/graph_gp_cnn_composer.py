@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from functools import partial
 from typing import (
     Tuple,
-    List
+    List,
+    Optional
 )
 
 import numpy as np
@@ -15,6 +16,7 @@ from fedot.core.composer.gp_composer.gp_composer import GPComposerRequirements
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiser
+from nas.graph_nas_node import NNNode
 from nas.layer import LayerTypesIdsEnum, activation_types
 from nas.nas_node import NNNodeGenerator
 
@@ -126,13 +128,27 @@ class CustomGraphModel(OptGraph):
         """
         self.cnn_nodes.append(new_node)
 
-    # def replace_node_with_parents(self, old_node: Node, new_node: Node):
-    #     new_node = deepcopy(new_node)
-    #     self._actualise_old_node_childs(old_node, new_node)
-    #     new_nodes = [parent for parent in new_node.ordered_subnodes_hierarchy if not parent in self.nodes]
-    #     old_nodes = [node for node in self.nodes if not node in old_node.ordered_subnodes_hierarchy]
-    #     self.nodes = new_nodes + old_nodes
-    #     self.sort_nodes()
+    def node_childs(self, node) -> List[Optional[NNNode]]:
+        return [other_node for other_node in self.nodes if other_node.nodes_from and
+                node in other_node.nodes_from]
+
+    def _actualise_old_node_childs(self, old_node: NNNode, new_node: NNNode):
+        old_node_offspring = self.node_childs(old_node)
+        for old_node_child in old_node_offspring:
+            old_node_child.nodes_from[old_node_child.nodes_from.index(old_node)] = new_node
+
+    def sort_nodes(self):
+        """layer by layer sorting"""
+        nodes = self.root_node.ordered_subnodes_hierarchy
+        self.nodes = nodes
+
+    def replace_node_with_parents(self, old_node: NNNode, new_node: NNNode):
+        new_node = deepcopy(new_node)
+        self._actualise_old_node_childs(old_node, new_node)
+        new_nodes = [parent for parent in new_node.ordered_subnodes_hierarchy if not parent in self.nodes]
+        old_nodes = [node for node in self.nodes if not node in old_node.ordered_subnodes_hierarchy]
+        self.nodes = new_nodes + old_nodes
+        self.sort_nodes()
 
     def update_cnn_node(self, old_node: OptNode, new_node: OptNode):
         index = self.cnn_nodes.index(old_node)
