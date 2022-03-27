@@ -30,62 +30,68 @@ def will_crossover_be_applied(graph_first, graph_second, crossover_prob, crossov
                 crossover_type == CrossoverTypesEnum.none)
 
 
+# TODO added requirements to the function declaration
 def crossover(types: List[Union[CrossoverTypesEnum, Callable]],
               ind_first: Individual, ind_second: Individual,
               max_depth: int, log: Log,
-              crossover_prob: float = 0.8, params: 'GraphGenerationParams' = None) -> Any:
+              crossover_prob: float = 0.8, params: 'GraphGenerationParams' = None, requirements=None) -> Any:
+    # TODO commented try except to debug errors
     crossover_type = choice(types)
     is_custom_crossover = isinstance(crossover_type, Callable)
-    try:
-        if will_crossover_be_applied(ind_first.graph, ind_second.graph, crossover_prob, crossover_type):
-            if crossover_type in crossover_by_type.keys() or is_custom_crossover:
-                for _ in range(MAX_NUM_OF_ATTEMPTS):
-                    if is_custom_crossover:
-                        crossover_func = crossover_type
-                    else:
-                        crossover_func = crossover_by_type[crossover_type]
-                    new_inds = []
+    # try:
+    if will_crossover_be_applied(ind_first.graph, ind_second.graph, crossover_prob, crossover_type):
+        if crossover_type in crossover_by_type.keys() or is_custom_crossover:
+            for _ in range(MAX_NUM_OF_ATTEMPTS):
+                if is_custom_crossover:
+                    crossover_func = crossover_type
+                else:
+                    crossover_func = crossover_by_type[crossover_type]
+                new_inds = []
 
-                    is_custom_operator = isinstance(ind_first, OptGraph)
-                    input_obj_first = deepcopy(ind_first.graph)
-                    input_obj_second = deepcopy(ind_first.graph)
-                    if is_custom_operator:
-                        input_obj_first = params.adapter.restore(input_obj_first)
-                        input_obj_second = params.adapter.restore(input_obj_second)
+                is_custom_operator = isinstance(ind_first, OptGraph)
+                input_obj_first = deepcopy(ind_first.graph)
+                # input_obj_second = deepcopy(ind_first.graph)
+                # TODO commented above row. input_obj_second was a deepcopy of ind_first.graph.
+                #  I think it`s an error
+                input_obj_second = deepcopy(ind_second.graph)
+                if is_custom_operator:
+                    input_obj_first = params.adapter.restore(input_obj_first)
+                    input_obj_second = params.adapter.restore(input_obj_second)
+                # TODO requirements added to crossover call
+                #  new_graphs was assigned in a list.
+                new_graphs = [crossover_func(input_obj_first, input_obj_second, max_depth, requirements)]
 
-                    new_graphs = crossover_func(input_obj_first,
-                                                input_obj_second, max_depth)
+                if is_custom_operator:
+                    #  TODO When new_graphs was not declared as a list, row below raised 'method object is not iterable' error
+                    for graph_id, graph in enumerate(new_graphs):
+                        new_graphs[graph_id] = params.adapter.adapt(graph)
 
-                    if is_custom_operator:
-                        for graph_id, graph in enumerate(new_graphs):
-                            new_graphs[graph_id] = params.adapter.adapt(graph)
+                are_correct = \
+                    all([constraint_function(new_graph, params)
+                         for new_graph in new_graphs])
 
-                    are_correct = \
-                        all([constraint_function(new_graph, params)
-                             for new_graph in new_graphs])
+                if are_correct:
+                    operator = ParentOperator(operator_type='crossover',
+                                              operator_name=str(crossover_type),
+                                              parent_objects=[
+                                                  params.adapter.restore_as_template(ind_first.graph),
+                                                  params.adapter.restore_as_template(ind_second.graph)
+                                              ])
+                    for graph in new_graphs:
+                        new_ind = Individual(graph)
+                        new_ind.parent_operators = []
+                        new_ind.parent_operators.extend(ind_first.parent_operators)
+                        new_ind.parent_operators.extend(ind_second.parent_operators)
+                        new_ind.parent_operators.append(operator)
+                        new_inds.append(new_ind)
+                    return new_inds
+        else:
+            raise ValueError(f'Required crossover type not found: {crossover_type}')
 
-                    if are_correct:
-                        operator = ParentOperator(operator_type='crossover',
-                                                  operator_name=str(crossover_type),
-                                                  parent_objects=[
-                                                      params.adapter.restore_as_template(ind_first.graph),
-                                                      params.adapter.restore_as_template(ind_second.graph)
-                                                  ])
-                        for graph in new_graphs:
-                            new_ind = Individual(graph)
-                            new_ind.parent_operators = []
-                            new_ind.parent_operators.extend(ind_first.parent_operators)
-                            new_ind.parent_operators.extend(ind_second.parent_operators)
-                            new_ind.parent_operators.append(operator)
-                            new_inds.append(new_ind)
-                        return new_inds
-            else:
-                raise ValueError(f'Required crossover type not found: {crossover_type}')
-
-            log.debug('Number of crossover attempts exceeded. '
-                      'Please check composer requirements for correctness.')
-    except Exception as ex:
-        log.error(f'Crossover ex: {ex}')
+        log.debug('Number of crossover attempts exceeded. '
+                  'Please check composer requirements for correctness.')
+    # except Exception as ex:
+    #     log.error(f'Crossover ex: {ex}')
 
     graph_first_copy = deepcopy(ind_first)
     graph_second_copy = deepcopy(ind_second)

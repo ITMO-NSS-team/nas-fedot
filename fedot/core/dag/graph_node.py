@@ -36,8 +36,15 @@ class GraphNode:
         return self._operator.descriptive_id()
 
     def ordered_subnodes_hierarchy(self, visited=None) -> List['GraphNode']:
+        # TODO added identification due to the 'no attribute _operator' error
+        if not hasattr(self, '_operator'):
+            self._operator = NodeOperator(self)
+
         return self._operator.ordered_subnodes_hierarchy(visited)
 
     @property
     def distance_to_primary_level(self):
+        # TODO added identification due to the 'no attribute _operator' error
+        if not hasattr(self, '_operator'):
+            self._operator = NodeOperator(self)
         return self._operator.distance_to_primary_level()

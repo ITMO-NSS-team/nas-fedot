@@ -328,12 +328,13 @@ class GPGraphOptimiser:
 
     def reproduce(self, selected_individual_first, selected_individual_second=None) -> Tuple[Any]:
         if selected_individual_second:
+            # TODO requirements added in crossover  function call
             new_inds = crossover(self.parameters.crossover_types,
                                  selected_individual_first,
                                  selected_individual_second,
                                  crossover_prob=self.requirements.crossover_prob,
                                  max_depth=self.max_depth, log=self.log,
-                                 params=self.graph_generation_params)
+                                 params=self.graph_generation_params, requirements=self.requirements)
         else:
             new_inds = [selected_individual_first]
 

@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 
+from nas.graph_cnn_mutation import cnn_simple_mutation
 from nas.graph_nas_node import NNNode
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -39,14 +40,16 @@ from fedot.core.pipelines.convert import graph_structure_as_nx_graph
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel
+from nas.graph_cnn_crossover import cnn_subtree_crossover
 
 
-class CustomGraphNode(NNNode):
-    def __init__(self, content: dict, nodes_from, layer_params):
-        super().__init__(content, nodes_from, layer_params)
-
-    def __repr__(self):
-        return f"Node_repr_{self.layer_params.layer_type.name}"
+# class CustomGraphNode(NNNode):
+#     def __init__(self, content: dict, nodes_from, layer_params):
+#         super().__init__(content, nodes_from, layer_params)
+#
+#     def __repr__(self):
+#         # return f"Node_repr_{self.layer_params.layer_type.name}"
+#         return NNNode.__str__(self)
 
 
 def _has_no_duplicates(graph):
@@ -121,18 +124,23 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[MutationTypesEnum.simple],
-        crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
+        # mutation_types=[MutationTypesEnum.simple],
+        mutation_types=[cnn_simple_mutation],
+        # crossover_types=[CrossoverTypesEnum.cnn_subtree],
+        crossover_types=[cnn_subtree_crossover],
+        regularization_type=RegularizationTypesEnum.none)
+
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=DirectAdapter(base_graph_class=CustomGraphModel, base_node_class=NNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
+        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=16,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
-        primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=3,
-        max_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
-        train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
+        primary=nn_primary, secondary=nn_secondary, min_arity=1, max_arity=3,
+        max_depth=4, pop_size=4, num_of_generations=5, crossover_prob=1, mutation_prob=0,
+        train_epochs_num=1, num_of_classes=num_of_classes, timeout=timeout)
     optimiser = GPNNGraphOptimiser(
         initial_graph=None, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_parameters,
@@ -148,7 +156,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     for node in optimized_network.nodes:
         print(node)
 
-    optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=20, classes=num_of_classes)
+    optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=15, classes=num_of_classes)
 
     # the quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
@@ -169,7 +177,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     file_path = 'Generated_dataset'
     # a dataset that will be used as a train and test set during composition
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
