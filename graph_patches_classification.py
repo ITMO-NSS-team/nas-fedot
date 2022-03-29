@@ -2,6 +2,7 @@ import os
 import random
 import statistics
 import sys
+from random import choice
 
 import numpy as np
 import tensorflow as tf
@@ -16,11 +17,15 @@ from typing import Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from fedot.core.optimisers.gp_comp.operators.mutation import get_mutation_prob
 from fedot.core.data.data import InputData
+from fedot.core.optimisers.optimizer import OptGraph
 
 from nas.patches.load_images import from_images
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
-from nas.layer import LayerTypesIdsEnum
+from nas.graph_cnn_gp_operators import get_random_layer_params
+from nas.layer import LayerTypesIdsEnum, LayerParams
+from nas.graph_nas_node import NNNodeGenerator
 
 random.seed(2)
 np.random.seed(2)
@@ -29,16 +34,15 @@ import datetime
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.log import default_log
-from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
-    GeneticSchemeTypesEnum, GraphGenerationParams
+    GeneticSchemeTypesEnum
+from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.pipelines.convert import graph_structure_as_nx_graph
-from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel
+from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
 
 
 class CustomGraphNode(NNNode):
@@ -104,6 +108,49 @@ def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: In
     return roc_auc_value, log_loss_value, accuracy_score_value
 
 
+def custom_mutation(graph: OptGraph, requirements,
+                    primary_node_func=NNNodeGenerator.primary_node,
+                    secondary_node_func=NNNodeGenerator.secondary_node, **kwargs):
+    cnn_structure = graph.cnn_nodes
+    nn_structure = graph.nodes
+    node_mutation_probability = get_mutation_prob(mut_id=requirements.mutation_strength,
+                                                  node=graph.root_node)
+
+    for node in cnn_structure:
+        if random.random() < node_mutation_probability:
+            old_node_type = node.layer_params.layer_type
+            if old_node_type == LayerTypesIdsEnum.conv2d.value:
+                activation = choice(requirements.activation_types)
+                new_layer_params = LayerParams(layer_type=old_node_type, activation=activation,
+                                               kernel_size=node.layer_params.kernel_size,
+                                               conv_strides=node.layer_params.conv_strides,
+                                               pool_size=node.layer_params.pool_size,
+                                               pool_strides=node.layer_params.pool_strides,
+                                               pool_type=choice(requirements.pool_types),
+                                               num_of_filters=choice(requirements.filters))
+            else:
+                node_type = choice(requirements.secondary)
+                new_layer_params = get_random_layer_params(node_type, requirements)
+            new_node = secondary_node_func(layer_params=new_layer_params)
+            graph.update_cnn_node(node, new_node)
+
+    secondary_nodes = requirements.secondary
+    primary_nodes = requirements.primary
+    for node in nn_structure:
+        if random.random() < node_mutation_probability:
+            if node.nodes_from:
+                new_node_type = choice(secondary_nodes)
+                new_layer_params = get_random_layer_params(new_node_type, requirements)
+                new_node = secondary_node_func(layer_params=new_layer_params)
+            else:
+                new_node_type = choice(primary_nodes)
+                new_layer_params = get_random_layer_params(new_node_type, requirements)
+                new_node = primary_node_func(layer_params=new_layer_params)
+            graph.update_node(node, new_node)
+
+    return graph
+
+
 def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     size = 120
     num_of_classes = 3
@@ -118,13 +165,13 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     nn_primary = [LayerTypesIdsEnum.dense]
     nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
     rules = [has_no_self_cycled_nodes, has_no_cycle, _has_no_duplicates]
-    metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
+    metric_function = [MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)]
 
     optimiser_parameters = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[MutationTypesEnum.simple],
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[custom_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
@@ -148,6 +195,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     for node in optimized_network.nodes:
         print(node)
 
+    # optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=20, classes=num_of_classes)
 
     # the quality assessment for the obtained composite models

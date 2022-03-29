@@ -31,14 +31,16 @@ from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nod
 from fedot.core.log import default_log
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
-    GeneticSchemeTypesEnum, GraphGenerationParams
+    GeneticSchemeTypesEnum
+from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.pipelines.convert import graph_structure_as_nx_graph
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel
+from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
+from graph_patches_classification import custom_mutation
 
 
 class CustomGraphNode(NNNode):
@@ -119,13 +121,13 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     nn_primary = [LayerTypesIdsEnum.dense]
     nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
     rules = [has_no_self_cycled_nodes, has_no_cycle, _has_no_duplicates]
-    metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
+    metric_function = [MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)]
 
     optimiser_parameters = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[MutationTypesEnum.simple],
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[custom_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,

@@ -103,6 +103,7 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
                                    kernel_size=kernel_size, conv_strides=conv_strides, num_of_filters=num_of_filters,
                                    pool_size=pool_size, pool_strides=pool_strides, pool_type=pool_type)
         new_node = secondary_node_func(layer_params=layer_params)
+        # graph.add_node(new_node)
         graph.add_cnn_node(new_node)
         if pool_size is None:
             break
@@ -111,6 +112,7 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
             node_type = choice(requirements.cnn_secondary)
             layer_params = get_random_layer_params(node_type, requirements)
             new_node = secondary_node_func(layer_params=layer_params)
+            # graph.add_node(new_node)
             graph.add_cnn_node(new_node)
         if conv_num == num_of_conv - 1:
             add_dropout_layer = randint(0, 1)
@@ -118,6 +120,7 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
                 node_type = LayerTypesIdsEnum.dropout
                 layer_params = get_random_layer_params(node_type, requirements)
                 new_node = secondary_node_func(layer_params=layer_params)
+                # graph.add_node(new_node)
                 graph.add_cnn_node(new_node)
 
 
@@ -161,13 +164,15 @@ def random_cnn_graph(graph_class: Any, secondary_node_func: Callable, primary_no
     # Right (fully connected nn) branch of tree generation
     random_nn_branch(graph=graph, secondary_node_func=secondary_node_func, primary_node_func=primary_node_func,
                      requirements=requirements, start_height=0)
-    graph.graph = graph
     if not hasattr(graph, 'parent_operators'):
         setattr(graph, 'parent_operators', [])
     return graph
 
 
 def get_random_layer_params(type, requirements) -> LayerParams:
+    # if not isinstance(type, str):
+    #     type = type.value
+
     layer_params = None
     if type == LayerTypesIdsEnum.serial_connection:
         layer_params = LayerParams(layer_type=type)
