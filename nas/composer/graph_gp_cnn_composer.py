@@ -1,27 +1,35 @@
 import random
 from dataclasses import dataclass
 from functools import partial
+from copy import deepcopy
 from typing import (
     Tuple,
-    List
+    List,
+    Any
 )
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
 
-from fedot.core.composer.gp_composer.gp_composer import GPComposerRequirements
+from fedot.core.utils import DEFAULT_PARAMS_STUB
+from fedot.core.optimisers.adapters import DirectAdapter
+from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
-from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiser
-from nas.layer import LayerTypesIdsEnum, activation_types
-from nas.nas_node import NNNodeGenerator
+from fedot.core.optimisers.gp_comp.individual import Individual
+from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
+from nas.layer import LayerTypesIdsEnum, activation_types, LayerParams
+from nas.graph_nas_node import NNNodeGenerator
+from nas.graph_cnn_gp_operators import random_cnn_graph
+
 
 random.seed(1)
 np.random.seed(1)
 
 
 @dataclass
-class GPNNComposerRequirements(GPComposerRequirements):
+class GPNNComposerRequirements(PipelineComposerRequirements):
     conv_kernel_size: Tuple[int, int] = (3, 3)
     conv_strides: Tuple[int, int] = (1, 1)
     pool_size: Tuple[int, int] = (2, 2)
@@ -98,14 +106,40 @@ from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_p
 from nas.graph_cnn_gp_operators import *
 
 
-# from graph_icebergs_classification import CustomGraphModel
+class CustomGraphAdapter(DirectAdapter):
+    def __init__(self, base_graph_class=None, base_node_class=None, log=None):
+        super().__init__(base_graph_class=base_graph_class, base_node_class=base_node_class, log=log)
+
+    def adapt(self, adaptee: Any):
+        opt_graph = deepcopy(adaptee)
+        opt_graph.__class__ = OptGraph
+        for node in opt_graph.nodes:
+            node.__class__ = OptNode
+        for node in opt_graph.cnn_nodes:
+            node.__class__ = OptNode
+        return opt_graph
+
+    def restore(self, opt_graph: OptGraph):
+        obj = deepcopy(opt_graph)
+        obj.__class__ = self.base_graph_class
+        for node in obj.nodes:
+            node.__class__ = self.base_node_class
+        for node in obj.cnn_nodes:
+            node.__class__ = self.base_node_class
+
+        # if node.content['params'] == DEFAULT_PARAMS_STUB:
+        #     node.layer_params = self.node_layer_params
+        #     node.layer_params.layer_type = node.content['name']
+        return obj
 
 
 class CustomGraphModel(OptGraph):
     def __init__(self, nodes=None, cnn_nodes=None, fitted_model=None):
         super().__init__(nodes)
         self.cnn_nodes = cnn_nodes if not cnn_nodes is None else []
+        # self.nodes.extend(cnn_nodes)
         self.model = fitted_model
+        self.unique_pipeline_id = str(uuid4())
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{len(self.cnn_nodes)}"
@@ -122,11 +156,11 @@ class CustomGraphModel(OptGraph):
         """
         Append new node to graph list
         """
-        self.cnn_nodes.append(new_node)
+        self.cnn_nodes.append(self._node_adapter.restore(new_node))
 
     def update_cnn_node(self, old_node: OptNode, new_node: OptNode):
         index = self.cnn_nodes.index(old_node)
-        self.cnn_nodes[index] = new_node
+        self.cnn_nodes[index] = self._node_adapter.restore(new_node)
 
     def replace_cnn_nodes(self, new_nodes):
         self.cnn_nodes = new_nodes
@@ -144,16 +178,16 @@ class CustomGraphModel(OptGraph):
         return evaluation_result
 
 
-class GPNNGraphOptimiser(GPGraphOptimiser):
+class GPNNGraphOptimiser(EvoGraphOptimiser):
     def __init__(self, initial_graph, requirements, graph_generation_params,
-                 metrics, parameters, log, archive_type=None):
+                 metrics, parameters, log):
         self.metrics = metrics
 
         super().__init__(initial_graph=initial_graph, requirements=requirements,
                          graph_generation_params=graph_generation_params,
                          metrics=metrics,
                          parameters=parameters,
-                         log=log, archive_type=archive_type)
+                         log=log)
 
         self.parameters.graph_generation_function = random_cnn_graph
         self.graph_generation_function = partial(self.parameters.graph_generation_function,
@@ -166,17 +200,25 @@ class GPNNGraphOptimiser(GPGraphOptimiser):
             self.population = [initial_graph] * requirements.pop_size
         else:
             self.population = initial_graph or self._make_population(self.requirements.pop_size)
-            # print(self.population)
 
     def _make_population(self, pop_size: int):
-        return [self.graph_generation_function() for _ in range(pop_size)]
+        initial_graphs = [self.graph_generation_function() for _ in range(pop_size)]
+        ind_graphs = []
+        for g in initial_graphs:
+            new_ind = Individual(deepcopy(self.graph_generation_params.adapter.adapt(g)))
+            ind_graphs.append(new_ind)
+        return ind_graphs
 
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
 
-        graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        return metric_function(graph, test_data)
+        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        # graph.show()
+        return [1] # [metric_function(graph, test_data)]
+
+    def compose_chain(self, data: InputData,):
+        pass
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
@@ -193,3 +235,4 @@ class GPNNGraphOptimiser(GPGraphOptimiser):
                                             composer_requirements.train_epochs_num)
         self.optimise(metric_function_for_nodes)
         return self.best_individual.graph
+        # return self.graph_generation_params.adapter.restore(self.best_individual.graph)

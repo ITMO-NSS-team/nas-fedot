@@ -165,13 +165,16 @@ def random_cnn_chain(chain_class: Any, secondary_node_func: Callable, primary_no
 
 
 def get_random_layer_params(type, requirements) -> LayerParams:
+    if not isinstance(type, str):
+        type = type.value
+
     layer_params = None
-    if type == LayerTypesIdsEnum.serial_connection:
+    if type == LayerTypesIdsEnum.serial_connection.value:
         layer_params = LayerParams(layer_type=type)
-    elif type == LayerTypesIdsEnum.dropout:
+    elif type == LayerTypesIdsEnum.dropout.value:
         drop = randint(1, (requirements.max_drop_size * 10)) / 10
         layer_params = LayerParams(layer_type=type, drop=drop)
-    if type == LayerTypesIdsEnum.dense:
+    if type == LayerTypesIdsEnum.dense.value:
         activation = choice(requirements.activation_types)
         neurons = randint(requirements.min_num_of_neurons, requirements.max_num_of_neurons)
         layer_params = LayerParams(layer_type=type, neurons=neurons, activation=activation)

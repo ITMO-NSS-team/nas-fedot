@@ -2,6 +2,8 @@ from typing import (List, Optional)
 
 from nas.layer import LayerParams, LayerTypesIdsEnum
 
+from fedot.core.dag.node_operator import NodeOperator
+
 
 class NNNode():
     def __init__(self, nodes_from: Optional[List['NNNode']], layer_params: LayerParams):

@@ -1,8 +1,8 @@
 from typing import Any
 
-from keras import layers
-from keras import models
-from keras import optimizers
+from tensorflow.keras import layers
+from tensorflow.keras import models
+from tensorflow.keras import optimizers
 
 # from fedot_old.core.models.data import InputData, OutputData
 from fedot.core.data.data import InputData, OutputData
@@ -134,8 +134,8 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
         # if i == len(chain.cnn_nodes) - 1:
         if i == len(chain.cnn_nodes) - 1:
             model.add(layers.Flatten())
-            neurons_num = model.layers[len(model.layers) - 1].output_shape[1]
-            model.add(layers.Dense(neurons_num, activation='relu'))
+            # neurons_num = model.layers[len(model.layers) - 1].output_shape[1]
+            # model.add(layers.Dense(neurons_num, activation='relu'))
     # Output
     output_shape = 1 if classes == 2 else classes
     activation_func = 'sigmoid' if classes == 2 else 'softmax'

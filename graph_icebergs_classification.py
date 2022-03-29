@@ -28,7 +28,8 @@ from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nod
 from fedot.core.log import default_log
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
-    GeneticSchemeTypesEnum, GraphGenerationParams
+    GeneticSchemeTypesEnum
+from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
@@ -39,7 +40,7 @@ from fedot.core.optimisers.graph import OptGraph
 from fedot.core.dag.node_operator import NodeOperator
 from fedot.core.dag.graph_node import GraphNode
 
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel
+from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
 
 
 def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[float, float, float]:
@@ -55,7 +56,7 @@ def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: In
     accuracy_score_value = accuracy_score(y_true=dataset_to_validate.target,
                                           y_pred=y_pred)
 
-    return roc_auc_value, log_loss_value, accuracy_score_value
+    return [roc_auc_value, log_loss_value, accuracy_score_value]
 
 
 class CustomGraphNode(GraphNode):
@@ -129,7 +130,7 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
         regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
         rules_for_constraint=rules)
 
     num_of_classes = 2
@@ -161,6 +162,7 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
     for node in optimized_network.nodes:
         print(node)
 
+    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(75, 75, 3), epochs=20, classes=num_of_classes)
 
     # the quality assessment for the obtained composite models
