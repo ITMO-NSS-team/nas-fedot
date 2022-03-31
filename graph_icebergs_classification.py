@@ -125,7 +125,7 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
 
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-        mutation_types=[MutationTypesEnum.none],
+        mutation_types= [custom_mutation], # [MutationTypesEnum.none],
         crossover_types=[CrossoverTypesEnum.subtree],
         regularization_type=RegularizationTypesEnum.none)
 

@@ -66,6 +66,7 @@ def generate_structure(node: Any):
             return struct
     else:
         return [node]
+    # return [n for n in node]
 
 
 def unpack(model, training_config, weights):
@@ -96,7 +97,7 @@ def make_keras_picklable():
 def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
     generated_struc = generate_structure(chain.root_node)
     nn_structure = chain.cnn_nodes + generated_struc
-    # nn_structure = chain.nodes + generate_structure(chain.root_node)
+    # nn_structure = chain.nodes
     make_keras_picklable()
     model = models.Sequential()
     for i, layer in enumerate(nn_structure):
