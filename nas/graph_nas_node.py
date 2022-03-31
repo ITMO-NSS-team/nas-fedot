@@ -1,7 +1,6 @@
 from typing import (List, Optional)
 
 from nas.layer import LayerParams, LayerTypesIdsEnum
-from fedot.core.dag.graph_node import GraphNode
 from fedot.core.optimisers.graph import OptNode
 
 
@@ -50,7 +49,6 @@ class NNNodeGenerator:
 
 class PrimaryNode(NNNode):
     def __init__(self, layer_params: LayerParams):
-        # super().__init__(content='Primary_Test', nodes_from=None, layer_params=layer_params)
         super().__init__(content={'name': layer_params.layer_type.value},
                          nodes_from=None, layer_params=layer_params)
 
@@ -59,6 +57,5 @@ class SecondaryNode(NNNode):
     def __init__(self, nodes_from: Optional[List['NNNode']],
                  layer_params: LayerParams):
         nodes_from = [] if nodes_from is None else nodes_from
-        # super().__init__(content='Secondary_Test', nodes_from=nodes_from, layer_params=layer_params)
         super().__init__(content={'name': layer_params.layer_type.value},
                          nodes_from=nodes_from, layer_params=layer_params)

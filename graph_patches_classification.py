@@ -49,8 +49,13 @@ class CustomGraphNode(NNNode):
     def __init__(self, content: dict, nodes_from, layer_params):
         super().__init__(content, nodes_from, layer_params)
 
+    def __str__(self):
+        # return f'Node_{self.content["name"]}'
+        # return f"{self.layer_params.activation.name}_{self.layer_params.layer_type.name}_{self.layer_params.neurons}"
+        return f"Node_{self.layer_params.layer_type.name}"
+
     def __repr__(self):
-        return f"Node_repr_{self.layer_params.layer_type.name}"
+        return f"Node_{self.layer_params.layer_type.name}"
 
 
 def _has_no_duplicates(graph):
@@ -113,13 +118,14 @@ def custom_mutation(graph: OptGraph, requirements,
                     secondary_node_func=NNNodeGenerator.secondary_node, **kwargs):
     cnn_structure = graph.cnn_nodes
     nn_structure = graph.nodes
-    node_mutation_probability = get_mutation_prob(mut_id=requirements.mutation_strength,
-                                                  node=graph.root_node)
+    # node_mutation_probability = get_mutation_prob(mut_id=requirements.mutation_strength,
+    #                                               node=graph.root_node)
+    node_mutation_probability = 0.7
 
     for node in cnn_structure:
         if random.random() < node_mutation_probability:
             old_node_type = node.layer_params.layer_type
-            if old_node_type == LayerTypesIdsEnum.conv2d.value:
+            if old_node_type == LayerTypesIdsEnum.conv2d:
                 activation = choice(requirements.activation_types)
                 new_layer_params = LayerParams(layer_type=old_node_type, activation=activation,
                                                kernel_size=node.layer_params.kernel_size,
@@ -147,9 +153,28 @@ def custom_mutation(graph: OptGraph, requirements,
                 new_layer_params = get_random_layer_params(new_node_type, requirements)
                 new_node = primary_node_func(layer_params=new_layer_params)
             graph.update_node(node, new_node)
-
+    graph.show()
     return graph
 
+def custom_mutation(graph: OptGraph, **kwargs):
+    num_mut = 10
+    try:
+        for _ in range(num_mut):
+            rid = random.choice(range(len(graph.nodes)))
+            random_node = graph.nodes[rid]
+            other_random_node = graph.nodes[random.choice(range(len(graph.nodes)))]
+            nodes_not_cycling = (random_node.descriptive_id not in
+                                 [n.descriptive_id for n in other_random_node.ordered_subnodes_hierarchy()] and
+                                 other_random_node.descriptive_id not in
+                                 [n.descriptive_id for n in random_node.ordered_subnodes_hierarchy()])
+            if random_node.nodes_from is not None and len(random_node.nodes_from) == 0:
+                random_node.nodes_from = None
+            if nodes_not_cycling:
+                graph.operator.connect_nodes(random_node, other_random_node)
+    except Exception as ex:
+        graph.log.warn(f'Incorrect connection: {ex}')
+    # graph.show()
+    return graph
 
 def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     size = 120
@@ -187,7 +212,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     # optimized_network = optimiser.optimise(partial(custom_metric, data=data))
-    optimized_network.show(path='result.png')
+    # optimized_network.show(path='result.png')
 
     print('Best model structure:')
     for node in optimized_network.cnn_nodes:
