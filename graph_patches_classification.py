@@ -2,16 +2,10 @@ import os
 import random
 import statistics
 import sys
-from random import choice
+import datetime
 
 import numpy as np
 import tensorflow as tf
-
-from nas.graph_nas_node import NNNode
-
-ROOT = os.path.dirname(os.path.abspath(__file__))
-os.chdir(ROOT)
-sys.path.append(ROOT)
 
 from typing import Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
@@ -27,11 +21,6 @@ from nas.graph_cnn_gp_operators import get_random_layer_params
 from nas.layer import LayerTypesIdsEnum, LayerParams
 from nas.graph_nas_node import NNNodeGenerator
 
-random.seed(2)
-np.random.seed(2)
-
-import datetime
-
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.log import default_log
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
@@ -41,21 +30,17 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+from nas.graph_cnn_mutations import cnn_simple_mutation
 
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
+from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter, CustomGraphNode
 
 
-class CustomGraphNode(NNNode):
-    def __init__(self, content: dict, nodes_from, layer_params):
-        super().__init__(content, nodes_from, layer_params)
+ROOT = os.path.dirname(os.path.abspath(__file__))
+os.chdir(ROOT)
+sys.path.append(ROOT)
 
-    def __str__(self):
-        # return f'Node_{self.content["name"]}'
-        # return f"{self.layer_params.activation.name}_{self.layer_params.layer_type.name}_{self.layer_params.neurons}"
-        return f"Node_{self.layer_params.layer_type.name}"
-
-    def __repr__(self):
-        return f"Node_{self.layer_params.layer_type.name}"
+random.seed(2)
+np.random.seed(2)
 
 
 def _has_no_duplicates(graph):
@@ -113,68 +98,49 @@ def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: In
     return roc_auc_value, log_loss_value, accuracy_score_value
 
 
-def custom_mutation(graph: OptGraph, requirements,
-                    primary_node_func=NNNodeGenerator.primary_node,
-                    secondary_node_func=NNNodeGenerator.secondary_node, **kwargs):
-    cnn_structure = graph.cnn_nodes
-    nn_structure = graph.nodes
-    # node_mutation_probability = get_mutation_prob(mut_id=requirements.mutation_strength,
-    #                                               node=graph.root_node)
-    node_mutation_probability = 0.7
+# def custom_cnn_mutation(graph: CustomGraphModel, requirements,
+#                     primary_node_func=NNNodeGenerator.primary_node,
+#                     secondary_node_func=NNNodeGenerator.secondary_node, **kwargs):
+#     cnn_structure = graph.cnn_nodes
+#     nn_structure = graph.nodes
+#     # node_mutation_probability = get_mutation_prob(mut_id=requirements.mutation_strength,
+#     #                                               node=graph.root_node)
+#     node_mutation_probability = 0.7
+#
+#
+#     for node in cnn_structure:
+#         if random.random() < node_mutation_probability:
+#             old_node_type = node.layer_params.layer_type
+#             if old_node_type == LayerTypesIdsEnum.conv2d:
+#                 activation = choice(requirements.activation_types)
+#                 new_layer_params = LayerParams(layer_type=old_node_type, activation=activation,
+#                                                kernel_size=node.layer_params.kernel_size,
+#                                                conv_strides=node.layer_params.conv_strides,
+#                                                pool_size=node.layer_params.pool_size,
+#                                                pool_strides=node.layer_params.pool_strides,
+#                                                pool_type=choice(requirements.pool_types),
+#                                                num_of_filters=choice(requirements.filters))
+#             else:
+#                 node_type = choice(requirements.secondary)
+#                 new_layer_params = get_random_layer_params(node_type, requirements)
+#             new_node = secondary_node_func(layer_params=new_layer_params)
+#             graph.update_cnn_node(node, new_node)
+#
+#     secondary_nodes = requirements.secondary
+#     primary_nodes = requirements.primary
+#     for node in nn_structure:
+#         if random.random() < node_mutation_probability:
+#             if node.nodes_from:
+#                 new_node_type = choice(secondary_nodes)
+#                 new_layer_params = get_random_layer_params(new_node_type, requirements)
+#                 new_node = secondary_node_func(layer_params=new_layer_params)
+#             else:
+#                 new_node_type = choice(primary_nodes)
+#                 new_layer_params = get_random_layer_params(new_node_type, requirements)
+#                 new_node = primary_node_func(layer_params=new_layer_params)
+#             graph.update_node(node, new_node)
+#     return graph
 
-    for node in cnn_structure:
-        if random.random() < node_mutation_probability:
-            old_node_type = node.layer_params.layer_type
-            if old_node_type == LayerTypesIdsEnum.conv2d:
-                activation = choice(requirements.activation_types)
-                new_layer_params = LayerParams(layer_type=old_node_type, activation=activation,
-                                               kernel_size=node.layer_params.kernel_size,
-                                               conv_strides=node.layer_params.conv_strides,
-                                               pool_size=node.layer_params.pool_size,
-                                               pool_strides=node.layer_params.pool_strides,
-                                               pool_type=choice(requirements.pool_types),
-                                               num_of_filters=choice(requirements.filters))
-            else:
-                node_type = choice(requirements.secondary)
-                new_layer_params = get_random_layer_params(node_type, requirements)
-            new_node = secondary_node_func(layer_params=new_layer_params)
-            graph.update_cnn_node(node, new_node)
-
-    secondary_nodes = requirements.secondary
-    primary_nodes = requirements.primary
-    for node in nn_structure:
-        if random.random() < node_mutation_probability:
-            if node.nodes_from:
-                new_node_type = choice(secondary_nodes)
-                new_layer_params = get_random_layer_params(new_node_type, requirements)
-                new_node = secondary_node_func(layer_params=new_layer_params)
-            else:
-                new_node_type = choice(primary_nodes)
-                new_layer_params = get_random_layer_params(new_node_type, requirements)
-                new_node = primary_node_func(layer_params=new_layer_params)
-            graph.update_node(node, new_node)
-    graph.show()
-    return graph
-
-def custom_mutation(graph: OptGraph, **kwargs):
-    num_mut = 10
-    try:
-        for _ in range(num_mut):
-            rid = random.choice(range(len(graph.nodes)))
-            random_node = graph.nodes[rid]
-            other_random_node = graph.nodes[random.choice(range(len(graph.nodes)))]
-            nodes_not_cycling = (random_node.descriptive_id not in
-                                 [n.descriptive_id for n in other_random_node.ordered_subnodes_hierarchy()] and
-                                 other_random_node.descriptive_id not in
-                                 [n.descriptive_id for n in random_node.ordered_subnodes_hierarchy()])
-            if random_node.nodes_from is not None and len(random_node.nodes_from) == 0:
-                random_node.nodes_from = None
-            if nodes_not_cycling:
-                graph.operator.connect_nodes(random_node, other_random_node)
-    except Exception as ex:
-        graph.log.warn(f'Incorrect connection: {ex}')
-    # graph.show()
-    return graph
 
 def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     size = 120
@@ -184,16 +150,15 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
-    cnn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
-    conv_types = [LayerTypesIdsEnum.conv2d]
-    pool_types = [LayerTypesIdsEnum.maxpool2d, LayerTypesIdsEnum.averagepool2d]
-    nn_primary = [LayerTypesIdsEnum.dense]
-    nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
+    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
+    conv_types = [LayerTypesIdsEnum.conv2d.value]
+    pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
+    nn_primary = [LayerTypesIdsEnum.dense.value]
     rules = [has_no_self_cycled_nodes, has_no_cycle, _has_no_duplicates]
-    metric_function = [MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)]
+    metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[custom_mutation],
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
@@ -201,8 +166,8 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
-        conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
-        primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=3,
+        conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
+        primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,
         max_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     optimiser = GPNNGraphOptimiser(
@@ -212,15 +177,15 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     # optimized_network = optimiser.optimise(partial(custom_metric, data=data))
-    # optimized_network.show(path='result.png')
+    optimized_network.show(path='result.png')
 
     print('Best model structure:')
-    for node in optimized_network.cnn_nodes:
-        print(node)
+    # for node in optimized_network.cnn_nodes:
+    #     print(node)
     for node in optimized_network.nodes:
         print(node)
 
-    # optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
+    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=20, classes=num_of_classes)
 
     # the quality assessment for the obtained composite models
