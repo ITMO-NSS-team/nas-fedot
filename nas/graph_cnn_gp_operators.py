@@ -66,23 +66,25 @@ def is_image_has_permissible_size(image_size, min_size: int = 2):
     return all([side_size >= min_size for side_size in image_size])
 
 
-def random_cnn(primary_node_func: Callable, secondary_node_func: Callable, requirements, graph: Any = None,
-               max_num_of_conv: int = None, min_num_of_conv: int = None, image_size: List[float] = None,
-               cnn_parent_node: Any = None, secondary_node_parent: Any = None) -> Any:
+def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_conv: int = None,
+               min_num_of_conv: int = None, image_size: List[float] = None, parent_nodes: Any = None) -> Any:
     max_num_of_conv = max_num_of_conv if not max_num_of_conv is None else requirements.max_num_of_conv_layers
     min_num_of_conv = min_num_of_conv if not min_num_of_conv is None else requirements.max_num_of_conv_layers
     num_of_conv = randint(min_num_of_conv, max_num_of_conv)
+    graph.cnn_depth = num_of_conv
+
     if image_size is None:
         current_image_size = requirements.image_size
     else:
         current_image_size = image_size
 
-    def one_cnn_branch_growth(primary_node_parent: Any = None, _secondary_node_parent: Any = None,
-                              img_size: List[float] = current_image_size, depth: int = None,
+    def one_cnn_branch_growth(node_parent: Any = None, img_size: List[float] = current_image_size, depth: int = None,
                               total_convs: int = num_of_conv):
+        # Conv layer parameters
         depth = 0 if depth is None else depth
+        nodes_from = None if not depth else [node_parent]
         conv_node_type = choice(requirements.conv_types)
-        activation = choice(requirements.activation_types)
+        activation = choice(requirements.activation_types).value
         kernel_size = requirements.conv_kernel_size
         conv_strides = requirements.conv_strides
         num_of_filters = choice(requirements.filters)
@@ -104,235 +106,143 @@ def random_cnn(primary_node_func: Callable, secondary_node_func: Callable, requi
         else:
             return
 
-        # creating conv layer
+        # Add conv layers
         layer_params = LayerParams(layer_type=conv_node_type, activation=activation, kernel_size=kernel_size,
                                    conv_strides=conv_strides, num_of_filters=num_of_filters, pool_size=pool_size,
                                    pool_strides=pool_strides, pool_type=pool_type)
-        new_conv_node = secondary_node_func(layer_params=layer_params)
-        # graph.add_node(new_conv_node)
-        graph.add_cnn_node(new_conv_node)
-        _secondary_node_parent = None # new_conv_node
-        if primary_node_parent:
-            new_conv_node.nodes_from.append(primary_node_parent)
+        new_conv_node = node_func(nodes_from=nodes_from,
+                                  content={'name': layer_params.layer_type},
+                                  layer_params=layer_params)
+        graph.add_node(new_conv_node)
+        nodes_from = [new_conv_node]
         if pool_size is None:
             return
-        # Add secondary layer
-        if depth != total_convs - 1:
+
+        # Add secondary layers
+        if depth < total_convs - 1:
             new_secondary_node_type = choice(requirements.cnn_secondary)
             layer_params = get_random_layer_params(new_secondary_node_type, requirements)
-            new_secondary_node = secondary_node_func(layer_params=layer_params)
-            primary_node_parent = None # new_secondary_node
-            # graph.add_node(new_secondary_node)
-            graph.add_cnn_node(new_secondary_node)
-        elif depth == total_convs - 1:
+            new_secondary_node = node_func(nodes_from=nodes_from,
+                                           content={'name': layer_params.layer_type},
+                                           layer_params=layer_params)
+            graph.add_node(new_secondary_node)
+        else:
             add_dropout_layer = randint(0, 1)
             if add_dropout_layer:
-                new_secondary_node_type = LayerTypesIdsEnum.dropout
+                new_secondary_node_type = LayerTypesIdsEnum.dropout.value
                 layer_params = get_random_layer_params(new_secondary_node_type, requirements)
-                new_secondary_node = secondary_node_func(layer_params=layer_params)
-                primary_node_parent = None # new_secondary_node
-                # graph.add_node(new_secondary_node)
-                graph.add_cnn_node(new_secondary_node)
+                new_secondary_node = node_func(nodes_from=nodes_from,
+                                               content={'name': layer_params.layer_type},
+                                               layer_params=layer_params)
+                graph.add_node(new_secondary_node)
             else:
                 new_secondary_node = None
-        if new_secondary_node and _secondary_node_parent:
-            new_secondary_node.nodes_from.append(_secondary_node_parent)
-        if depth != total_convs:
-            one_cnn_branch_growth(primary_node_parent=primary_node_parent,
-                                  _secondary_node_parent=_secondary_node_parent, img_size=img_size, depth=depth+1)
-    cnn_parent_node = cnn_parent_node if cnn_parent_node else None
-    secondary_node_parent = secondary_node_parent if secondary_node_parent else None
-    one_cnn_branch_growth(primary_node_parent=cnn_parent_node, _secondary_node_parent=secondary_node_parent,
-                          img_size= current_image_size, total_convs=num_of_conv)
-    last_node = graph.cnn_nodes[-1]
-    return last_node
 
-    # def growth_one_cnn_branch(cnn_parent: Any = None, cnn_secondary_node_parent: Any = None,
-    #                           img_size: List[float] = current_image_size, number_of_convs: int = num_of_conv,
-    #                           depth: int = None):
-    #     depth = 0 if depth is None else depth
-    #     # Define params for conv layer
-    #     node_type = choice(requirements.conv_types)
-    #     activation = choice(requirements.activation_types)
-    #     kernel_size = requirements.conv_kernel_size
-    #     conv_strides = requirements.conv_strides
-    #     num_of_filters = choice(requirements.filters)
-    #     pool_size = None
-    #     pool_strides = None
-    #     pool_type = None
-    #     if is_image_has_permissible_size(img_size, 2):
-    #         img_size = [output_dimension(img_size[i], kernel_size[i], conv_strides[i]) for i in
-    #                               range(len(kernel_size))]
-    #
-    #         if is_image_has_permissible_size(img_size, 2):
-    #             img_size = [floor(output_dimension(img_size[i], requirements.pool_size[i],
-    #                                                          requirements.pool_strides[i])) for i in
-    #                                   range(len(img_size))]
-    #             if is_image_has_permissible_size(img_size, 2):
-    #                 pool_size = requirements.pool_size
-    #                 pool_strides = requirements.pool_strides
-    #                 pool_type = choice(requirements.pool_types)
-    #     layer_params = LayerParams(layer_type=node_type, activation=activation,
-    #                                kernel_size=kernel_size, conv_strides=conv_strides, num_of_filters=num_of_filters,
-    #                                pool_size=pool_size, pool_strides=pool_strides, pool_type=pool_type)
-    #     new_node = primary_node_func(layer_params=layer_params)
-    #     # graph.add_node(new_node)
-    #     graph.add_cnn_node(new_node)
-    #     # cnn_parent = cnn_parent if cnn_parent else None
-    #     # if cnn_parent:
-    #     #     cnn_parent.nodes_from.append(new_node)
-    #
-    #     # Define params for secondary cnn layer
-    #     if depth != number_of_convs - 1:
-    #         new_secondary_node_type = choice(requirements.cnn_secondary)
-    #         layer_params = get_random_layer_params(new_secondary_node_type, requirements)
-    #         new_secondary_node = secondary_node_func(layer_params=layer_params)
-    #     elif depth == number_of_convs - 1:
-    #         add_dropout_layer = randint(0, 1)
-    #         if add_dropout_layer:
-    #             new_secondary_node_type = LayerTypesIdsEnum.dropout
-    #             layer_params = get_random_layer_params(new_secondary_node_type, requirements)
-    #             new_secondary_node = secondary_node_func(layer_params=layer_params)
-    #         else:
-    #             new_secondary_node = None
-    #
-    #     cnn_secondary_node_parent = cnn_secondary_node_parent if cnn_secondary_node_parent else None
-    #
-    #     if new_secondary_node:
-    #         graph.add_cnn_node(new_secondary_node)
-    #         # graph.add_node(new_secondary_node)
-    #         if cnn_secondary_node_parent:
-    #             cnn_secondary_node_parent.nodes_from.append(new_secondary_node)
-    #
-    #     if depth != number_of_convs:
-    #         growth_one_cnn_branch(cnn_parent=new_node,
-    #                               cnn_secondary_node_parent=None, depth=depth+1)
-    # cnn_parent = cnn_parent if cnn_parent else None
-    # cnn_secondary_node_parent = cnn_secondary_node_parent if cnn_secondary_node_parent else None
-    # growth_one_cnn_branch(cnn_parent=cnn_parent, cnn_secondary_node_parent=cnn_secondary_node_parent,
-    #                       number_of_convs=num_of_conv, img_size=current_image_size)
+        nodes_from = new_secondary_node if not new_secondary_node is None else nodes_from
 
-    #     node_type = choice(requirements.cnn_secondary)
-    #     layer_params = get_random_layer_params(node_type, requirements)
-    #     new_node = secondary_node_func(layer_params=layer_params)
-    #     graph.add_node(new_node)
-    #     graph.add_cnn_node(new_node)
-    #
-    # if conv_num == num_of_conv - 1:
-    #     add_dropout_layer = randint(0, 1)
-    #     if add_dropout_layer:
-    #         node_type = LayerTypesIdsEnum.dropout
-    #         layer_params = get_random_layer_params(node_type, requirements)
-    #         new_node = secondary_node_func(layer_params=layer_params)
-    #         graph.add_node(new_node)
-    #         graph.add_cnn_node(new_node)
-    #
-    #
-    #
-    # for conv_num in range(num_of_conv):
-    #
-    #     node_type = choice(requirements.conv_types)
-    #     activation = choice(requirements.activation_types)
-    #     kernel_size = requirements.conv_kernel_size
-    #     conv_strides = requirements.conv_strides
-    #     num_of_filters = choice(requirements.filters)
-    #     pool_size = None
-    #     pool_strides = None
-    #     pool_type = None
-    #     if is_image_has_permissible_size(current_image_size, 2):
-    #         current_image_size = [output_dimension(current_image_size[i], kernel_size[i], conv_strides[i]) for i in
-    #                               range(len(kernel_size))]
-    #
-    #         if is_image_has_permissible_size(current_image_size, 2):
-    #             current_image_size = [floor(output_dimension(current_image_size[i], requirements.pool_size[i],
-    #                                                          requirements.pool_strides[i])) for i in
-    #                                   range(len(current_image_size))]
-    #             if is_image_has_permissible_size(current_image_size, 2):
-    #                 pool_size = requirements.pool_size
-    #                 pool_strides = requirements.pool_strides
-    #                 pool_type = choice(requirements.pool_types)
-    #     else:
-    #         break
-    #     layer_params = LayerParams(layer_type=node_type, activation=activation,
-    #                                kernel_size=kernel_size, conv_strides=conv_strides, num_of_filters=num_of_filters,
-    #                                pool_size=pool_size, pool_strides=pool_strides, pool_type=pool_type)
-    #     new_node = secondary_node_func(layer_params=layer_params)
-    #     graph.add_node(new_node)
-    #     graph.add_cnn_node(new_node)
-    #     if pool_size is None:
-    #         break
-    #
-    #     if conv_num != num_of_conv - 1:
-    #         node_type = choice(requirements.cnn_secondary)
-    #         layer_params = get_random_layer_params(node_type, requirements)
-    #         new_node = secondary_node_func(layer_params=layer_params)
-    #         graph.add_node(new_node)
-    #         graph.add_cnn_node(new_node)
-    #     if conv_num == num_of_conv - 1:
-    #         add_dropout_layer = randint(0, 1)
-    #         if add_dropout_layer:
-    #             node_type = LayerTypesIdsEnum.dropout
-    #             layer_params = get_random_layer_params(node_type, requirements)
-    #             new_node = secondary_node_func(layer_params=layer_params)
-    #             graph.add_node(new_node)
-    #             graph.add_cnn_node(new_node)
+        if depth < total_convs:
+            one_cnn_branch_growth(node_parent=nodes_from, img_size=img_size, depth=depth+2)
+
+    parent_nodes = parent_nodes if parent_nodes else None
+    one_cnn_branch_growth(node_parent=parent_nodes, img_size=current_image_size, total_convs=num_of_conv)
+    return graph.nodes[-1]
 
 
-def random_nn_branch(secondary_node_func: Callable, primary_node_func: Callable, requirements, graph: Any = None,
-                     max_depth=None, start_height: int = None, node_parent=None) -> Any:
+def random_nn_branch(node_func: Callable, requirements, graph: Any = None, max_depth=None, start_height: int = None,
+                     node_parent=None) -> Any:
     max_depth = max_depth if not max_depth is None else requirements.max_depth
 
-    def branch_growth(node_parent: Any = None, offspring_size: int = None, height: int = None):
+    def nn_branch_growth(node_parent: Any = None, offspring_size: int = None, depth: int = None,
+                         total_nodes: int = max_depth):
+        nodes_from = [node_parent] if node_parent else None
+        depth = 0 if depth is None else depth
 
-        height = 0 if height is None else height
-        is_max_depth_exceeded = height >= max_depth - 1
-        is_primary_node_selected = height < max_depth - 1 and randint(0, 1)
-        primary = is_max_depth_exceeded or is_primary_node_selected
-        if primary:
-            node_type = choice(requirements.primary)
-        else:
-            node_type = choice(requirements.secondary)
-            offspring_size = offspring_size if not offspring_size is None else randint(requirements.min_arity,
-                                                                                       requirements.max_arity)
-        layer_params = get_random_layer_params(node_type, requirements)
-
-        if primary:
-            new_node = secondary_node_func(layer_params=layer_params)
-        else:
-            new_node = secondary_node_func(layer_params=layer_params)
-            for _ in range(offspring_size):
-                branch_growth(node_parent=new_node, height=height + 1)
+        new_node_type = choice(requirements.primary)
+        layer_params = get_random_layer_params(new_node_type, requirements)
+        new_node = node_func(nodes_from=nodes_from,
+                             content={'name': layer_params.layer_type},
+                             layer_params=layer_params)
         if graph:
             graph.add_node(new_node)
-        if node_parent:
-            node_parent.nodes_from.append(new_node)
+        nodes_from = [new_node]
+
+        # Add secondary layers
+        if depth < total_nodes - 1:
+            new_secondary_node_type = choice(requirements.secondary)
+            layer_params = get_random_layer_params(new_secondary_node_type, requirements)
+            new_secondary_node = node_func(nodes_from=nodes_from,
+                                           content={'name': layer_params.layer_type},
+                                           layer_params=layer_params)
+            graph.add_node(new_secondary_node)
+        else:
+            add_dense_layer = randint(0, 1)
+            if add_dense_layer:
+                new_secondary_node_type = LayerTypesIdsEnum.dense.value
+                layer_params = get_random_layer_params(new_secondary_node_type, requirements)
+                new_secondary_node = node_func(nodes_from=nodes_from,
+                                               content={'name': layer_params.layer_type},
+                                               layer_params=layer_params)
+                graph.add_node(new_secondary_node)
+            else:
+                new_secondary_node = None
+
+        nodes_from = new_secondary_node if not new_secondary_node is None else nodes_from
+
+        if depth < total_nodes:
+            nn_branch_growth(node_parent=nodes_from, depth=depth + 2)
+
+
+    # def branch_growth(node_parent: Any = None, offspring_size: int = None, height: int = None):
+    #
+    #     height = 0 if height is None else height
+    #     is_max_depth_exceeded = height >= max_depth - 1
+    #     is_primary_node_selected = height < max_depth - 1 and randint(0, 1)
+    #     primary = is_max_depth_exceeded or is_primary_node_selected
+    #     if primary:
+    #         node_type = choice(requirements.primary)
+    #     else:
+    #         node_type = choice(requirements.secondary)
+    #         offspring_size = offspring_size if not offspring_size is None else randint(requirements.min_arity,
+    #                                                                                    requirements.max_arity)
+    #     layer_params = get_random_layer_params(node_type, requirements)
+    #
+    #     if primary:
+    #         new_node = secondary_node_func(layer_params=layer_params)
+    #     else:
+    #         new_node = secondary_node_func(layer_params=layer_params)
+    #         for _ in range(offspring_size):
+    #             branch_growth(node_parent=new_node, height=height + 1)
+    #     if graph:
+    #         graph.add_node(new_node)
+    #     if node_parent:
+    #         node_parent.nodes_from.append(new_node)
 
     node_parent = node_parent if node_parent else None
-    branch_growth(height=start_height, node_parent=node_parent)
+    # branch_growth(primary_node_parent=node_parent)
+    nn_branch_growth(node_parent=node_parent, depth=start_height)
 
 
-def random_cnn_graph(graph_class: Any, secondary_node_func: Callable, primary_node_func: Callable, requirements) -> Any:
+def random_cnn_graph(graph_class: Any, node_func: Callable, requirements) -> Any:
     graph = graph_class()
     # left (cnn part) branch of tree generation
-    init_nn_parent = random_cnn(graph=graph, secondary_node_func=secondary_node_func, primary_node_func=primary_node_func,
-               requirements=requirements)
+    node_parent = random_cnn(graph=graph, node_func=node_func, requirements=requirements)
     # Right (fully connected nn) branch of tree generation
-    random_nn_branch(graph=graph, secondary_node_func=secondary_node_func, primary_node_func=primary_node_func,
-                     requirements=requirements, start_height=0, node_parent=init_nn_parent)
+    random_nn_branch(graph=graph, node_func=node_func, requirements=requirements, start_height=0,
+                     node_parent=node_parent)
     if not hasattr(graph, 'parent_operators'):
         setattr(graph, 'parent_operators', [])
     return graph
 
 
-def get_random_layer_params(type, requirements) -> LayerParams:
+def get_random_layer_params(type: str, requirements) -> LayerParams:
     layer_params = None
-    if type == LayerTypesIdsEnum.serial_connection:
+    if type == LayerTypesIdsEnum.serial_connection.value:
         layer_params = LayerParams(layer_type=type)
-    elif type == LayerTypesIdsEnum.dropout:
+    elif type == LayerTypesIdsEnum.dropout.value:
         drop = randint(1, (requirements.max_drop_size * 10)) / 10
         layer_params = LayerParams(layer_type=type, drop=drop)
-    if type == LayerTypesIdsEnum.dense:
-        activation = choice(requirements.activation_types)
+    if type == LayerTypesIdsEnum.dense.value:
+        activation = choice(requirements.activation_types).value
         neurons = randint(requirements.min_num_of_neurons, requirements.max_num_of_neurons)
         layer_params = LayerParams(layer_type=type, neurons=neurons, activation=activation)
     return layer_params

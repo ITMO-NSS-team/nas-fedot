@@ -20,7 +20,7 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 from nas.layer import LayerTypesIdsEnum, activation_types, LayerParams
-from nas.graph_nas_node import NNNodeGenerator
+from nas.graph_nas_node import NNNodeGenerator, NNNode
 from nas.graph_cnn_gp_operators import random_cnn_graph
 
 
@@ -109,13 +109,13 @@ from nas.graph_cnn_gp_operators import *
 class CustomGraphAdapter(DirectAdapter):
     def __init__(self, base_graph_class=None, base_node_class=None, log=None):
         super().__init__(base_graph_class=base_graph_class, base_node_class=base_node_class, log=log)
+        self.base_graph_params = {}
 
-    def adapt(self, adaptee: Any):
+    def adapt(self, adaptee: Any) -> OptGraph:
         opt_graph = deepcopy(adaptee)
         opt_graph.__class__ = OptGraph
         for node in opt_graph.nodes:
-            node.__class__ = OptNode
-        for node in opt_graph.cnn_nodes:
+            self.base_graph_params[node.distance_to_primary_level] = node.layer_params
             node.__class__ = OptNode
         return opt_graph
 
@@ -124,20 +124,14 @@ class CustomGraphAdapter(DirectAdapter):
         obj.__class__ = self.base_graph_class
         for node in obj.nodes:
             node.__class__ = self.base_node_class
-        for node in obj.cnn_nodes:
-            node.__class__ = self.base_node_class
-
-        # if node.content['params'] == DEFAULT_PARAMS_STUB:
-        #     node.layer_params = self.node_layer_params
-        #     node.layer_params.layer_type = node.content['name']
         return obj
 
 
 class CustomGraphModel(OptGraph):
-    def __init__(self, nodes=None, cnn_nodes=None, fitted_model=None):
+    def __init__(self, nodes=None, cnn_depth=None, fitted_model=None):
         super().__init__(nodes)
-        self.cnn_nodes = cnn_nodes if not cnn_nodes is None else []
-        # self.nodes.extend(cnn_nodes)
+        # self.cnn_nodes = cnn_nodes if not cnn_nodes is None else []
+        self.cnn_depth = cnn_depth
         self.model = fitted_model
         self.unique_pipeline_id = str(uuid4())
 
@@ -145,12 +139,17 @@ class CustomGraphModel(OptGraph):
         return f"{self.depth}:{self.length}:{len(self.cnn_nodes)}"
 
     def evaluate(self, data: pd.DataFrame):
-        nodes = data.columns.to_list()
+        nodes = self.nodes
+        # nodes = data.columns.to_list()
         _, labels = graph_structure_as_nx_graph(self)
         return len(nodes)
 
     def __eq__(self, other) -> bool:
         return self is other
+
+    # @property
+    # def _node_adapter(self):
+    #     return CustomNodeOperatorAdapter()
 
     def add_cnn_node(self, new_node: OptNode):
         """
@@ -178,6 +177,22 @@ class CustomGraphModel(OptGraph):
         return evaluation_result
 
 
+class CustomGraphNode(NNNode):
+    def __init__(self, content: dict, nodes_from, layer_params):
+        super().__init__(content, nodes_from, layer_params)
+
+    def __str__(self):
+        return str(self.content['name'])
+
+    def __repr__(self):
+        return self.__str__()
+    # def __str__(self):
+    #     return f"Node_{self.layer_params.layer_type.name}"
+    #
+    # def __repr__(self):
+    #     return f"Node_{self.layer_params.layer_type.name}"
+
+
 class GPNNGraphOptimiser(EvoGraphOptimiser):
     def __init__(self, initial_graph, requirements, graph_generation_params,
                  metrics, parameters, log):
@@ -193,8 +208,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         self.graph_generation_function = partial(self.parameters.graph_generation_function,
                                                  graph_class=CustomGraphModel,
                                                  requirements=self.requirements,
-                                                 primary_node_func=NNNodeGenerator.primary_node,
-                                                 secondary_node_func=NNNodeGenerator.secondary_node)
+                                                 node_func=CustomGraphNode)
+                                                 # primary_node_func=NNNodeGenerator.primary_node,
+                                                 # secondary_node_func=NNNodeGenerator.secondary_node)
 
         if initial_graph and type(initial_graph) != list:
             self.population = [initial_graph] * requirements.pop_size
@@ -213,9 +229,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
 
-        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
         # graph.show()
-        return [1] # [metric_function(graph, test_data)]
+        return [metric_function(graph, test_data)]  # [1]
 
     def compose_chain(self, data: InputData,):
         pass
@@ -236,3 +252,14 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         self.optimise(metric_function_for_nodes)
         return self.best_individual.graph
         # return self.graph_generation_params.adapter.restore(self.best_individual.graph)
+
+
+class CustomNodeOperatorAdapter:
+    def adapt(self, adaptee) -> OptNode:
+        adaptee.__class__ = OptNode
+        return adaptee
+
+    def restore(self, node) -> CustomGraphNode:
+        obj = node
+        obj.__class__ = CustomGraphNode
+        return obj

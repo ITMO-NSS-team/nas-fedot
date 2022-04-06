@@ -96,14 +96,18 @@ def make_keras_picklable():
 
 def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
     generated_struc = generate_structure(chain.root_node)
-    nn_structure = chain.cnn_nodes + generated_struc
+    # nn_structure = chain.cnn_nodes + generated_struc
+    nn_structure = generated_struc[::-1]
     # nn_structure = chain.nodes
     make_keras_picklable()
     model = models.Sequential()
+    previous_layer_type = None
     for i, layer in enumerate(nn_structure):
         type = layer.layer_params.layer_type
-        if type == LayerTypesIdsEnum.conv2d:
-            activation = layer.layer_params.activation.value
+        if previous_layer_type == 'conv2d' and type == 'dense':
+            model.add(layers.Flatten())
+        if type == LayerTypesIdsEnum.conv2d.value:
+            activation = layer.layer_params.activation
             kernel_size = layer.layer_params.kernel_size
             conv_strides = layer.layer_params.conv_strides
             filters_num = layer.layer_params.num_of_filters
@@ -121,20 +125,25 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
             if layer.layer_params.pool_size:
                 pool_size = layer.layer_params.pool_size
                 pool_strides = layer.layer_params.pool_strides
-                if layer.layer_params.pool_type == LayerTypesIdsEnum.maxpool2d:
+                if layer.layer_params.pool_type == LayerTypesIdsEnum.maxpool2d.value:
                     model.add(layers.MaxPooling2D(pool_size=pool_size, strides=pool_strides))
-                elif layer.layer_params.pool_type == LayerTypesIdsEnum.averagepool2d:
+                elif layer.layer_params.pool_type == LayerTypesIdsEnum.averagepool2d.value:
                     model.add(layers.AveragePooling2D(pool_size=pool_size, strides=pool_strides))
-        elif type == LayerTypesIdsEnum.dropout:
+        elif type == LayerTypesIdsEnum.dropout.value:
             drop = layer.layer_params.drop
             model.add(layers.Dropout(drop))
-        elif type == LayerTypesIdsEnum.dense:
-            activation = layer.layer_params.activation.value
+        elif type == LayerTypesIdsEnum.dense.value:
+            activation = layer.layer_params.activation
             neurons_num = layer.layer_params.neurons
             model.add(layers.Dense(neurons_num, activation=activation))
+        # elif type == LayerTypesIdsEnum.flatten:
+        #     model.add(layers.Flatten())
+            # neurons_num = model.layers[len(model.layers) - 1].output_shape[1]
+            # model.add(layers.Dense(neurons_num, activation='relu'))
         # if i == len(chain.cnn_nodes) - 1:
-        if i == len(chain.cnn_nodes) - 1:
-            model.add(layers.Flatten())
+        previous_layer_type = type if type is not 'dropout' else previous_layer_type
+        # if i == chain.cnn_depth - 1:
+        #     model.add(layers.Flatten())
             # neurons_num = model.layers[len(model.layers) - 1].output_shape[1]
             # model.add(layers.Dense(neurons_num, activation='relu'))
     # Output
