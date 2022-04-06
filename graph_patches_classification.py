@@ -1,36 +1,46 @@
-import datetime
 import os
 import random
 import statistics
 import sys
-from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
 
-from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
-from fedot.core.data.data import InputData
-from fedot.core.log import default_log
-from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
-    GeneticSchemeTypesEnum
-from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.optimisers.optimizer import GraphGenerationParams
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
-from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
-from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
-from nas.graph_cnn_crossover import cnn_subtree_crossover
 from nas.graph_cnn_mutation import cnn_simple_mutation
 from nas.graph_nas_node import NNNode
-from nas.layer import LayerTypesIdsEnum
-from nas.patches.load_images import from_images
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 sys.path.append(ROOT)
+
+from typing import Tuple
+from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
+
+from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from fedot.core.data.data import InputData
+
+from nas.patches.load_images import from_images
+from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
+from nas.layer import LayerTypesIdsEnum, LayerParams
+from nas.graph_nas_node import NNNodeGenerator
+
 random.seed(2)
 np.random.seed(2)
+
+import datetime
+
+from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
+from fedot.core.log import default_log
+from fedot.core.optimisers.adapters import DirectAdapter
+from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
+    GeneticSchemeTypesEnum
+from fedot.core.optimisers.optimizer import GraphGenerationParams
+
+from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
+from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+
+from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
+from nas.graph_cnn_crossover import cnn_subtree_crossover
 
 
 # class CustomGraphNode(NNNode):
@@ -126,12 +136,12 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         rules_for_constraint=rules)
 
     requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=16,
+        conv_kernel_size_range=(1, 5), conv_strides_range=(1, 2), pool_size_range=(2, 4), min_num_of_neurons=16,
         max_num_of_neurons=256, min_filters=16, max_filters=256, image_size=[size, size],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
         primary=nn_primary, secondary=nn_secondary, min_arity=1, max_arity=3,
-        max_depth=4, pop_size=15, num_of_generations=30, crossover_prob=0.7, mutation_prob=0.3,
-        train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout,
+        max_depth=4, pop_size=15, num_of_generations=20, crossover_prob=0.7, mutation_prob=0.25,
+        train_epochs_num=10, num_of_classes=num_of_classes, timeout=timeout,
         max_num_of_conv_layers=4, min_num_of_conv_layers=1, max_params=1000000)
     optimiser = GPNNGraphOptimiser(
         initial_graph=None, requirements=requirements, graph_generation_params=graph_generation_params,

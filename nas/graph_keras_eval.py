@@ -1,5 +1,4 @@
 from typing import Any
-
 import numpy as np
 from tensorflow.keras import layers
 from tensorflow.keras import models
@@ -118,19 +117,19 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
                     layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation, input_shape=input_shape,
                                   strides=conv_strides))
             else:
-                if not all([size == 1 for size in kernel_size]):
-                    model.add(
-                        layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
-                                      strides=conv_strides))
+                if not max(kernel_size) > max(model.layers[-1].output_shape[1:3]):
+                    model.add(layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
+                                            strides=conv_strides))
                     # model.add(layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
                     #                   strides=conv_strides, data_format='channels_first'))
             if layer.layer_params.pool_size:
                 pool_size = layer.layer_params.pool_size
                 pool_strides = layer.layer_params.pool_strides
-                if layer.layer_params.pool_type == LayerTypesIdsEnum.maxpool2d:
-                    model.add(layers.MaxPooling2D(pool_size=pool_size, strides=pool_strides))
-                elif layer.layer_params.pool_type == LayerTypesIdsEnum.averagepool2d:
-                    model.add(layers.AveragePooling2D(pool_size=pool_size, strides=pool_strides))
+                if not max(pool_size) > max(model.layers[-1].output_shape[1:3]):
+                    if layer.layer_params.pool_type == LayerTypesIdsEnum.maxpool2d:
+                        model.add(layers.MaxPooling2D(pool_size=pool_size, strides=pool_strides))
+                    elif layer.layer_params.pool_type == LayerTypesIdsEnum.averagepool2d:
+                        model.add(layers.AveragePooling2D(pool_size=pool_size, strides=pool_strides))
         elif type == LayerTypesIdsEnum.dropout:
             drop = layer.layer_params.drop
             model.add(layers.Dropout(drop))

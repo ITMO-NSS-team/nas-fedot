@@ -80,6 +80,9 @@ def set_correct_num_convs(n_convs: int, img_size: int, pad_size=0, kernel_size=3
     return n_convs
 
 
+import random
+
+
 def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, max_num_of_conv: int = None,
                min_num_of_conv: int = None, image_size: List[float] = None) -> Any:
     if image_size is None:
@@ -98,24 +101,27 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
 
         node_type = choice(requirements.conv_types)
         activation = choice(requirements.activation_types)
-        kernel_size = requirements.conv_kernel_size
-        conv_strides = requirements.conv_strides
+        rand_kernel_size = random.randint(*requirements.conv_kernel_size_range)
+        kernel_size = (rand_kernel_size, rand_kernel_size)
+        rand_conv_strides = random.randint(*requirements.conv_strides_range)
+        conv_strides = (rand_conv_strides, rand_conv_strides)
         max_params = requirements.max_params
         num_of_filters = choice(requirements.filters)
+        rand_pool_size = random.randint(*requirements.pool_size_range)
         pool_size = None
         pool_strides = None
         pool_type = None
-        if is_image_has_permissible_size(current_image_size, 2):
+        if is_image_has_permissible_size(current_image_size, rand_pool_size):
             current_image_size = [output_dimension(current_image_size[i], kernel_size[i], conv_strides[i]) for i in
                                   range(len(kernel_size))]
 
-            if is_image_has_permissible_size(current_image_size, 2):
-                current_image_size = [floor(output_dimension(current_image_size[i], requirements.pool_size[i],
+            if is_image_has_permissible_size(current_image_size, rand_pool_size):
+                current_image_size = [floor(output_dimension(current_image_size[i], rand_pool_size,
                                                              requirements.pool_strides[i])) for i in
                                       range(len(current_image_size))]
-                if is_image_has_permissible_size(current_image_size, 2):
-                    pool_size = requirements.pool_size
-                    pool_strides = requirements.pool_strides
+                if is_image_has_permissible_size(current_image_size, rand_pool_size):
+                    pool_size = (rand_pool_size, rand_pool_size)
+                    pool_strides = pool_size
                     pool_type = choice(requirements.pool_types)
         else:
             break
@@ -145,6 +151,7 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
 def random_nn_branch(secondary_node_func: Callable, primary_node_func: Callable, requirements, graph: Any = None,
                      max_depth=None, start_height: int = None, node_parent=None) -> Any:
     max_depth = max_depth if not max_depth is None else requirements.max_depth
+
     def branch_growth(node_parent: Any = None, offspring_size: int = None, height: int = None):
 
         height = 0 if height is None else height

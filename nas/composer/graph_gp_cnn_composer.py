@@ -1,6 +1,5 @@
 import random
 from copy import deepcopy
-from dataclasses import dataclass
 from functools import partial
 from typing import (
     Optional
@@ -9,6 +8,7 @@ from uuid import uuid4
 
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass
 
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData
@@ -30,9 +30,9 @@ np.random.seed(1)
 
 @dataclass
 class GPNNComposerRequirements(PipelineComposerRequirements):
-    conv_kernel_size: Tuple[int, int] = (3, 3)
-    conv_strides: Tuple[int, int] = (1, 1)
-    pool_size: Tuple[int, int] = (2, 2)
+    conv_kernel_size_range: Tuple[int, int] = (3, 3)
+    conv_strides_range: Tuple[int, int] = (1, 1)
+    pool_size_range: Tuple[int, int] = (2, 2)
     pool_strides: Tuple[int, int] = (2, 2)
     min_num_of_neurons: int = 50
     max_num_of_neurons: int = 200
@@ -70,10 +70,10 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
         if not all([side_size > 3 for side_size in self.image_size]):
             raise ValueError(f'Specified image size is unacceptable')
         self.conv_kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.image_size,
-                                                                                         self.conv_kernel_size,
-                                                                                         self.conv_strides, False)
+                                                                                         self.conv_kernel_size_range,
+                                                                                         self.conv_strides_range, False)
         self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.image_size,
-                                                                                  self.pool_size,
+                                                                                  self.pool_size_range,
                                                                                   self.pool_strides, True)
         if self.min_num_of_neurons < 1:
             raise ValueError(f'min_num_of_neurons value is unacceptable')

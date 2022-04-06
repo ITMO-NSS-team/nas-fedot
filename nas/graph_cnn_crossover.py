@@ -11,7 +11,7 @@ from nas.layer import LayerTypesIdsEnum, LayerParams
 def cnn_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
     # max_num_of_conv = requirements.max_num_of_conv_layers
     # min_num_of_conv = requirements.min_num_of_conv_layers
-    # TODO need to pull actual requirements, mb later
+    # TODO need to pull actual requirements
     max_num_of_conv = GPNNComposerRequirements.max_num_of_conv_layers
     min_num_of_conv = GPNNComposerRequirements.min_num_of_conv_layers
 
