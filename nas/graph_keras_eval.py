@@ -1,21 +1,17 @@
 from typing import Any
 
-from keras import layers
-from keras import models
-from keras import optimizers
+import numpy as np
+from tensorflow.keras import layers
+from tensorflow.keras import models
+from tensorflow.keras import optimizers
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.models import Model
+from tensorflow.python.keras.layers import deserialize, serialize
+from tensorflow.python.keras.saving import saving_utils
 
 # from fedot_old.core.models.data import InputData, OutputData
 from fedot.core.data.data import InputData, OutputData
 from nas.layer import LayerTypesIdsEnum
-from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-
-from sklearn.metrics import log_loss
-
-import pickle
-
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.python.keras.layers import deserialize, serialize
-from tensorflow.python.keras.saving import saving_utils
 
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
@@ -35,7 +31,7 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
 
 def keras_model_predict(model, input_data: InputData):
     # evaluation_result = model.predict(input_data.features)
-    evaluation_result = model.predict_proba(input_data.features)
+    evaluation_result = model.predict(input_data.features)
     # sum_rows = np.sum(evaluation_result,axis=1).tolist()
     # print(sum_rows)
     # print(np.sum(evaluation_result))
@@ -47,8 +43,12 @@ def keras_model_predict(model, input_data: InputData):
 
 
 def generate_structure(node: Any):
-    if node.nodes_from:
+    if hasattr(node, 'nodes_from') and node.nodes_from:
         struct = []
+        # while len(node.nodes_from != 0):
+        #     struct.append(node)
+        #     struct += generate_structure(node.nodes_from[0])
+
         if len(node.nodes_from) == 1:
             struct.append(node)
             struct += generate_structure(node.nodes_from[0])
@@ -94,10 +94,16 @@ def make_keras_picklable():
     cls.__reduce__ = __reduce__
 
 
-def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
-    generated_struc = generate_structure(chain.root_node)
-    nn_structure = chain.cnn_nodes + generated_struc
-    # nn_structure = chain.nodes + generate_structure(chain.root_node)
+def get_shape_dim(out_shape: tuple):
+    out_shape_list = [el for el in out_shape if el]
+    return np.prod(out_shape_list)
+
+
+def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
+    generated_struc = generate_structure(graph.root_node)
+    if any(generated_struc):
+        nn_structure = graph.cnn_nodes + generated_struc
+    # nn_structure = graph.nodes + generate_structure(graph.root_node)
     make_keras_picklable()
     model = models.Sequential()
     for i, layer in enumerate(nn_structure):
@@ -132,10 +138,19 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
             activation = layer.layer_params.activation.value
             neurons_num = layer.layer_params.neurons
             model.add(layers.Dense(neurons_num, activation=activation))
-        # if i == len(chain.cnn_nodes) - 1:
-        if i == len(chain.cnn_nodes) - 1:
+        # if i == len(graph.cnn_nodes) - 1:
+        if i == len(graph.cnn_nodes) - 1:
+            while get_shape_dim(model.layers[-1].output_shape) > int(layer.layer_params.max_params) ** (1 / 2):
+                if model.layers[-1].output_shape[-1] >= 64:
+                    print('too many neurons, added 1x1 convolution')
+                    model.add(
+                        layers.Conv2D(model.layers[-1].output_shape[-1] // 2, kernel_size=(1, 1), activation='relu',
+                                      strides=(1, 1)))
+                else:
+                    print('too many neurons, added max pooling')
+                    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
             model.add(layers.Flatten())
-            neurons_num = model.layers[len(model.layers) - 1].output_shape[1]
+            neurons_num = model.layers[-1].output_shape[1]
             model.add(layers.Dense(neurons_num, activation='relu'))
     # Output
     output_shape = 1 if classes == 2 else classes

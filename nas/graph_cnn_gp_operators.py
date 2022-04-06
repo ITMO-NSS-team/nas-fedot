@@ -1,8 +1,10 @@
-from random import choice, randint
 from math import floor
+from random import choice, randint
 from typing import (Tuple, List, Any, Callable)
+
+from fedot.core.utils import DEFAULT_PARAMS_STUB
+from nas.graph_keras_eval import generate_structure
 from nas.layer import LayerTypesIdsEnum, LayerParams
-from nas.keras_eval import generate_structure
 
 
 def output_dimension(input_dimension: float, kernel_size: int, stride: int) -> float:
@@ -66,21 +68,39 @@ def is_image_has_permissible_size(image_size, min_size: int = 2):
     return all([side_size >= min_size for side_size in image_size])
 
 
+def set_correct_num_convs(n_convs: int, img_size: int, pad_size=0, kernel_size=3, stride_size=1):
+    """checks the output size of feature map according to the number of convolutions,
+    need to set correct max number of convs"""
+    size_out = img_size
+    for i in range(n_convs):
+        size_out = (size_out + 2 * pad_size - kernel_size) / stride_size + 1
+        size_out = size_out // 2
+        if size_out < 3:
+            return i
+    return n_convs
+
+
 def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, max_num_of_conv: int = None,
                min_num_of_conv: int = None, image_size: List[float] = None) -> Any:
-    max_num_of_conv = max_num_of_conv if not max_num_of_conv is None else requirements.max_num_of_conv_layers
-    min_num_of_conv = min_num_of_conv if not min_num_of_conv is None else requirements.max_num_of_conv_layers
-    num_of_conv = randint(min_num_of_conv, max_num_of_conv)
     if image_size is None:
         current_image_size = requirements.image_size
     else:
         current_image_size = image_size
+
+    max_num_of_conv = max_num_of_conv if max_num_of_conv else requirements.max_num_of_conv_layers
+    min_num_of_conv = min_num_of_conv if min_num_of_conv else requirements.max_num_of_conv_layers
+
+    max_num_of_conv = set_correct_num_convs(max_num_of_conv, int(current_image_size[0]), pad_size=0, kernel_size=3,
+                                            stride_size=1)
+
+    num_of_conv = randint(min_num_of_conv, max_num_of_conv)
     for conv_num in range(num_of_conv):
 
         node_type = choice(requirements.conv_types)
         activation = choice(requirements.activation_types)
         kernel_size = requirements.conv_kernel_size
         conv_strides = requirements.conv_strides
+        max_params = requirements.max_params
         num_of_filters = choice(requirements.filters)
         pool_size = None
         pool_strides = None
@@ -101,7 +121,8 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
             break
         layer_params = LayerParams(layer_type=node_type, activation=activation,
                                    kernel_size=kernel_size, conv_strides=conv_strides, num_of_filters=num_of_filters,
-                                   pool_size=pool_size, pool_strides=pool_strides, pool_type=pool_type)
+                                   pool_size=pool_size, pool_strides=pool_strides, pool_type=pool_type,
+                                   max_params=max_params)
         new_node = secondary_node_func(layer_params=layer_params)
         graph.add_cnn_node(new_node)
         if pool_size is None:
@@ -124,7 +145,6 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
 def random_nn_branch(secondary_node_func: Callable, primary_node_func: Callable, requirements, graph: Any = None,
                      max_depth=None, start_height: int = None, node_parent=None) -> Any:
     max_depth = max_depth if not max_depth is None else requirements.max_depth
-
     def branch_growth(node_parent: Any = None, offspring_size: int = None, height: int = None):
 
         height = 0 if height is None else height
@@ -138,11 +158,15 @@ def random_nn_branch(secondary_node_func: Callable, primary_node_func: Callable,
             offspring_size = offspring_size if not offspring_size is None else randint(requirements.min_arity,
                                                                                        requirements.max_arity)
         layer_params = get_random_layer_params(node_type, requirements)
-
         if primary:
-            new_node = primary_node_func(layer_params=layer_params)
+            new_node = primary_node_func(layer_params=layer_params,
+                                         content={'name': choice(requirements.primary),
+                                                  'params': DEFAULT_PARAMS_STUB})
         else:
-            new_node = secondary_node_func(layer_params=layer_params)
+            new_node = secondary_node_func(layer_params=layer_params,
+                                           content={'name': choice(requirements.secondary),
+                                                    'params': DEFAULT_PARAMS_STUB}
+                                           )
             for _ in range(offspring_size):
                 branch_growth(node_parent=new_node, height=height + 1)
         if graph:
@@ -169,15 +193,16 @@ def random_cnn_graph(graph_class: Any, secondary_node_func: Callable, primary_no
 
 def get_random_layer_params(type, requirements) -> LayerParams:
     layer_params = None
+    max_params = requirements.max_params
     if type == LayerTypesIdsEnum.serial_connection:
-        layer_params = LayerParams(layer_type=type)
+        layer_params = LayerParams(layer_type=type, max_params=max_params)
     elif type == LayerTypesIdsEnum.dropout:
         drop = randint(1, (requirements.max_drop_size * 10)) / 10
-        layer_params = LayerParams(layer_type=type, drop=drop)
+        layer_params = LayerParams(layer_type=type, drop=drop, max_params=max_params)
     if type == LayerTypesIdsEnum.dense:
         activation = choice(requirements.activation_types)
         neurons = randint(requirements.min_num_of_neurons, requirements.max_num_of_neurons)
-        layer_params = LayerParams(layer_type=type, neurons=neurons, activation=activation)
+        layer_params = LayerParams(layer_type=type, neurons=neurons, activation=activation, max_params=max_params)
     return layer_params
 
 

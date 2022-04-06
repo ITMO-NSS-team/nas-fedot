@@ -25,12 +25,18 @@ class LayerTypesIdsEnum(Enum):
     maxpool2d = 'maxpool2d'
     averagepool2d = 'averagepool2d'
     serial_connection = 'serial_connection'
+    description_layer = 'node_layer'
+
+    @classmethod
+    def description(cls, name):
+        return cls.description_layer.value
 
 @dataclass
 class LayerParams:
     layer_type: LayerTypesIdsEnum
     pool_type: Optional[LayerTypesIdsEnum] = None
     neurons: int = None
+    max_params: int = None
     activation: str = None
     drop: float = None
     pool_size: Tuple[int, int] = None

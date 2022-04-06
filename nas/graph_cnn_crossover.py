@@ -1,14 +1,20 @@
-from fedot.core.optimisers.gp_comp.operators.crossover import subtree_crossover
 from random import randint
 from typing import Any
+
+from fedot.core.optimisers.gp_comp.operators.crossover import subtree_crossover
+from nas.composer.graph_gp_cnn_composer import CustomGraphModel
+from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
+from nas.graph_nas_node import NNNodeGenerator
 from nas.layer import LayerTypesIdsEnum, LayerParams
-from nas.nas_node import NNNodeGenerator
-from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 
 
-def cnn_crossover(graph_first: Any, graph_second: Any, max_depth, params) -> Any:
-    max_num_of_conv = params.max_num_of_conv_layers
-    min_num_of_conv = params.min_num_of_conv_layers
+def cnn_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
+    # max_num_of_conv = requirements.max_num_of_conv_layers
+    # min_num_of_conv = requirements.min_num_of_conv_layers
+    # TODO need to pull actual requirements, mb later
+    max_num_of_conv = GPNNComposerRequirements.max_num_of_conv_layers
+    min_num_of_conv = GPNNComposerRequirements.min_num_of_conv_layers
+
     is_crossoover_permissible = True
     num_of_genes = []
     num_of_conv = []
@@ -63,10 +69,17 @@ def cnn_crossover(graph_first: Any, graph_second: Any, max_depth, params) -> Any
     return graph_first
 
 
-def cnn_subtree_crossover(graph_first: Any, graph_second: Any, max_depth, params) -> Any:
-    if graph_first.depth - 1 == 0 and graph_second.depth - 1 == 0:
+def cnn_subtree_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
+    print('Making subtree crossover')
+    graph_first = CustomGraphModel(nodes=graph_first.nodes,
+                                   cnn_nodes=graph_first.cnn_nodes, fitted_model=graph_first.model)
+    graph_second = CustomGraphModel(nodes=graph_second.nodes,
+                                    cnn_nodes=graph_second.cnn_nodes, fitted_model=graph_second.model)
+    if graph_first.depth + len(graph_first.cnn_nodes) - 1 == 0 and graph_second.depth + len(
+            graph_second.cnn_nodes) - 1 == 0:
         graph_first.replace_node_with_parents(graph_first.root_node, graph_second.root_node)
     else:
         graph_first, graph_second = subtree_crossover(graph_first, graph_second, max_depth)
-    graph_first_res = cnn_crossover(graph_first, graph_second, max_depth, params)
-    return graph_first_res
+        graph_first = cnn_crossover(graph_first, graph_second, max_depth)
+        graph_second = cnn_crossover(graph_second, graph_first, max_depth)
+    return [graph_first, graph_second]

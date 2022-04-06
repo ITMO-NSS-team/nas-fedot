@@ -1,31 +1,35 @@
 import random
 from copy import deepcopy
-
 from dataclasses import dataclass
 from functools import partial
 from typing import (
-    Tuple,
-    List,
     Optional
 )
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
 
-from fedot.core.composer.gp_composer.gp_composer import GPComposerRequirements
+from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
-from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiser
+from fedot.core.optimisers.adapters import DirectAdapter
+from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
+from fedot.core.optimisers.gp_comp.individual import Individual
+from fedot.core.optimisers.graph import OptGraph, OptNode
+from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+from nas.graph_cnn_gp_operators import *
+from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
 from nas.graph_nas_node import NNNode
-from nas.layer import LayerTypesIdsEnum, activation_types
-from nas.nas_node import NNNodeGenerator
+from nas.graph_nas_node import NNNodeGenerator
+from nas.layer import activation_types
 
 random.seed(1)
 np.random.seed(1)
 
 
 @dataclass
-class GPNNComposerRequirements(GPComposerRequirements):
+class GPNNComposerRequirements(PipelineComposerRequirements):
     conv_kernel_size: Tuple[int, int] = (3, 3)
     conv_strides: Tuple[int, int] = (1, 1)
     pool_size: Tuple[int, int] = (2, 2)
@@ -44,8 +48,11 @@ class GPNNComposerRequirements(GPComposerRequirements):
     batch_size: int = 72
     num_of_classes: int = 10
     activation_types = activation_types
-    max_num_of_conv_layers = 4
-    min_num_of_conv_layers = 2
+    max_num_of_conv_layers: int = 4
+    min_num_of_conv_layers: int = 2
+    primary: List[LayerTypesIdsEnum] = None
+    secondary: List[LayerTypesIdsEnum] = None
+    max_params: int = 1000000
 
     def __post_init__(self):
         if not self.cnn_secondary:
@@ -95,14 +102,34 @@ class GPNNComposerRequirements(GPComposerRequirements):
         return filters
 
 
-from fedot.core.optimisers.graph import OptGraph, OptNode
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+class CustomGraphAdapter(DirectAdapter):
+    def __init__(self, base_graph_class=None, base_node_class=None, log=None):
+        super().__init__(base_graph_class=base_graph_class, base_node_class=base_node_class, log=log)
 
-from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
-from nas.graph_cnn_gp_operators import *
+    def adapt(self, adaptee: Any):
+        opt_graph = deepcopy(adaptee)
+        opt_graph.__class__ = OptGraph
+        for node in opt_graph.nodes:
+            node.__class__ = OptNode
+        for node in opt_graph.cnn_nodes:
+            node.__class__ = OptNode
+        return opt_graph
 
+    def restore(self, opt_graph: OptGraph):
+        obj = deepcopy(opt_graph)
+        obj.__class__ = self.base_graph_class
+        if isinstance(obj.nodes, list):
+            for node in obj.nodes:
+                node.__class__ = self.base_node_class
+        else:
+            obj.nodes = []
+        for node in obj.cnn_nodes:
+            node.__class__ = self.base_node_class
 
-# from graph_icebergs_classification import CustomGraphModel
+        # if node.content['params'] == DEFAULT_PARAMS_STUB:
+        #     node.layer_params = self.node_layer_params
+        #     node.layer_params.layer_type = node.content['name']
+        return obj
 
 
 class CustomGraphModel(OptGraph):
@@ -110,6 +137,7 @@ class CustomGraphModel(OptGraph):
         super().__init__(nodes)
         self.cnn_nodes = cnn_nodes if not cnn_nodes is None else []
         self.model = fitted_model
+        self.unique_pipeline_id = str(uuid4())
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{len(self.cnn_nodes)}"
@@ -126,7 +154,7 @@ class CustomGraphModel(OptGraph):
         """
         Append new node to graph list
         """
-        self.cnn_nodes.append(new_node)
+        self.cnn_nodes.append(self._node_adapter.restore(new_node))
 
     def node_childs(self, node) -> List[Optional[NNNode]]:
         return [other_node for other_node in self.nodes if other_node.nodes_from and
@@ -145,24 +173,26 @@ class CustomGraphModel(OptGraph):
     def replace_node_with_parents(self, old_node: NNNode, new_node: NNNode):
         new_node = deepcopy(new_node)
         self._actualise_old_node_childs(old_node, new_node)
-        new_nodes = [parent for parent in new_node.ordered_subnodes_hierarchy if not parent in self.nodes]
-        old_nodes = [node for node in self.nodes if not node in old_node.ordered_subnodes_hierarchy]
+        # new_nodes = [parent for parent in new_node.ordered_subnodes_hierarchy if not parent in self.nodes]
+        new_nodes = [parent for parent in new_node.ordered_subnodes_hierarchy() if not parent in self.nodes]
+        old_nodes = [node for node in self.nodes if not node in old_node.ordered_subnodes_hierarchy()]
         self.nodes = new_nodes + old_nodes
         self.sort_nodes()
 
     def update_cnn_node(self, old_node: OptNode, new_node: OptNode):
         index = self.cnn_nodes.index(old_node)
-        self.cnn_nodes[index] = new_node
+        self.cnn_nodes[index] = self._node_adapter.restore(new_node)
 
     def replace_cnn_nodes(self, new_nodes):
         self.cnn_nodes = new_nodes
 
     def fit(self, input_data: InputData, verbose=False, input_shape: tuple = None,
             min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
-        if not self.model:
-            print('creating model')
-        else:
-            print('model is loading from graph')
+        print('creating model')
+        # if self.root_node.nodes_from:
+        #     print('From graph')
+        # else:
+        #     print('From scratch')
         self.model = create_nn_model(self, input_shape, classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=True, batch_size=batch_size, epochs=epochs)
         # TODO mb need to add target in output
@@ -173,16 +203,16 @@ class CustomGraphModel(OptGraph):
         return evaluation_result
 
 
-class GPNNGraphOptimiser(GPGraphOptimiser):
+class GPNNGraphOptimiser(EvoGraphOptimiser):
     def __init__(self, initial_graph, requirements, graph_generation_params,
-                 metrics, parameters, log, archive_type=None):
+                 metrics, parameters, log):
         self.metrics = metrics
 
         super().__init__(initial_graph=initial_graph, requirements=requirements,
                          graph_generation_params=graph_generation_params,
                          metrics=metrics,
                          parameters=parameters,
-                         log=log, archive_type=archive_type)
+                         log=log)
 
         self.parameters.graph_generation_function = random_cnn_graph
         self.graph_generation_function = partial(self.parameters.graph_generation_function,
@@ -198,14 +228,19 @@ class GPNNGraphOptimiser(GPGraphOptimiser):
             # print(self.population)
 
     def _make_population(self, pop_size: int):
-        return [self.graph_generation_function() for _ in range(pop_size)]
+        initial_graphs = [self.graph_generation_function() for _ in range(pop_size)]
+        ind_graphs = []
+        for g in initial_graphs:
+            new_ind = Individual(deepcopy(self.graph_generation_params.adapter.adapt(g)))
+            ind_graphs.append(new_ind)
+        return ind_graphs
 
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
-                         graph) -> float:
+                         graph) -> list:
 
         graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        return metric_function(graph, test_data)
+        return [metric_function[0](graph, test_data)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)

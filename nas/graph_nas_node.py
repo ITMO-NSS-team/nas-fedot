@@ -7,6 +7,8 @@ from fedot.core.optimisers.graph import OptNode
 
 class NNNode(OptNode):
     def __init__(self, content, nodes_from: Optional[List['NNNode']], layer_params: LayerParams):
+        if not content:
+            content = {}
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from
         self.content = content
@@ -32,14 +34,9 @@ class NNNode(OptNode):
     def __repr__(self):
         return self.__str__()
 
-    @property
-    def ordered_subnodes_hierarchy(self) -> List['NNNode']:
-        nodes = [self]
-        if self.nodes_from:
-            for parent in self.nodes_from:
-                # TODO packed in a list
-                nodes += [parent.ordered_subnodes_hierarchy]
-        return nodes
+    def ordered_subnodes_hierarchy(self, visited=None) -> List['OptNode']:
+        nodes = self._operator.ordered_subnodes_hierarchy(visited)
+        return [self._node_adapter.adapt(node) for node in nodes]
 
 
 class NNNodeGenerator:

@@ -1,46 +1,36 @@
+import datetime
 import os
 import random
 import statistics
 import sys
+from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
 
+from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
+from fedot.core.data.data import InputData
+from fedot.core.log import default_log
+from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
+    GeneticSchemeTypesEnum
+from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
+from fedot.core.optimisers.optimizer import GraphGenerationParams
+from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
+from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
+from nas.graph_cnn_crossover import cnn_subtree_crossover
 from nas.graph_cnn_mutation import cnn_simple_mutation
 from nas.graph_nas_node import NNNode
+from nas.layer import LayerTypesIdsEnum
+from nas.patches.load_images import from_images
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 sys.path.append(ROOT)
-
-from typing import Tuple
-from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
-
-from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from fedot.core.data.data import InputData
-
-from nas.patches.load_images import from_images
-from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
-from nas.layer import LayerTypesIdsEnum
-
 random.seed(2)
 np.random.seed(2)
-
-import datetime
-
-from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
-from fedot.core.log import default_log
-from fedot.core.optimisers.adapters import DirectAdapter
-from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
-    GeneticSchemeTypesEnum, GraphGenerationParams
-
-from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
-from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
-from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel
-from nas.graph_cnn_crossover import cnn_subtree_crossover
 
 
 # class CustomGraphNode(NNNode):
@@ -121,7 +111,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     nn_primary = [LayerTypesIdsEnum.dense]
     nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
     rules = [has_no_self_cycled_nodes, has_no_cycle, _has_no_duplicates]
-    metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
+    metric_function = [MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)]
 
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
@@ -132,15 +122,17 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CustomGraphModel, base_node_class=NNNode),
+        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=NNNode),
         rules_for_constraint=rules)
+
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=16,
-        max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
+        max_num_of_neurons=256, min_filters=16, max_filters=256, image_size=[size, size],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
         primary=nn_primary, secondary=nn_secondary, min_arity=1, max_arity=3,
-        max_depth=4, pop_size=4, num_of_generations=5, crossover_prob=1, mutation_prob=0,
-        train_epochs_num=1, num_of_classes=num_of_classes, timeout=timeout)
+        max_depth=4, pop_size=15, num_of_generations=30, crossover_prob=0.7, mutation_prob=0.3,
+        train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout,
+        max_num_of_conv_layers=4, min_num_of_conv_layers=1, max_params=1000000)
     optimiser = GPNNGraphOptimiser(
         initial_graph=None, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_parameters,
@@ -152,32 +144,39 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
     print('Best model structure:')
     for node in optimized_network.cnn_nodes:
-        print(node)
+        val = node.layer_params.num_of_filters or \
+              node.layer_params.drop or ''
+        name = node.layer_params.layer_type.name or node
+        print(f"{name}, {val}")
     for node in optimized_network.nodes:
-        print(node)
-
-    optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=15, classes=num_of_classes)
+        val = node.layer_params.neurons or ''
+        name = node.layer_params.layer_type.name or node
+        print(f"{name}, {val}")
+    optimized_network_custom = CustomGraphModel(nodes=optimized_network.nodes, cnn_nodes=optimized_network.cnn_nodes,
+                                                fitted_model=None)
+    optimized_network_custom.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=20,
+                                 classes=num_of_classes)
 
     # the quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-        calculate_validation_metric(optimized_network, dataset_to_validate)
+        calculate_validation_metric(optimized_network_custom, dataset_to_validate)
 
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
     json_file = 'model_3cls.json'
-    model_json = optimized_network.model.to_json()
+    model_json = optimized_network_custom.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
     # saving the weights of the model
-    optimized_network.model.save_weights('model_3cls.h5')
-    return optimized_network
+    optimized_network_custom.model.save_weights('model_3cls.h5')
+    return optimized_network_custom
 
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
     file_path = 'Generated_dataset'
     # a dataset that will be used as a train and test set during composition
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)

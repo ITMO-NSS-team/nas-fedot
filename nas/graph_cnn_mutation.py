@@ -3,10 +3,10 @@ from typing import Any
 from random import randint
 from functools import partial
 
-from fedot.core.optimisers.gp_comp.gp_optimiser import GraphGenerationParams
+from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 # from fedot_old.core.composer.optimisers.gp_operators import nodes_from_height, node_height, node_depth
-from nas.cnn_gp_operators import get_random_layer_params, random_nn_branch, random_cnn, \
+from nas.graph_cnn_gp_operators import get_random_layer_params, random_nn_branch, random_cnn, \
     conv_output_shape
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
 from nas.graph_nas_node import NNNodeGenerator
@@ -19,7 +19,6 @@ from nas.layer import LayerTypesIdsEnum, LayerParams
 
 def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, params: GraphGenerationParams,
                         max_depth) -> Any:
-    # TODO NNNodeGenerator in params somehow
     node_mutation_probability = requirements.mutation_prob
     cnn_structure = graph.cnn_nodes
     nn_structure = generate_structure(graph.root_node)
@@ -34,7 +33,9 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                                                pool_size=node.layer_params.pool_size,
                                                pool_strides=node.layer_params.pool_strides,
                                                pool_type=choice(requirements.pool_types),
-                                               num_of_filters=choice(requirements.filters))
+                                               num_of_filters=choice(requirements.filters),
+                                               max_params=requirements.max_params
+                                               )
             else:
                 node_type = choice(requirements.secondary)
                 new_layer_params = get_random_layer_params(node_type, requirements)
@@ -56,7 +57,8 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                 new_node = NNNodeGenerator.primary_node(layer_params=new_layer_params,
                                                         content={'name': new_layer_params.layer_type})
             try:
-                graph.update_node(node, new_node)
+                if new_node_type != LayerTypesIdsEnum.serial_connection:
+                    graph.update_node(node, new_node)
             except Exception as ex:
                 print(f'error in updating nodes: {ex}')
     return graph
