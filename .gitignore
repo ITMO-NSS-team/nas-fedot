@@ -79,3 +79,7 @@ dist/
 /local_files_tmp/
 /IcebergsDataset/*.json
 /10cls_Generated_dataset/
+/*.png
+/*.h5
+/*.json
+/*.hdf5
