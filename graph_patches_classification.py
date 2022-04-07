@@ -11,15 +11,11 @@ from typing import Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from fedot.core.optimisers.gp_comp.operators.mutation import get_mutation_prob
 from fedot.core.data.data import InputData
-from fedot.core.optimisers.optimizer import OptGraph
 
 from nas.patches.load_images import from_images
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
-from nas.graph_cnn_gp_operators import get_random_layer_params
-from nas.layer import LayerTypesIdsEnum, LayerParams
-from nas.graph_nas_node import NNNodeGenerator
+from nas.layer import LayerTypesIdsEnum
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.log import default_log
@@ -50,28 +46,24 @@ def _has_no_duplicates(graph):
     return True
 
 
-def calculate_validation_metric_multiclass(graph: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[
-    float, float, float]:
+def calculate_validation_metric_multiclass(graph: CustomGraphModel,
+                                           dataset_to_validate: InputData) -> Tuple[float, float, float]:
     # the execution of the obtained composite models
     predicted = graph.predict(dataset_to_validate)
     y_pred = []
     roc_auc_values = []
     for predict, true in zip(predicted.predict, dataset_to_validate.target):
-        roc_auc_score = roc_auc(y_true=true,
-                                y_score=predict)
+        roc_auc_score = roc_auc(y_true=true, y_score=predict)
         roc_auc_values.append(roc_auc_score)
     roc_auc_value = statistics.mean(roc_auc_values)
-
     for predict in predicted.predict:
         values = []
         for val in predict:
             values.append(round(val))
         y_pred.append(np.float64(values))
     y_pred = np.array(y_pred)
-    log_loss_value = log_loss(y_true=dataset_to_validate.target,
-                              y_pred=y_pred)
-    accuracy_score_value = accuracy_score(y_true=dataset_to_validate.target,
-                                          y_pred=y_pred)
+    log_loss_value = log_loss(y_true=dataset_to_validate.target, y_pred=y_pred)
+    accuracy_score_value = accuracy_score(y_true=dataset_to_validate.target, y_pred=y_pred)
 
     return roc_auc_value, log_loss_value, accuracy_score_value
 
@@ -80,66 +72,18 @@ def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: In
     # the execution of the obtained composite models
     predicted = graph.predict(dataset_to_validate)
     # the quality assessment for the simulation results
-    roc_auc_value = roc_auc(y_true=dataset_to_validate.target,
-                            y_score=predicted.predict,
+    roc_auc_value = roc_auc(y_true=dataset_to_validate.target, y_score=predicted.predict,
                             multi_class="ovo", average="macro")
     y_values_pred = [[0, 0, 0] for _ in range(predicted.idx.size)]
     for i, predict in enumerate(predicted.predict):
         y_class_pred = np.argmax(predict)
         y_values_pred[i][y_class_pred] = 1
-
     y_pred = np.array([predict for predict in predicted.predict])
     y_values_pred = np.array(y_values_pred)
-    log_loss_value = log_loss(y_true=dataset_to_validate.target,
-                              y_pred=y_pred)
-    accuracy_score_value = accuracy_score(dataset_to_validate.target,
-                                          y_values_pred)
+    log_loss_value = log_loss(y_true=dataset_to_validate.target, y_pred=y_pred)
+    accuracy_score_value = accuracy_score(dataset_to_validate.target, y_values_pred)
 
     return roc_auc_value, log_loss_value, accuracy_score_value
-
-
-# def custom_cnn_mutation(graph: CustomGraphModel, requirements,
-#                     primary_node_func=NNNodeGenerator.primary_node,
-#                     secondary_node_func=NNNodeGenerator.secondary_node, **kwargs):
-#     cnn_structure = graph.cnn_nodes
-#     nn_structure = graph.nodes
-#     # node_mutation_probability = get_mutation_prob(mut_id=requirements.mutation_strength,
-#     #                                               node=graph.root_node)
-#     node_mutation_probability = 0.7
-#
-#
-#     for node in cnn_structure:
-#         if random.random() < node_mutation_probability:
-#             old_node_type = node.layer_params.layer_type
-#             if old_node_type == LayerTypesIdsEnum.conv2d:
-#                 activation = choice(requirements.activation_types)
-#                 new_layer_params = LayerParams(layer_type=old_node_type, activation=activation,
-#                                                kernel_size=node.layer_params.kernel_size,
-#                                                conv_strides=node.layer_params.conv_strides,
-#                                                pool_size=node.layer_params.pool_size,
-#                                                pool_strides=node.layer_params.pool_strides,
-#                                                pool_type=choice(requirements.pool_types),
-#                                                num_of_filters=choice(requirements.filters))
-#             else:
-#                 node_type = choice(requirements.secondary)
-#                 new_layer_params = get_random_layer_params(node_type, requirements)
-#             new_node = secondary_node_func(layer_params=new_layer_params)
-#             graph.update_cnn_node(node, new_node)
-#
-#     secondary_nodes = requirements.secondary
-#     primary_nodes = requirements.primary
-#     for node in nn_structure:
-#         if random.random() < node_mutation_probability:
-#             if node.nodes_from:
-#                 new_node_type = choice(secondary_nodes)
-#                 new_layer_params = get_random_layer_params(new_node_type, requirements)
-#                 new_node = secondary_node_func(layer_params=new_layer_params)
-#             else:
-#                 new_node_type = choice(primary_nodes)
-#                 new_layer_params = get_random_layer_params(new_node_type, requirements)
-#                 new_node = primary_node_func(layer_params=new_layer_params)
-#             graph.update_node(node, new_node)
-#     return graph
 
 
 def run_patches_classification(file_path, timeout: datetime.timedelta = None):
@@ -176,12 +120,8 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
-    # optimized_network = optimiser.optimise(partial(custom_metric, data=data))
-    optimized_network.show(path='result.png')
-
+    optimized_network.show(path='graph_patches_result.png')
     print('Best model structure:')
-    # for node in optimized_network.cnn_nodes:
-    #     print(node)
     for node in optimized_network.nodes:
         print(node)
 
@@ -208,10 +148,10 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    file_path = 'Generated_dataset'
+    path = 'Generated_dataset'
     # a dataset that will be used as a train and test set during composition
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
 
-    run_patches_classification(file_path=file_path)
+    run_patches_classification(file_path=path)

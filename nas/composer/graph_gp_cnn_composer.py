@@ -12,7 +12,6 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 
-from fedot.core.utils import DEFAULT_PARAMS_STUB
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData
@@ -23,6 +22,11 @@ from nas.layer import LayerTypesIdsEnum, activation_types, LayerParams
 from nas.graph_nas_node import NNNodeGenerator, NNNode
 from nas.graph_cnn_gp_operators import random_cnn_graph
 
+from fedot.core.optimisers.graph import OptGraph, OptNode
+from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+
+from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
+from nas.graph_cnn_gp_operators import *
 
 random.seed(1)
 np.random.seed(1)
@@ -99,13 +103,6 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
         return filters
 
 
-from fedot.core.optimisers.graph import OptGraph, OptNode
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
-
-from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
-from nas.graph_cnn_gp_operators import *
-
-
 class CustomGraphAdapter(DirectAdapter):
     def __init__(self, base_graph_class=None, base_node_class=None, log=None):
         super().__init__(base_graph_class=base_graph_class, base_node_class=base_node_class, log=log)
@@ -128,10 +125,8 @@ class CustomGraphAdapter(DirectAdapter):
 
 
 class CustomGraphModel(OptGraph):
-    def __init__(self, nodes=None, cnn_depth=None, fitted_model=None):
+    def __init__(self, nodes=None, fitted_model=None):
         super().__init__(nodes)
-        # self.cnn_nodes = cnn_nodes if not cnn_nodes is None else []
-        self.cnn_depth = cnn_depth
         self.model = fitted_model
         self.unique_pipeline_id = str(uuid4())
 
@@ -147,22 +142,10 @@ class CustomGraphModel(OptGraph):
     def __eq__(self, other) -> bool:
         return self is other
 
-    # @property
-    # def _node_adapter(self):
-    #     return CustomNodeOperatorAdapter()
-
-    def add_cnn_node(self, new_node: OptNode):
-        """
-        Append new node to graph list
-        """
-        self.cnn_nodes.append(self._node_adapter.restore(new_node))
-
-    def update_cnn_node(self, old_node: OptNode, new_node: OptNode):
-        index = self.cnn_nodes.index(old_node)
-        self.cnn_nodes[index] = self._node_adapter.restore(new_node)
-
-    def replace_cnn_nodes(self, new_nodes):
-        self.cnn_nodes = new_nodes
+    @property
+    def cnn_depth(self):
+        depth = [node for node in self.nodes if 'conv' in node.content]
+        return len(depth)
 
     def fit(self, input_data: InputData, verbose=False, input_shape: tuple = None,
             min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
@@ -186,11 +169,6 @@ class CustomGraphNode(NNNode):
 
     def __repr__(self):
         return self.__str__()
-    # def __str__(self):
-    #     return f"Node_{self.layer_params.layer_type.name}"
-    #
-    # def __repr__(self):
-    #     return f"Node_{self.layer_params.layer_type.name}"
 
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
@@ -230,15 +208,13 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          graph) -> float:
 
         graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        # graph.show()
-        return [metric_function(graph, test_data)]  # [1]
+        return [metric_function(graph, test_data)]
 
     def compose_chain(self, data: InputData,):
         pass
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
-        # train_data, test_data = data, data
         composer_requirements = self.requirements
         input_shape = [size for size in composer_requirements.image_size]
         input_shape.append(composer_requirements.channels_num)
@@ -251,15 +227,3 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                                             composer_requirements.train_epochs_num)
         self.optimise(metric_function_for_nodes)
         return self.best_individual.graph
-        # return self.graph_generation_params.adapter.restore(self.best_individual.graph)
-
-
-class CustomNodeOperatorAdapter:
-    def adapt(self, adaptee) -> OptNode:
-        adaptee.__class__ = OptNode
-        return adaptee
-
-    def restore(self, node) -> CustomGraphNode:
-        obj = node
-        obj.__class__ = CustomGraphNode
-        return obj

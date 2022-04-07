@@ -4,41 +4,32 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 from tensorflow.keras import optimizers
 
-# from fedot_old.core.models.data import InputData, OutputData
-from fedot.core.data.data import InputData, OutputData
 from nas.layer import LayerTypesIdsEnum
+from fedot.core.data.data import InputData, OutputData
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
-from sklearn.metrics import log_loss
-
-import pickle
-
-from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.models import Model
 from tensorflow.python.keras.layers import deserialize, serialize
 from tensorflow.python.keras.saving import saving_utils
 
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
                     epochs: int = 10):
-    earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
+    early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('.mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, epsilon=1e-4, mode='min')
+
     model.fit(input_data.features, input_data.target,
               batch_size=batch_size,
               epochs=epochs,
               verbose=verbose,
               validation_split=0.2,
-              callbacks=[earlyStopping, reduce_lr_loss, mcp_save])
+              callbacks=[early_stopping, reduce_lr_loss, mcp_save])
     return keras_model_predict(model, input_data)
 
 
 def keras_model_predict(model, input_data: InputData):
-    # evaluation_result = model.predict(input_data.features)
     evaluation_result = model.predict_proba(input_data.features)
-    # sum_rows = np.sum(evaluation_result,axis=1).tolist()
-    # print(sum_rows)
-    # print(np.sum(evaluation_result))
-    # evaluation_result = log_loss(input_data.target, eval)
     return OutputData(idx=input_data.idx,
                       features=input_data.features,
                       predict=evaluation_result,
@@ -66,7 +57,6 @@ def generate_structure(node: Any):
             return struct
     else:
         return [node]
-    # return [n for n in node]
 
 
 def unpack(model, training_config, weights):
@@ -88,7 +78,7 @@ def make_keras_picklable():
         training_config = model_metadata.get("training_config", None)
         model = serialize(self)
         weights = self.get_weights()
-        return (unpack, (model, training_config, weights))
+        return unpack, (model, training_config, weights)
 
     cls = Model
     cls.__reduce__ = __reduce__
@@ -96,16 +86,14 @@ def make_keras_picklable():
 
 def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
     generated_struc = generate_structure(chain.root_node)
-    # nn_structure = chain.cnn_nodes + generated_struc
     nn_structure = generated_struc[::-1]
-    # nn_structure = chain.nodes
     make_keras_picklable()
     model = models.Sequential()
-    previous_layer_type = None
+    cnn_nodes_count = 0
     for i, layer in enumerate(nn_structure):
         type = layer.layer_params.layer_type
-        if previous_layer_type == 'conv2d' and type == 'dense':
-            model.add(layers.Flatten())
+        if 'conv' in layer.content and cnn_nodes_count is not None:
+            cnn_nodes_count += 1
         if type == LayerTypesIdsEnum.conv2d.value:
             activation = layer.layer_params.activation
             kernel_size = layer.layer_params.kernel_size
@@ -120,8 +108,6 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
                     model.add(
                         layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
                                       strides=conv_strides))
-                    # model.add(layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
-                    #                   strides=conv_strides, data_format='channels_first'))
             if layer.layer_params.pool_size:
                 pool_size = layer.layer_params.pool_size
                 pool_strides = layer.layer_params.pool_strides
@@ -136,16 +122,10 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
             activation = layer.layer_params.activation
             neurons_num = layer.layer_params.neurons
             model.add(layers.Dense(neurons_num, activation=activation))
-        # elif type == LayerTypesIdsEnum.flatten:
-        #     model.add(layers.Flatten())
-            # neurons_num = model.layers[len(model.layers) - 1].output_shape[1]
-            # model.add(layers.Dense(neurons_num, activation='relu'))
-        # if i == len(chain.cnn_nodes) - 1:
-        previous_layer_type = type if type is not 'dropout' else previous_layer_type
-        # if i == chain.cnn_depth - 1:
-        #     model.add(layers.Flatten())
-            # neurons_num = model.layers[len(model.layers) - 1].output_shape[1]
-            # model.add(layers.Dense(neurons_num, activation='relu'))
+        # Adding Flatten layer after last layer from cnn part of the chain
+        if cnn_nodes_count == chain.cnn_depth:
+            model.add(layers.Flatten())
+            cnn_nodes_count = None
     # Output
     output_shape = 1 if classes == 2 else classes
     activation_func = 'sigmoid' if classes == 2 else 'softmax'

@@ -5,17 +5,11 @@ from functools import partial
 
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-# from fedot_old.core.composer.optimisers.gp_operators import nodes_from_height, node_height, node_depth
-from nas.cnn_gp_operators import get_random_layer_params, random_nn_branch, random_cnn, \
-    conv_output_shape
+from nas.cnn_gp_operators import get_random_layer_params, random_nn_branch, random_cnn, conv_output_shape
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
-from nas.graph_nas_node import NNNodeGenerator
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter, CustomGraphNode
 from nas.graph_keras_eval import generate_structure
 from nas.layer import LayerTypesIdsEnum, LayerParams
-
-
-# from fedot_old.core.composer.visualisation import ComposerVisualiser
 
 
 def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, params: GraphGenerationParams,
@@ -23,26 +17,7 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
     node_mutation_probability = requirements.mutation_prob
     cnn_structure = graph.cnn_depth
     nn_structure = generate_structure(graph.root_node)[::-1]
-    # for node in cnn_structure:
-    #     if random() < node_mutation_probability:
-    #         old_node_type = node.layer_params.layer_type
-    #         if old_node_type == LayerTypesIdsEnum.conv2d:
-    #             activation = choice(requirements.activation_types)
-    #             new_layer_params = LayerParams(layer_type=old_node_type, activation=activation,
-    #                                            kernel_size=node.layer_params.kernel_size,
-    #                                            conv_strides=node.layer_params.conv_strides,
-    #                                            pool_size=node.layer_params.pool_size,
-    #                                            pool_strides=node.layer_params.pool_strides,
-    #                                            pool_type=choice(requirements.pool_types),
-    #                                            num_of_filters=choice(requirements.filters))
-    #         else:
-    #             node_type = choice(requirements.secondary)
-    #             new_layer_params = get_random_layer_params(node_type, requirements)
-    #         new_node = NNNodeGenerator.secondary_node(layer_params=new_layer_params,
-    #                                                   content={'name': new_layer_params.layer_type})
-    #         graph.update_node(node, new_node)
     secondary_nodes = requirements.secondary
-    primary_nodes = requirements.primary
     for i, node in enumerate(nn_structure):
         if i < cnn_structure:
             if random() < node_mutation_probability:
@@ -61,7 +36,8 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                     new_layer_params = get_random_layer_params(node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else node.nodes_from
                 new_node = CustomGraphNode(nodes_from=new_nodes_from, layer_params=new_layer_params,
-                                           content={'name': new_layer_params.layer_type})
+                                           content={'name': f'{new_layer_params.layer_type}',
+                                                    'conv': True})
                 graph.update_node(node, new_node)
         else:
             if random() < node_mutation_probability:
@@ -71,16 +47,10 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                     new_nodes_from = None if not node.nodes_from else node.nodes_from
                     new_node = CustomGraphNode(nodes_from=new_nodes_from, layer_params=new_layer_params,
                                                content={'name': new_layer_params.layer_type})
-                # else:
-                #     new_node_type = choice(primary_nodes)
-                #     new_layer_params = get_random_layer_params(new_node_type, requirements)
-                #     new_node = CustomGraphNode(layer_params=new_layer_params,
-                #                                content={'name': new_layer_params.layer_type})
                 try:
                     graph.update_node(node, new_node)
                 except Exception as ex:
                     print(f'error in updating nodes: {ex}')
-    graph.show()
     return graph
 
 
