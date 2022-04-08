@@ -9,9 +9,6 @@ from nas.layer import LayerTypesIdsEnum, LayerParams
 
 
 def cnn_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
-    # max_num_of_conv = requirements.max_num_of_conv_layers
-    # min_num_of_conv = requirements.min_num_of_conv_layers
-    # TODO need to pull actual requirements
     max_num_of_conv = GPNNComposerRequirements.max_num_of_conv_layers
     min_num_of_conv = GPNNComposerRequirements.min_num_of_conv_layers
 
@@ -42,7 +39,7 @@ def cnn_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
             parts.append(graph_second.cnn_nodes[num_of_genes[1]:])
 
         num_of_conv.append(len(
-            [True for node in parts[i] if node.layer_params.layer_type == LayerTypesIdsEnum.conv2d]))
+            [True for node in parts[i] if node.content['params'].layer_type == LayerTypesIdsEnum.conv2d]))
 
     if is_crossoover_permissible:
         num_of_conv_in_first, num_of_conv_in_second = num_of_conv
@@ -54,8 +51,8 @@ def cnn_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
             part_from_second = part_from_second[:-int(part_for_delete_in_second)]
 
         additional_layer = []
-        if part_from_first[len(part_from_first) - 1].layer_params.layer_type == LayerTypesIdsEnum.conv2d and \
-                part_from_second[0].layer_params.layer_type == LayerTypesIdsEnum.conv2d:
+        if part_from_first[len(part_from_first) - 1].content['params'].layer_type == LayerTypesIdsEnum.conv2d and \
+                part_from_second[0].content['params'].layer_type == LayerTypesIdsEnum.conv2d:
             layer_params = LayerParams(layer_type=LayerTypesIdsEnum.serial_connection)
             new_node = NNNodeGenerator.secondary_node(layer_params=layer_params)
             additional_layer.append(new_node)

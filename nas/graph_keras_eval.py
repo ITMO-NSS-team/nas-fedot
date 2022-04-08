@@ -91,14 +91,14 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
     model = models.Sequential()
     cnn_nodes_count = 0
     for i, layer in enumerate(nn_structure):
-        type = layer.layer_params.layer_type
+        type = layer.content['params'].layer_type
         if 'conv' in layer.content and cnn_nodes_count is not None:
             cnn_nodes_count += 1
         if type == LayerTypesIdsEnum.conv2d.value:
-            activation = layer.layer_params.activation
-            kernel_size = layer.layer_params.kernel_size
-            conv_strides = layer.layer_params.conv_strides
-            filters_num = layer.layer_params.num_of_filters
+            activation = layer.content['params'].activation
+            kernel_size = layer.content['params'].kernel_size
+            conv_strides = layer.content['params'].conv_strides
+            filters_num = layer.content['params'].num_of_filters
             if i == 0:
                 model.add(
                     layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation, input_shape=input_shape,
@@ -108,19 +108,19 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
                     model.add(
                         layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
                                       strides=conv_strides))
-            if layer.layer_params.pool_size:
-                pool_size = layer.layer_params.pool_size
-                pool_strides = layer.layer_params.pool_strides
-                if layer.layer_params.pool_type == LayerTypesIdsEnum.maxpool2d.value:
+            if layer.content['params'].pool_size:
+                pool_size = layer.content['params'].pool_size
+                pool_strides = layer.content['params'].pool_strides
+                if layer.content['params'].pool_type == LayerTypesIdsEnum.maxpool2d.value:
                     model.add(layers.MaxPooling2D(pool_size=pool_size, strides=pool_strides))
-                elif layer.layer_params.pool_type == LayerTypesIdsEnum.averagepool2d.value:
+                elif layer.content['params'].pool_type == LayerTypesIdsEnum.averagepool2d.value:
                     model.add(layers.AveragePooling2D(pool_size=pool_size, strides=pool_strides))
         elif type == LayerTypesIdsEnum.dropout.value:
-            drop = layer.layer_params.drop
+            drop = layer.content['params'].drop
             model.add(layers.Dropout(drop))
         elif type == LayerTypesIdsEnum.dense.value:
-            activation = layer.layer_params.activation
-            neurons_num = layer.layer_params.neurons
+            activation = layer.content['params'].activation
+            neurons_num = layer.content['params'].neurons
             model.add(layers.Dense(neurons_num, activation=activation))
         # Adding Flatten layer after last layer from cnn part of the chain
         if cnn_nodes_count == chain.cnn_depth:

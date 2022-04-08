@@ -3,16 +3,15 @@ import os
 import pickle
 from os.path import isfile, join
 
-import cv2.cv2 as cv2
+import cv2
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from fedot.core.data.data import InputData
-from fedot.core.repository.dataset_types import DataTypesEnum
+from fedot.core.data.data import Data
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 
-def load_images(file_path, size=120, number_of_classes=10, is_train=True):
+def load_images(file_path, size=120, number_of_classes=10):
     if number_of_classes == 10:
         with open('dataset_files/labels_10.json', 'r') as fp:
             labels_dict = json.load(fp)
@@ -25,51 +24,45 @@ def load_images(file_path, size=120, number_of_classes=10, is_train=True):
             encoded_labels = json.load(fp)
     else:
         print('specify the number of classes correctly')
-    Xarr = []
-    Yarr = []
+    images_array = []
+    labels_array = []
 
     files = [f for f in os.listdir(file_path) if isfile(join(file_path, f))]
     files.sort()
     for filename in files:
         image = cv2.imread(join(file_path, filename))
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         image = cv2.resize(image, (size, size))
-        Xarr.append(image)
+        images_array.append(image)
         label_names = labels_dict[filename[:-4]]
         each_file_labels = [0 for _ in range(number_of_classes)]
         for name in label_names:
             num_label = encoded_labels[name]
-            # each_file_labels.append(num_label)
             each_file_labels[num_label] = 1
-        Yarr.append(each_file_labels)
-    Xarr = np.array(Xarr)
-    Yarr = np.array(Yarr)
-    # Xarr = Xarr.reshape(-1, size, size, 1)
+        labels_array.append(each_file_labels)
+    images_array = np.array(images_array)
+    labels_array = np.array(labels_array)
 
-    return Xarr, Yarr
+    return images_array, labels_array
 
 
 def from_pickle(path):
     with open(path, 'rb') as dataset:
-        x_arr, y_arr = pickle.load(dataset)
-    return x_arr, y_arr
+        images_array, labels_array = pickle.load(dataset)
+    return images_array, labels_array
 
 
 def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum.classification):
     _, extension = os.path.splitext(file_path)
     if not extension:
-        Xtrain, Ytrain = load_images(file_path, size=120, number_of_classes=num_classes, is_train=True)
+        images, labels = load_images(file_path, size=120, number_of_classes=num_classes)
     elif extension == '.pickle':
-        Xtrain, Ytrain = from_pickle(file_path)
+        images, labels = from_pickle(file_path)
     else:
         raise ValueError('Wrong file path')
-    Xtrain, Xval, Ytrain, Yval = train_test_split(Xtrain, Ytrain, random_state=1, train_size=0.8)
+    images_train, images_val, labels_train, labels_val = train_test_split(images, labels,
+                                                                          random_state=1, train_size=0.8)
     task = Task(task_type=task_type, task_params=None)
-    train_input_data = InputData(idx=np.arange(0, len(Xtrain)), features=Xtrain, target=np.array(Ytrain),
-                                 task=task, data_type=DataTypesEnum.image)
-    val_input_data = InputData(idx=np.arange(0, len(Xval)), features=Xval, target=np.array(Yval),
-                               task=task, data_type=DataTypesEnum.image)
-    # test_input_data = InputData(idx=np.arange(0, len(Xtest)), features=Xtest, target=np.array(Ytest),
-    #                            task_type=task_type)
+    train_input_data = Data.from_image(images=images_train, labels=labels_train, task=task)
+    validation_input_data = Data.from_image(images=images_val, labels=labels_val, task=task)
 
-    return train_input_data, val_input_data
+    return train_input_data, validation_input_data

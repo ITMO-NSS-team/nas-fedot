@@ -112,7 +112,7 @@ class CustomGraphAdapter(DirectAdapter):
         opt_graph = deepcopy(adaptee)
         opt_graph.__class__ = OptGraph
         for node in opt_graph.nodes:
-            self.base_graph_params[node.distance_to_primary_level] = node.layer_params
+            self.base_graph_params[node.distance_to_primary_level] = node.content['params']
             node.__class__ = OptNode
         return opt_graph
 
@@ -161,8 +161,8 @@ class CustomGraphModel(OptGraph):
 
 
 class CustomGraphNode(NNNode):
-    def __init__(self, content: dict, nodes_from, layer_params):
-        super().__init__(content, nodes_from, layer_params)
+    def __init__(self, content: dict, nodes_from):
+        super().__init__(content, nodes_from)
 
     def __str__(self):
         return str(self.content['name'])

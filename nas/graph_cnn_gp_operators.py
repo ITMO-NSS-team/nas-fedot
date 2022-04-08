@@ -111,8 +111,8 @@ def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_
                                    pool_strides=pool_strides, pool_type=pool_type)
         new_conv_node = node_func(nodes_from=nodes_from,
                                   content={'name': f'{layer_params.layer_type}',
-                                           'conv': True},
-                                  layer_params=layer_params)
+                                           'conv': True,
+                                           'params': layer_params})
         graph.add_node(new_conv_node)
         nodes_from = [new_conv_node]
         if pool_size is None:
@@ -124,8 +124,7 @@ def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_
             layer_params = get_random_layer_params(new_secondary_node_type, requirements)
             new_secondary_node = node_func(nodes_from=nodes_from,
                                            content={'name': f'{layer_params.layer_type}',
-                                                    'conv': True},
-                                           layer_params=layer_params)
+                                                    'conv': True, 'params': layer_params})
             graph.add_node(new_secondary_node)
         else:
             add_dropout_layer = randint(0, 1)
@@ -134,8 +133,7 @@ def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_
                 layer_params = get_random_layer_params(new_secondary_node_type, requirements)
                 new_secondary_node = node_func(nodes_from=nodes_from,
                                                content={'name': f'{layer_params.layer_type}',
-                                                        'conv': True},
-                                               layer_params=layer_params)
+                                                        'conv': True, 'params': layer_params})
                 graph.add_node(new_secondary_node)
             else:
                 new_secondary_node = None
@@ -161,8 +159,7 @@ def random_nn_branch(node_func: Callable, requirements, graph: Any = None, max_d
         new_node_type = choice(requirements.primary)
         layer_params = get_random_layer_params(new_node_type, requirements)
         new_node = node_func(nodes_from=nodes_from,
-                             content={'name': layer_params.layer_type},
-                             layer_params=layer_params)
+                             content={'name': layer_params.layer_type, 'params': layer_params})
         if graph:
             graph.add_node(new_node)
         nodes_from = [new_node]
@@ -172,8 +169,7 @@ def random_nn_branch(node_func: Callable, requirements, graph: Any = None, max_d
             new_secondary_node_type = choice(requirements.secondary)
             layer_params = get_random_layer_params(new_secondary_node_type, requirements)
             new_secondary_node = node_func(nodes_from=nodes_from,
-                                           content={'name': layer_params.layer_type},
-                                           layer_params=layer_params)
+                                           content={'name': layer_params.layer_type, 'params': layer_params})
             graph.add_node(new_secondary_node)
         else:
             add_dense_layer = randint(0, 1)
@@ -181,8 +177,7 @@ def random_nn_branch(node_func: Callable, requirements, graph: Any = None, max_d
                 new_secondary_node_type = LayerTypesIdsEnum.dense.value
                 layer_params = get_random_layer_params(new_secondary_node_type, requirements)
                 new_secondary_node = node_func(nodes_from=nodes_from,
-                                               content={'name': layer_params.layer_type},
-                                               layer_params=layer_params)
+                                               content={'name': layer_params.layer_type, 'params': layer_params})
                 graph.add_node(new_secondary_node)
             else:
                 new_secondary_node = None
@@ -233,18 +228,18 @@ def branch_output_shape(root: Any, image_size: List[float], subtree_to_delete: A
         nodes = subtree_to_delete.ordered_subnodes_hierarchy
         structure = [node for node in structure if not node in nodes]
     for node in structure:
-        if node.layer_params.layer_type == LayerTypesIdsEnum.conv2d:
+        if node.content['params'].layer_type == LayerTypesIdsEnum.conv2d.value:
             image_size = conv_output_shape(node, image_size)
     return image_size
 
 
 def conv_output_shape(node, image_size):
     image_size = [
-        output_dimension(image_size[i], node.layer_params.kernel_size[i], node.layer_params.conv_strides[i]) for
-        i in range(len(image_size))]
+        output_dimension(image_size[i], node.content['params'].kernel_size[i], node.content['params'].conv_strides[i])
+        for i in range(len(image_size))]
     if node.layer_params.pool_size:
         image_size = [
-            output_dimension(image_size[i], node.layer_params.pool_size[i], node.layer_params.pool_strides[i])
+            output_dimension(image_size[i], node.content['params'].pool_size[i], node.content['params'].pool_strides[i])
             for i in range(len(image_size))]
         image_size = [floor(side_size) for side_size in image_size]
     return image_size

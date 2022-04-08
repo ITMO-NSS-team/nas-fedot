@@ -110,20 +110,19 @@ def train_opt_graph(file_path: str, graph: CustomGraphModel = None, timeout: dat
                                     pool_strides=pool_strides, pool_type=pool_types[0])
     nn_layer_params = LayerParams(activation='relu', layer_type=nn_node_types[0], neurons=121)
 
-    conv_node_1 = CustomGraphNode(nodes_from=None, layer_params=conv_layer_params,
-                                  content={'name': conv_layer_params.layer_type})
+    conv_node_1 = CustomGraphNode(nodes_from=None,
+                                  content={'name': conv_layer_params.layer_type, 'params': conv_layer_params})
     drop_1 = CustomGraphNode(nodes_from=[conv_node_1],
-                             content={'name': secondary_node_types[1]},
-                             layer_params=LayerParams(layer_type=secondary_node_types[1], drop=0.2))
+                             content={'name': secondary_node_types[1],
+                                      'params': LayerParams(layer_type=secondary_node_types[1], drop=0.2)})
     conv_node_2 = CustomGraphNode(nodes_from=[drop_1],
-                                  content={'name': conv_layer_params.layer_type},
-                                  layer_params=conv_layer_params)
+                                  content={'name': conv_layer_params.layer_type, 'params': conv_layer_params})
     drop_2 = CustomGraphNode(nodes_from=[conv_node_2],
-                             content={'name': secondary_node_types[1]},
-                             layer_params=LayerParams(layer_type=secondary_node_types[1], drop=0.2))
+                             content={'name': secondary_node_types[1],
+                                      'params': LayerParams(layer_type=secondary_node_types[1], drop=0.2)})
     conv_node_3 = CustomGraphNode(nodes_from=[drop_2],
-                                  content={'name': conv_layer_params.layer_type},
-                                  layer_params=LayerParams(layer_type=LayerTypesIdsEnum.flatten))
+                                  content={'name': conv_layer_params.layer_type,
+                                           'params': LayerParams(layer_type=LayerTypesIdsEnum.flatten)})
     nn_node_1 = CustomGraphNode(nodes_from=[drop_2],
                                 content={'name': nn_node_types[0]},
                                 layer_params=nn_layer_params)

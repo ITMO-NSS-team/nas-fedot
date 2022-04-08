@@ -4,14 +4,9 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import cv2
-# from fedot_old.core.models.data import InputData
 from fedot.core.data.data import InputData
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from fedot.core.repository.dataset_types import DataTypesEnum
-# from fedot_old.core.repository.task_types import MachineLearningTasksEnum
-import os
-from sklearn.preprocessing import LabelEncoder
-from keras.utils import np_utils
 
 
 def from_json(file_path, task_type: TaskTypesEnum = TaskTypesEnum.classification):

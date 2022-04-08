@@ -3,13 +3,14 @@ import random
 import statistics
 import sys
 import datetime
-import pickle
 
 import numpy as np
 import tensorflow as tf
 
 from typing import Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
+
+from nas.patches.utils import set_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from fedot.core.data.data import InputData
@@ -31,20 +32,13 @@ from nas.graph_cnn_mutations import cnn_simple_mutation
 
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter, CustomGraphNode
 
+# ROOT = os.path.dirname(os.path.abspath(__file__))
+# os.chdir(ROOT)
+# sys.path.append(ROOT)
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-os.chdir(ROOT)
-sys.path.append(ROOT)
-
+set_root(__file__)
 random.seed(2)
 np.random.seed(2)
-
-
-def _has_no_duplicates(graph):
-    _, labels = graph_structure_as_nx_graph(graph)
-    if len(labels.values()) != len(set(labels.values())):
-        raise ValueError('Custom graph has duplicates')
-    return True
 
 
 def calculate_validation_metric_multiclass(graph: CustomGraphModel,
@@ -99,7 +93,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     conv_types = [LayerTypesIdsEnum.conv2d.value]
     pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
     nn_primary = [LayerTypesIdsEnum.dense.value]
-    rules = [has_no_self_cycled_nodes, has_no_cycle, _has_no_duplicates]
+    rules = [has_no_self_cycled_nodes, has_no_cycle]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
