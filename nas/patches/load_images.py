@@ -1,5 +1,6 @@
 import json
 import os
+import pickle
 from os.path import isfile, join
 
 import cv2.cv2 as cv2
@@ -48,8 +49,20 @@ def load_images(file_path, size=120, number_of_classes=10, is_train=True):
     return Xarr, Yarr
 
 
+def from_pickle(path):
+    with open(path, 'rb') as dataset:
+        x_arr, y_arr = pickle.load(dataset)
+    return x_arr, y_arr
+
+
 def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum.classification):
-    Xtrain, Ytrain = load_images(file_path, size=120, number_of_classes=num_classes, is_train=True)
+    _, extension = os.path.splitext(file_path)
+    if not extension:
+        Xtrain, Ytrain = load_images(file_path, size=120, number_of_classes=num_classes, is_train=True)
+    elif extension == '.pickle':
+        Xtrain, Ytrain = from_pickle(file_path)
+    else:
+        raise ValueError('Wrong file path')
     Xtrain, Xval, Ytrain, Yval = train_test_split(Xtrain, Ytrain, random_state=1, train_size=0.8)
     task = Task(task_type=task_type, task_params=None)
     train_input_data = InputData(idx=np.arange(0, len(Xtrain)), features=Xtrain, target=np.array(Ytrain),

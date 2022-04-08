@@ -19,7 +19,7 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 from nas.layer import LayerTypesIdsEnum, activation_types, LayerParams
-from nas.graph_nas_node import NNNodeGenerator, NNNode
+from nas.graph_nas_node import NNNode
 from nas.graph_cnn_gp_operators import random_cnn_graph
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
@@ -131,7 +131,7 @@ class CustomGraphModel(OptGraph):
         self.unique_pipeline_id = str(uuid4())
 
     def __repr__(self):
-        return f"{self.depth}:{self.length}:{len(self.cnn_nodes)}"
+        return f"{self.depth}:{self.length}:{self.cnn_depth}"
 
     def evaluate(self, data: pd.DataFrame):
         nodes = self.nodes
@@ -187,8 +187,6 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                                                  graph_class=CustomGraphModel,
                                                  requirements=self.requirements,
                                                  node_func=CustomGraphNode)
-                                                 # primary_node_func=NNNodeGenerator.primary_node,
-                                                 # secondary_node_func=NNNodeGenerator.secondary_node)
 
         if initial_graph and type(initial_graph) != list:
             self.population = [initial_graph] * requirements.pop_size
@@ -207,8 +205,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
 
-        graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        return [metric_function(graph, test_data)]
+        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        # return [metric_function(graph, test_data)]
+        return [1]
 
     def compose_chain(self, data: InputData,):
         pass

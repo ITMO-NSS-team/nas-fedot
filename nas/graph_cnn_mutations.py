@@ -5,7 +5,7 @@ from functools import partial
 
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from nas.cnn_gp_operators import get_random_layer_params, random_nn_branch, random_cnn, conv_output_shape
+from nas.graph_cnn_gp_operators import get_random_layer_params, random_nn_branch, random_cnn, conv_output_shape
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter, CustomGraphNode
 from nas.graph_keras_eval import generate_structure

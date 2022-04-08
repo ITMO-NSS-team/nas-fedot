@@ -3,6 +3,7 @@ import random
 import statistics
 import sys
 import datetime
+import pickle
 
 import numpy as np
 import tensorflow as tf
@@ -148,7 +149,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    path = 'Generated_dataset'
+    path = 'Generated_dataset.pickle'
     # a dataset that will be used as a train and test set during composition
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)

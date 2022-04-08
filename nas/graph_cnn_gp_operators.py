@@ -2,7 +2,7 @@ from random import choice, randint
 from math import floor
 from typing import (Tuple, List, Any, Callable)
 from nas.layer import LayerTypesIdsEnum, LayerParams
-from nas.keras_eval import generate_structure
+from nas.graph_keras_eval import generate_structure
 
 
 def output_dimension(input_dimension: float, kernel_size: int, stride: int) -> float:
