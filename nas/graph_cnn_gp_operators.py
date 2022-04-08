@@ -71,7 +71,6 @@ def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_
     max_num_of_conv = max_num_of_conv if not max_num_of_conv is None else requirements.max_num_of_conv_layers
     min_num_of_conv = min_num_of_conv if not min_num_of_conv is None else requirements.max_num_of_conv_layers
     num_of_conv = randint(min_num_of_conv, max_num_of_conv)
-    # graph.cnn_depth = num_of_conv
 
     if image_size is None:
         current_image_size = requirements.image_size
