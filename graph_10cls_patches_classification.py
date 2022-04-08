@@ -28,7 +28,6 @@ from fedot.core.optimisers.gp_comp.operators.regularization import Regularizatio
 from fedot.core.pipelines.convert import graph_structure_as_nx_graph
 from nas.graph_cnn_mutations import cnn_simple_mutation
 
-
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 sys.path.append(ROOT)
