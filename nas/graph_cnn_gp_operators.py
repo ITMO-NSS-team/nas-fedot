@@ -90,8 +90,8 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
     else:
         current_image_size = image_size
 
-    max_num_of_conv = max_num_of_conv if max_num_of_conv else requirements.max_num_of_conv_layers
-    min_num_of_conv = min_num_of_conv if min_num_of_conv else requirements.max_num_of_conv_layers
+    max_num_of_conv = max_num_of_conv if max_num_of_conv else requirements.max_num_of_conv_layers + 1
+    min_num_of_conv = min_num_of_conv if min_num_of_conv else requirements.min_num_of_conv_layers
 
     max_num_of_conv = set_correct_num_convs(max_num_of_conv, int(current_image_size[0]), pad_size=0, kernel_size=3,
                                             stride_size=1)

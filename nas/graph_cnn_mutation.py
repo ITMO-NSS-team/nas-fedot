@@ -12,8 +12,6 @@ from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
 from nas.graph_nas_node import NNNodeGenerator
 from nas.graph_keras_eval import generate_structure
 from nas.layer import LayerTypesIdsEnum, LayerParams
-
-
 # from fedot_old.core.composer.visualisation import ComposerVisualiser
 
 
@@ -95,7 +93,7 @@ def cnn_part_growth_mutation(graph: Any, params) -> Any:
 
 
 def nn_growth_mutation(graph: Any, params, local_growth=True) -> Any:
-    ComposerVisualiser.visualise(graph)
+    # ComposerVisualiser.visualise(graph)
     primary_nodes = params.requirements.primary
     secondary_nodes = params.requirements.secondary
     random_layer_in_chain = randint(0, node_depth(graph.root_node))

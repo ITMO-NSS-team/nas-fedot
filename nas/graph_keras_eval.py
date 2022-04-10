@@ -53,11 +53,13 @@ def generate_structure(node: Any):
             struct += generate_structure(node.nodes_from[0])
             return struct
         elif len(node.nodes_from) == 2:
+            struct.append(node)
             struct += generate_structure(node.nodes_from[0])
             struct.append(node)
             struct += generate_structure(node.nodes_from[1])
             return struct
         elif len(node.nodes_from) == 3:
+            struct.append(node)
             struct += generate_structure(node.nodes_from[0])
             struct.append(node)
             struct += generate_structure(node.nodes_from[1])
@@ -139,7 +141,8 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
             model.add(layers.Dense(neurons_num, activation=activation))
         # if i == len(graph.cnn_nodes) - 1:
         if i == len(graph.cnn_nodes) - 1:
-            while get_shape_dim(model.layers[-1].output_shape) > int(layer.layer_params.max_params) ** (1 / 2):
+            max_params = int(layer.layer_params.max_params or nn_structure[i - 1].layer_params.max_params) ** (1 / 2)
+            while get_shape_dim(model.layers[-1].output_shape) > max_params:
                 if model.layers[-1].output_shape[-1] >= 64:
                     print('too many neurons, added 1x1 convolution')
                     model.add(

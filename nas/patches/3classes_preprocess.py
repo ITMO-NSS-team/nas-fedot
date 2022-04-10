@@ -1,21 +1,17 @@
-import numpy as np
-import cv2
 import json
 import os
-from tqdm import tqdm
-from os.path import isfile, join
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import normalize
-from sklearn.preprocessing import minmax_scale
-
-from matplotlib import pyplot as plt
-from PIL import Image
 import sys
+from os.path import join
+
+import cv2
+import numpy as np
+from PIL import Image
+from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 sys.path.append("C:/Users/aliev/AppData/Local/Programs/Python/Python37/Lib/site-packages/gdal.py")
 try:
     import gdal
-
     print('INFO: All packages are installed. GDAL will be used to read GeoTIFF files')
 except ImportError:
     print('ERROR: Some of packages are not installed. Please install GDAL to read GeoTIFF files')

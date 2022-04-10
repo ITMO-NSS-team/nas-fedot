@@ -1,45 +1,46 @@
+import datetime
 import os
 import random
 import sys
+from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
+
+from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
+from fedot.core.data.data import InputData
+from fedot.core.log import default_log
+from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
+    GeneticSchemeTypesEnum
+from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
+from fedot.core.optimisers.optimizer import GraphGenerationParams
+from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from nas.cnn_data import from_json
+from nas.composer.graph_gp_cnn_composer import CustomGraphAdapter, CustomGraphModel, GPNNGraphOptimiser, \
+    GPNNComposerRequirements
+from nas.graph_cnn_crossover import cnn_subtree_crossover
+from nas.graph_cnn_mutation import cnn_simple_mutation
+from nas.graph_nas_node import NNNode
+from nas.layer import LayerTypesIdsEnum
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(ROOT)
 sys.path.append(ROOT)
-# sys.path.append(os.path.join(ROOT, "fedot_old"))
-
-from typing import Tuple
-from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
-
-from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from fedot.core.data.data import InputData
-from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
-from nas.layer import LayerTypesIdsEnum
-from nas.cnn_data import from_json
-
 random.seed(2)
 np.random.seed(2)
+os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
+setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
+setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
+setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
 
-import datetime
 
-from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
-from fedot.core.log import default_log
-from fedot.core.optimisers.adapters import DirectAdapter
-from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
-    GeneticSchemeTypesEnum, GraphGenerationParams
-
-from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
-from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
-from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from fedot.core.optimisers.graph import OptGraph
-
-from fedot.core.dag.node_operator import NodeOperator
-from fedot.core.dag.graph_node import GraphNode
-
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel
+def _has_no_duplicates(graph):
+    _, labels = graph_structure_as_nx_graph(graph)
+    if len(labels.values()) != len(set(labels.values())):
+        raise ValueError('Custom graph has duplicates')
+    return True
 
 
 def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[float, float, float]:
@@ -58,136 +59,83 @@ def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: In
     return roc_auc_value, log_loss_value, accuracy_score_value
 
 
-class CustomGraphNode(GraphNode):
-    def __init__(self, content: dict):
-        super().__init__(content)
-        self.operator = NodeOperator(self)
-        self._operator = NodeOperator(self)
-
-    def __str__(self):
-        # return f'Node_{self.content["name"]}'
-        # return f"{self.layer_params.activation.name}_{self.layer_params.layer_type.name}_{self.layer_params.neurons}"
-        return f"Node_{self.layer_params.layer_type.name}"
-
-    def __repr__(self):
-        # return f"{self.layer_params.activation.name},{self.layer_params.layer_type.name},{self.layer_params.neurons}"
-        return f"Node_{self.layer_params.layer_type.name}"
-
-
-# def custom_metric(graph: CustomGraphModel, data: pd.DataFrame):
-#     graph.show()
-#     existing_variables_num = -graph.depth - graph.evaluate(data)
-#
-#     return [existing_variables_num]
-
-
-# metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-
-def _has_no_duplicates(graph):
-    _, labels = graph_structure_as_nx_graph(graph)
-    if len(labels.values()) != len(set(labels.values())):
-        raise ValueError('Custom graph has duplicates')
-    return True
-
-
-def custom_mutation(graph: OptGraph, **kwargs):
-    num_mut = 10
-    try:
-        for _ in range(num_mut):
-            rid = random.choice(range(len(graph.nodes)))
-            random_node = graph.nodes[rid]
-            other_random_node = graph.nodes[random.choice(range(len(graph.nodes)))]
-            nodes_not_cycling = (random_node.descriptive_id not in
-                                 [n.descriptive_id for n in other_random_node.ordered_subnodes_hierarchy()] and
-                                 other_random_node.descriptive_id not in
-                                 [n.descriptive_id for n in random_node.ordered_subnodes_hierarchy()])
-            if random_node.nodes_from is not None and len(random_node.nodes_from) == 0:
-                random_node.nodes_from = None
-            if nodes_not_cycling:
-                graph.operator.connect_nodes(random_node, other_random_node)
-    except Exception as ex:
-        graph.log.warn(f'Incorrect connection: {ex}')
-    return graph
-
-
 def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
+    size = 75
+    num_of_classes = 2
+    dataset_to_compose, dataset_to_validate = from_json(filepath)
     if not timeout:
-        timeout = datetime.timedelta(hours=20)
+        timeout = datetime.timedelta(hours=60)
 
     cnn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
     conv_types = [LayerTypesIdsEnum.conv2d]
     pool_types = [LayerTypesIdsEnum.maxpool2d, LayerTypesIdsEnum.averagepool2d]
     nn_primary = [LayerTypesIdsEnum.dense]
     nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
-
     rules = [has_no_self_cycled_nodes, has_no_cycle, _has_no_duplicates]
+    metric_function = [MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)]
 
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-        mutation_types=[MutationTypesEnum.none],
-        crossover_types=[CrossoverTypesEnum.subtree],
+        # mutation_types=[MutationTypesEnum.simple],
+        mutation_types=[cnn_simple_mutation],
+        # crossover_types=[CrossoverTypesEnum.cnn_subtree],
+        crossover_types=[cnn_subtree_crossover],
         regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=NNNode),
         rules_for_constraint=rules)
 
-    num_of_classes = 2
-    dataset_to_compose, dataset_to_validate = from_json(filepath)
     requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
-        max_num_of_neurons=128, min_filters=16, max_filters=64, image_size=[75, 75],
-        conv_types=conv_types, pool_types=pool_types, cnn_secondary=cnn_secondary,
-        primary=nn_primary, secondary=nn_secondary, min_arity=2, max_arity=3,
-        max_depth=6, pop_size=5, num_of_generations=5,
-        crossover_prob=0, mutation_prob=0,
-        train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
-
-    metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
+        conv_kernel_size_range=(1, 4), conv_strides_range=(1, 2), pool_size_range=(2, 4),
+        min_num_of_neurons=16, max_num_of_neurons=128, min_filters=16, max_filters=128,
+        min_arity=1, max_arity=3, max_depth=4, min_num_of_conv_layers=1, max_num_of_conv_layers=4, max_params=2000000,
+        pop_size=20, num_of_generations=50, crossover_prob=0.7, mutation_prob=0.25, train_epochs_num=5,
+        num_of_classes=num_of_classes, timeout=timeout, image_size=[size, size], conv_types=conv_types,
+        pool_types=pool_types, cnn_secondary=cnn_secondary, primary=nn_primary, secondary=nn_secondary)
     optimiser = GPNNGraphOptimiser(
-        initial_graph=None,
-        requirements=requirements,
-        graph_generation_params=graph_generation_params,
-        metrics=metric_function,
-        parameters=optimiser_parameters,
+        initial_graph=None, requirements=requirements, graph_generation_params=graph_generation_params,
+        metrics=metric_function, parameters=optimiser_parameters,
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
+    # optimized_network = optimiser.optimise(partial(custom_metric, data=data))
     optimized_network.show(path='result.png')
 
     print('Best model structure:')
     for node in optimized_network.cnn_nodes:
-        print(node)
+        val = node.layer_params.num_of_filters or \
+              node.layer_params.drop or ''
+        name = node.layer_params.layer_type.name or node
+        print(f"{name}, {val}")
     for node in optimized_network.nodes:
-        print(node)
-
-    optimized_network.fit(input_data=dataset_to_compose, input_shape=(75, 75, 3), epochs=20, classes=num_of_classes)
+        val = node.layer_params.neurons or ''
+        name = node.layer_params.layer_type.name or node
+        print(f"{name}, {val}")
+    optimized_network_custom = CustomGraphModel(nodes=optimized_network.nodes, cnn_nodes=optimized_network.cnn_nodes,
+                                                fitted_model=None)
+    optimized_network_custom.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=20,
+                                 classes=num_of_classes)
 
     # the quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-        calculate_validation_metric(optimized_network, dataset_to_validate)
+        calculate_validation_metric(optimized_network_custom, dataset_to_validate)
 
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = 'model_ice.json'
-    model_json = optimized_network.model.to_json()
+    json_file = f'models_saved/ice_{num_of_classes}cls_best_model.json'
+    model_json = optimized_network_custom.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
     # saving the weights of the model
-    optimized_network.model.save_weights('model_ice.h5')
+    optimized_network_custom.model.save_weights(f'models_saved/ice_{num_of_classes}cls'
+                                                f'_{round(accuracy_score_on_valid_evo_composed, 3)}_acc_best.h5')
 
 
 if __name__ == '__main__':
-    # the dataset was obtained from https://www.kaggle.com/c/GiveMeSomeCredit
-
-    # a dataset that will be used as a train and test set during composition
-    setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
-    setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
-    setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
-
     file_path = 'IcebergsDataset/train.json'
     run_custom_example(file_path)
     # run_iceberg_classification_problem(file_path)
