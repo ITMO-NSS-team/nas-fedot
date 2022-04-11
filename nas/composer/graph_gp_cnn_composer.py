@@ -14,7 +14,7 @@ import pandas as pd
 
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
-from fedot.core.data.data import InputData
+from fedot.core.data.data import InputData, OutputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
@@ -134,8 +134,7 @@ class CustomGraphModel(OptGraph):
         return f"{self.depth}:{self.length}:{self.cnn_depth}"
 
     def evaluate(self, data: pd.DataFrame):
-        nodes = self.nodes
-        # nodes = data.columns.to_list()
+        nodes = data.columns.to_list()
         _, labels = graph_structure_as_nx_graph(self)
         return len(nodes)
 
@@ -151,12 +150,12 @@ class CustomGraphModel(OptGraph):
             min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
         if not self.model:
             self.model = create_nn_model(self, input_shape, classes)
-        train_predicted = keras_model_fit(self.model, input_data, verbose=True, batch_size=batch_size, epochs=epochs)
+        train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=batch_size, epochs=epochs)
         # TODO mb need to add target in output
         return train_predicted
 
-    def predict(self, input_data: InputData, output_mode: str = 'default'):
-        evaluation_result = keras_model_predict(self.model, input_data)
+    def predict(self, input_data: InputData, output_mode: str = 'default') -> OutputData:
+        evaluation_result = keras_model_predict(self.model, input_data, output_mode)
         return evaluation_result
 
 
@@ -208,9 +207,6 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
         # return [metric_function(graph, test_data)]
         return [1]
-
-    def compose_chain(self, data: InputData,):
-        pass
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)

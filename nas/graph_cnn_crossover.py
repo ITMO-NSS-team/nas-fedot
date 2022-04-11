@@ -66,14 +66,18 @@ def cnn_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
     return graph_first
 
 
+def is_empty_graph(graph: Any):
+    return graph.depth + len(graph.cnn_depth) - 1
+
+
 def cnn_subtree_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
     print('Making subtree crossover')
     graph_first = CustomGraphModel(nodes=graph_first.nodes,
                                    cnn_nodes=graph_first.cnn_nodes, fitted_model=graph_first.model)
     graph_second = CustomGraphModel(nodes=graph_second.nodes,
                                     cnn_nodes=graph_second.cnn_nodes, fitted_model=graph_second.model)
-    if graph_first.depth + len(graph_first.cnn_nodes) - 1 == 0 and graph_second.depth + len(
-            graph_second.cnn_nodes) - 1 == 0:
+
+    if is_empty_graph(graph_first) and is_empty_graph(graph_second):
         graph_first.replace_node_with_parents(graph_first.root_node, graph_second.root_node)
     else:
         graph_first, graph_second = subtree_crossover(graph_first, graph_second, max_depth)

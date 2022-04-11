@@ -8,8 +8,8 @@ class NNNode(OptNode):
     def __init__(self, content, nodes_from: Optional[List['NNNode']]):
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from
-        # if 'params' not in self.content:
-        #     self.content['params'] = None
+        if 'params' in content:
+            self.content = content
 
     def __str__(self):
         type = self.content['params'].layer_type

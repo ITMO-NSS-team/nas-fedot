@@ -1,7 +1,6 @@
 import os
 import random
 import statistics
-import sys
 import datetime
 
 import numpy as np
@@ -9,6 +8,7 @@ import tensorflow as tf
 
 from typing import Tuple
 from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
+from nas.patches.utils import set_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from fedot.core.data.data import InputData
@@ -25,22 +25,11 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
 from nas.graph_cnn_mutations import cnn_simple_mutation
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-os.chdir(ROOT)
-sys.path.append(ROOT)
-
+set_root(__file__)
 random.seed(2)
 np.random.seed(2)
-
-
-def _has_no_duplicates(graph):
-    _, labels = graph_structure_as_nx_graph(graph)
-    if len(labels.values()) != len(set(labels.values())):
-        raise ValueError('Custom graph has duplicates')
-    return True
 
 
 def calculate_validation_metric_multiclass(graph: CustomGraphModel,
@@ -67,17 +56,17 @@ def calculate_validation_metric_multiclass(graph: CustomGraphModel,
     return roc_auc_value, log_loss_value, accuracy_score_value
 
 
-def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[float, float, float]:
+def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData,
+                                num_of_classes: int) -> Tuple[float, float, float]:
     # the execution of the obtained composite models
     predicted = graph.predict(dataset_to_validate)
     # the quality assessment for the simulation results
     roc_auc_value = roc_auc(y_true=dataset_to_validate.target, y_score=predicted.predict,
                             multi_class="ovo", average="macro")
-    y_values_pred = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(predicted.idx.size)]
+    y_values_pred = np.zeros((predicted.idx.size, num_of_classes))
     for i, predict in enumerate(predicted.predict):
         y_class_pred = np.argmax(predict)
         y_values_pred[i][y_class_pred] = 1
-
     y_pred = np.array([predict for predict in predicted.predict])
     y_values_pred = np.array(y_values_pred)
     log_loss_value = log_loss(y_true=dataset_to_validate.target, y_pred=y_pred)
@@ -97,7 +86,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     conv_types = [LayerTypesIdsEnum.conv2d.value]
     pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
     nn_primary = [LayerTypesIdsEnum.dense.value]
-    rules = [has_no_self_cycled_nodes, has_no_cycle, _has_no_duplicates]
+    rules = [has_no_self_cycled_nodes, has_no_cycle]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
@@ -125,7 +114,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         print(node)
 
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
-                          epochs=20, classes=num_of_classes)
+                          epochs=20, classes=num_of_classes, verbose=True)
     # the quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)

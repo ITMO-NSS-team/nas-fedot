@@ -28,8 +28,13 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
     return keras_model_predict(model, input_data)
 
 
-def keras_model_predict(model, input_data: InputData):
-    evaluation_result = model.predict_proba(input_data.features)
+def keras_model_predict(model, input_data: InputData, output_mode: str = 'default') -> OutputData:
+    if output_mode == 'label':
+        evaluation_result = model.predict(input_data.features)
+    elif output_mode == 'default':
+        evaluation_result = model.predict_proba(input_data.features)
+    else:
+        raise ValueError('Wrong mode')
     return OutputData(idx=input_data.idx,
                       features=input_data.features,
                       predict=evaluation_result,
@@ -84,8 +89,8 @@ def make_keras_picklable():
     cls.__reduce__ = __reduce__
 
 
-def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
-    generated_struc = generate_structure(chain.root_node)
+def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
+    generated_struc = generate_structure(graph.root_node)
     nn_structure = generated_struc[::-1]
     make_keras_picklable()
     model = models.Sequential()
@@ -122,8 +127,8 @@ def create_nn_model(chain: Any, input_shape: tuple, classes: int = 3):
             activation = layer.content['params'].activation
             neurons_num = layer.content['params'].neurons
             model.add(layers.Dense(neurons_num, activation=activation))
-        # Adding Flatten layer after last layer from cnn part of the chain
-        if cnn_nodes_count == chain.cnn_depth:
+        # adding Flatten layer after last layer from cnn part of the graph
+        if cnn_nodes_count == graph.cnn_depth:
             model.add(layers.Flatten())
             cnn_nodes_count = None
     # Output
