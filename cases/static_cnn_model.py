@@ -28,21 +28,20 @@ def create_graph(graph: NNGraph, node_type: str, params: List[LayerParams], pare
     parent = None if not parent else [parent]
     if node_type.startswith('conv'):
         new_node = NNNode(nodes_from=parent, content={'name': params[0].layer_type,
-                                                               'params': params[0], 'conv': True})
+                                                      'params': params[0], 'conv': True})
     elif node_type.startswith('drop'):
         new_node = NNNode(nodes_from=parent,
                           content={'name': LayerTypesIdsEnum.dropout.value,
-                          'params': LayerParams(layer_type=LayerTypesIdsEnum.dropout.value,
-                                                drop=0.2)})
+                                   'params': LayerParams(layer_type=LayerTypesIdsEnum.dropout.value,
+                                                         drop=0.2)})
     else:
         new_node = NNNode(nodes_from=parent, content={'name': params[1].layer_type,
-                                                               'params': params[1]})
+                                                      'params': params[1]})
     graph.add_node(new_node)
     return new_node
 
 
 def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None):
-
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
