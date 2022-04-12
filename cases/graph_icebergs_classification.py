@@ -28,7 +28,7 @@ random.seed(2)
 np.random.seed(2)
 
 
-def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
+def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta = None):
     num_of_classes = 2
     dataset_to_compose, dataset_to_validate = from_json(filepath)
     if not timeout:
@@ -66,16 +66,15 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
-    optimized_network.show(path='iceberg_result.png')
+    optimized_network.show(path='../iceberg_result.png')
 
     print('Best model structure:')
     for node in optimized_network.nodes:
         print(node)
 
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
-    optimized_network.fit(input_data=dataset_to_compose, input_shape=(75, 75, 3), epochs=20, classes=num_of_classes,
+    optimized_network.fit(input_data=dataset_to_compose, input_shape=(75, 75, 3), epochs=epochs, classes=num_of_classes,
                           verbose=True)
-
     # the quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)
@@ -98,4 +97,4 @@ if __name__ == '__main__':
     # a dataset that will be used as a train and test set during composition
     set_tf_compat()
     file_path = os.path.join(root, 'IcebergsDataset', 'train.json')
-    run_custom_example(file_path)
+    run_custom_example(file_path, epochs=1)

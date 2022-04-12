@@ -90,7 +90,7 @@ def run_patches_classification(file_path, epochs: int, timeout: datetime.timedel
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    file_path = os.path.join(root, '_10cls_Generated_dataset.pickle')
+    file_path = os.path.join(root, '10cls_Generated_dataset.pickle')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
     run_patches_classification(file_path=file_path, epochs=1)
