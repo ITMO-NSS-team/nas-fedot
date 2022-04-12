@@ -5,7 +5,7 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 from nas.graph_cnn_gp_operators import get_random_layer_params
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
-from nas.composer.graph_gp_cnn_composer import CustomGraphNode
+from nas.composer.graph_gp_cnn_composer import NNNode
 from nas.graph_keras_eval import generate_structure
 from nas.layer import LayerTypesIdsEnum, LayerParams
 
@@ -33,9 +33,9 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                     node_type = choice(requirements.secondary)
                     new_layer_params = get_random_layer_params(node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else node.nodes_from
-                new_node = CustomGraphNode(nodes_from=new_nodes_from,
-                                           content={'name': f'{new_layer_params.layer_type}',
-                                                    'conv': True, 'params': new_layer_params})
+                new_node = NNNode(nodes_from=new_nodes_from,
+                                  content={'name': f'{new_layer_params.layer_type}',
+                                           'conv': True, 'params': new_layer_params})
                 graph.update_node(node, new_node)
         else:
             if random() < node_mutation_probability:
@@ -43,9 +43,9 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                     new_node_type = choice(secondary_nodes)
                     new_layer_params = get_random_layer_params(new_node_type, requirements)
                     new_nodes_from = None if not node.nodes_from else node.nodes_from
-                    new_node = CustomGraphNode(nodes_from=new_nodes_from,
-                                               content={'name': new_layer_params.layer_type,
-                                                        'params': new_layer_params})
+                    new_node = NNNode(nodes_from=new_nodes_from,
+                                      content={'name': new_layer_params.layer_type,
+                                               'params': new_layer_params})
                 try:
                     graph.update_node(node, new_node)
                 except Exception as ex:

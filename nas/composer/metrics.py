@@ -1,6 +1,6 @@
 from typing import Tuple
 from fedot.core.data.data import InputData, OutputData
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel
+from nas.composer.graph_gp_cnn_composer import NNGraph
 
 from sklearn.metrics import roc_auc_score as roc_auc
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
@@ -20,7 +20,7 @@ def _compute_roc_auc(dataset_to_validate: InputData, predictions: OutputData, is
     return roc_auc_value
 
 
-def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData,
+def calculate_validation_metric(graph: NNGraph, dataset_to_validate: InputData,
                                 is_multiclass: bool = False) -> Tuple[float, float, float]:
     # Labels and probabilities prediction for metrics calculation
     predicted_labels = graph.predict(dataset_to_validate, output_mode='label', is_multiclass=is_multiclass)

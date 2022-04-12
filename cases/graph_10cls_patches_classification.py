@@ -8,7 +8,7 @@ import tensorflow as tf
 from nas.patches.utils import set_root, project_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphNode, CustomGraphAdapter
+from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode, CustomGraphAdapter
 from nas.layer import LayerTypesIdsEnum
 
 from fedot.core.log import default_log
@@ -29,7 +29,7 @@ random.seed(2)
 np.random.seed(2)
 
 
-def run_patches_classification(file_path, timeout: datetime.timedelta = None):
+def run_patches_classification(file_path, epochs: int, timeout: datetime.timedelta = None):
     size = 120
     num_of_classes = 10
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes)
@@ -48,7 +48,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
@@ -69,7 +69,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         print(node)
 
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
-                          epochs=1, classes=num_of_classes, verbose=True)
+                          epochs=epochs, classes=num_of_classes, verbose=True)
     # The quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)

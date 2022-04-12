@@ -24,7 +24,7 @@ from fedot.core.optimisers.gp_comp.operators.regularization import Regularizatio
 from nas.graph_cnn_mutations import cnn_simple_mutation
 from nas.composer.metrics import calculate_validation_metric
 
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter, CustomGraphNode
+from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
 
 root = project_root()
 random.seed(2)
@@ -50,7 +50,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,

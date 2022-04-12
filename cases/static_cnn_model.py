@@ -8,7 +8,7 @@ from fedot.core.repository.quality_metrics_repository import MetricsRepository, 
 
 from nas.layer import LayerParams, LayerTypesIdsEnum
 from nas.patches.load_images import from_images
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter, CustomGraphNode
+from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, GPNNGraphOptimiser
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 
@@ -24,18 +24,18 @@ from nas.composer.metrics import calculate_validation_metric
 root = project_root()
 
 
-def create_graph(graph: CustomGraphModel, node_type: str, params: List[LayerParams], parent=None):
+def create_graph(graph: NNGraph, node_type: str, params: List[LayerParams], parent=None):
     parent = None if not parent else [parent]
     if node_type.startswith('conv'):
-        new_node = CustomGraphNode(nodes_from=parent, content={'name': params[0].layer_type,
+        new_node = NNNode(nodes_from=parent, content={'name': params[0].layer_type,
                                                                'params': params[0], 'conv': True})
     elif node_type.startswith('drop'):
-        new_node = CustomGraphNode(nodes_from=parent,
-                                   content={'name': LayerTypesIdsEnum.dropout.value,
-                                            'params': LayerParams(layer_type=LayerTypesIdsEnum.dropout.value,
-                                                                  drop=0.2)})
+        new_node = NNNode(nodes_from=parent,
+                          content={'name': LayerTypesIdsEnum.dropout.value,
+                          'params': LayerParams(layer_type=LayerTypesIdsEnum.dropout.value,
+                                                drop=0.2)})
     else:
-        new_node = CustomGraphNode(nodes_from=parent, content={'name': params[1].layer_type,
+        new_node = NNNode(nodes_from=parent, content={'name': params[1].layer_type,
                                                                'params': params[1]})
     graph.add_node(new_node)
     return new_node
@@ -69,7 +69,7 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     params = [conv_layer_params, nn_layer_params]
     nodes_list = ['conv_1', 'drop_1', 'conv_2', 'drop_2', 'nn_node_1', 'drop_nn_1', 'nn_node_2', 'drop_nn_2',
                   'nn_node_3']
-    initial_graph = CustomGraphModel()
+    initial_graph = NNGraph()
 
     parent_node = None
     for ind, type in enumerate(nodes_list):
@@ -86,7 +86,7 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules
     )
 

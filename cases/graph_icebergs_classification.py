@@ -8,7 +8,7 @@ import tensorflow as tf
 from nas.patches.utils import project_root, set_tf_compat
 
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
-from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphNode, CustomGraphAdapter
+from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode, CustomGraphAdapter
 from nas.layer import LayerTypesIdsEnum
 from nas.cnn_data import from_json
 
@@ -47,7 +47,7 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
         crossover_types=[CrossoverTypesEnum.subtree],
         regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=CustomGraphNode),
+        adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,

@@ -5,7 +5,8 @@ from copy import deepcopy
 from typing import (
     Tuple,
     List,
-    Any
+    Any,
+    Optional
 )
 from uuid import uuid4
 
@@ -19,7 +20,6 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 from nas.layer import LayerTypesIdsEnum, activation_types, LayerParams
-from nas.graph_nas_node import NNNode
 from nas.graph_cnn_gp_operators import random_cnn_graph
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
@@ -57,15 +57,15 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
 
     def __post_init__(self):
         if not self.cnn_secondary:
-            self.cnn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
+            self.cnn_secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
         if not self.conv_types:
-            self.conv_types = [LayerTypesIdsEnum.conv2d]
+            self.conv_types = [LayerTypesIdsEnum.conv2d.value]
         if not self.pool_types:
-            self.pool_types = [LayerTypesIdsEnum.maxpool2d, LayerTypesIdsEnum.averagepool2d]
+            self.pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
         if not self.primary:
-            self.primary = [LayerTypesIdsEnum.dense]
+            self.primary = [LayerTypesIdsEnum.dense.value]
         if not self.secondary:
-            self.secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
+            self.secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
         if self.max_drop_size > 1:
             self.max_drop_size = 1
         if not all([side_size > 3 for side_size in self.image_size]):
@@ -124,19 +124,13 @@ class CustomGraphAdapter(DirectAdapter):
         return obj
 
 
-class CustomGraphModel(OptGraph):
+class NNGraph(OptGraph):
     def __init__(self, nodes=None, fitted_model=None):
         super().__init__(nodes)
         self.model = fitted_model
-        self.unique_pipeline_id = str(uuid4())
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth}"
-
-    def evaluate(self, data: pd.DataFrame):
-        nodes = data.columns.to_list()
-        _, labels = graph_structure_as_nx_graph(self)
-        return len(nodes)
 
     def __eq__(self, other) -> bool:
         return self is other
@@ -159,9 +153,12 @@ class CustomGraphModel(OptGraph):
         return evaluation_result
 
 
-class CustomGraphNode(NNNode):
-    def __init__(self, content: dict, nodes_from):
+class NNNode(OptNode):
+    def __init__(self, content: dict, nodes_from: Optional[List['NNNode']]):
         super().__init__(content, nodes_from)
+        self.nodes_from = nodes_from
+        if 'params' in content:
+            self.content = content
 
     def __str__(self):
         return str(self.content['name'])
@@ -183,9 +180,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
 
         self.parameters.graph_generation_function = random_cnn_graph
         self.graph_generation_function = partial(self.parameters.graph_generation_function,
-                                                 graph_class=CustomGraphModel,
+                                                 graph_class=NNGraph,
                                                  requirements=self.requirements,
-                                                 node_func=CustomGraphNode)
+                                                 node_func=NNNode)
 
         if initial_graph and type(initial_graph) != list:
             self.population = [initial_graph] * requirements.pop_size
