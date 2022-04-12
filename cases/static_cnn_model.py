@@ -113,4 +113,3 @@ if __name__ == '__main__':
     file_path = os.path.join(root, 'Generated_dataset')
     initial_graph = CustomGraphModel()
     train_opt_graph(file_path=file_path, init_graph=initial_graph)
-

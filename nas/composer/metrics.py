@@ -26,9 +26,12 @@ def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: In
     predicted_labels = graph.predict(dataset_to_validate, output_mode='label', is_multiclass=is_multiclass)
     predicted_probabilities = graph.predict(dataset_to_validate, output_mode='default', is_multiclass=is_multiclass)
     # Metrics calculation
-    roc_auc_score = _compute_roc_auc(dataset_to_validate=dataset_to_validate,
-                                     predictions=predicted_probabilities, is_multiclass=is_multiclass)
+    try:
+        roc_auc_score = _compute_roc_auc(dataset_to_validate=dataset_to_validate,
+                                         predictions=predicted_probabilities, is_multiclass=is_multiclass)
+    except ValueError as error:
+        print(error)
+        roc_auc_score = 0
     log_loss_score = Logloss.metric(reference=dataset_to_validate, predicted=predicted_probabilities)
     accuracy = -Accuracy.metric(reference=dataset_to_validate, predicted=predicted_labels)
-
     return roc_auc_score, log_loss_score, accuracy

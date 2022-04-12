@@ -24,8 +24,8 @@ def conv_output_shape(node, image_size):
 
 def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_conv: int = None,
                min_num_of_conv: int = None, image_size: List[float] = None, parent_nodes: Any = None) -> Any:
-    max_num_of_conv = max_num_of_conv if not max_num_of_conv is None else requirements.max_num_of_conv_layers
-    min_num_of_conv = min_num_of_conv if not min_num_of_conv is None else requirements.max_num_of_conv_layers
+    max_num_of_conv = max_num_of_conv if max_num_of_conv is not None else requirements.max_num_of_conv_layers
+    min_num_of_conv = min_num_of_conv if min_num_of_conv is not None else requirements.max_num_of_conv_layers
     num_of_conv = randint(min_num_of_conv, max_num_of_conv)
 
     if image_size is None:
@@ -91,7 +91,7 @@ def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_
                 graph.add_node(new_secondary_node)
             else:
                 new_secondary_node = None
-        nodes_from = new_secondary_node if not new_secondary_node is None else nodes_from
+        nodes_from = new_secondary_node if new_secondary_node is not None else nodes_from
         if depth < total_convs:
             _one_cnn_branch_growth(node_parent=nodes_from, img_size=img_size, depth=depth+2)
     parent_nodes = parent_nodes if parent_nodes else None
@@ -101,7 +101,7 @@ def random_cnn(node_func: Callable, requirements, graph: Any = None, max_num_of_
 
 def random_nn_branch(node_func: Callable, requirements, graph: Any = None, max_depth=None, start_height: int = None,
                      node_parent=None) -> Any:
-    max_depth = max_depth if not max_depth is None else requirements.max_depth
+    max_depth = max_depth if max_depth is not None else requirements.max_depth
 
     def _nn_branch_growth(node_parent: Any = None, offspring_size: int = None, depth: int = None,
                           total_nodes: int = max_depth):
@@ -131,7 +131,7 @@ def random_nn_branch(node_func: Callable, requirements, graph: Any = None, max_d
                 graph.add_node(new_secondary_node)
             else:
                 new_secondary_node = None
-        nodes_from = new_secondary_node if not new_secondary_node is None else nodes_from
+        nodes_from = new_secondary_node if new_secondary_node is not None else nodes_from
         if depth < total_nodes:
             _nn_branch_growth(node_parent=nodes_from, depth=depth + 2)
     node_parent = node_parent if node_parent else None
@@ -228,9 +228,8 @@ def branch_output_shape(root: Any, image_size: List[float], subtree_to_delete: A
     structure = generate_structure(root)
     if subtree_to_delete:
         nodes = subtree_to_delete.ordered_subnodes_hierarchy
-        structure = [node for node in structure if not node in nodes]
+        structure = [node for node in structure if node not in nodes]
     for node in structure:
         if node.content['params'].layer_type == LayerTypesIdsEnum.conv2d.value:
             image_size = conv_output_shape(node, image_size)
     return image_size
-

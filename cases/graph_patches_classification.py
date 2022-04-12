@@ -31,7 +31,7 @@ random.seed(2)
 np.random.seed(2)
 
 
-def run_patches_classification(file_path, timeout: datetime.timedelta = None):
+def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None):
     size = 120
     num_of_classes = 3
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes)
@@ -72,8 +72,8 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         print(node)
 
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
-    optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=20, classes=num_of_classes,
-                          verbose=True)
+    optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=epochs,
+                          classes=num_of_classes, verbose=True)
 
     # the quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
@@ -94,10 +94,10 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    path = os.path.join(root, 'Generated_dataset')
-    # a dataset that will be used as a train and test set during composition
+    path = os.path.join(root, 'Generated_dataset.pickle')
+    # A dataset that will be used as a train and test set during composition
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
 
-    run_patches_classification(file_path=path)
+    run_patches_classification(file_path=path, epochs=1)

@@ -69,7 +69,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         print(node)
 
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
-                          epochs=20, classes=num_of_classes, verbose=True)
+                          epochs=1, classes=num_of_classes, verbose=True)
     # The quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)
@@ -90,7 +90,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    file_path = os.path.join(root, '10cls_Generated_dataset')
+    file_path = os.path.join(root, '_10cls_Generated_dataset.pickle')
     # A dataset that will be used as a train and test set during composition
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)

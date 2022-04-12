@@ -27,4 +27,3 @@ class NNNode(OptNode):
         else:
             layer_name = type
         return layer_name
-
