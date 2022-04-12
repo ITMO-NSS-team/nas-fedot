@@ -1,11 +1,15 @@
+from os.path import isfile, join
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import cv2
-from core.models.data import InputData
-from core.repository.task_types import TaskTypesEnum, MachineLearningTasksEnum
+from fedot.core.data.data import InputData
+from fedot.core.repository.tasks import Task, TaskTypesEnum
+from fedot.core.repository.dataset_types import DataTypesEnum
 
-def from_json(file_path, task_type: TaskTypesEnum = MachineLearningTasksEnum.classification, train_size=0.75):
+
+def from_json(file_path, task_type: TaskTypesEnum = TaskTypesEnum.classification):
     df_train = pd.read_json(file_path)
     Xtrain = get_scaled_imgs(df_train)
     Ytrain = np.array(df_train['is_iceberg'])
@@ -16,10 +20,11 @@ def from_json(file_path, task_type: TaskTypesEnum = MachineLearningTasksEnum.cla
     Xtrain, Xtest, Ytrain, Ytest = train_test_split(Xtrain, Ytrain, random_state=1, train_size=0.75)
     Xtr_more = get_more_images(Xtrain)
     Ytr_more = np.concatenate((Ytrain, Ytrain, Ytrain))
+    task = Task(task_type=task_type, task_params=None)
     train_input_data = InputData(idx=np.arange(0, len(Xtr_more)), features=Xtr_more, target=np.array(Ytr_more),
-                                 task_type=task_type)
+                                 task=task, data_type=DataTypesEnum.image)
     test_input_data = InputData(idx=np.arange(0, len(Xtest)), features=Xtest, target=np.array(Ytest),
-                                task_type=task_type)
+                                task=task, data_type=DataTypesEnum.image)
     return train_input_data, test_input_data
 
 
