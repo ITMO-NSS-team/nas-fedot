@@ -2,7 +2,7 @@ import os
 import datetime
 
 from typing import List
-from nas.patches.utils import project_root
+from nas.patches.utils import project_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
@@ -41,7 +41,7 @@ def create_graph(graph: CustomGraphModel, node_type: str, params: List[LayerPara
     return new_node
 
 
-def train_opt_graph(file_path: str, init_graph: CustomGraphModel = None, timeout: datetime.timedelta = None):
+def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None):
 
     if not timeout:
         timeout = datetime.timedelta(hours=20)
@@ -69,9 +69,11 @@ def train_opt_graph(file_path: str, init_graph: CustomGraphModel = None, timeout
     params = [conv_layer_params, nn_layer_params]
     nodes_list = ['conv_1', 'drop_1', 'conv_2', 'drop_2', 'nn_node_1', 'drop_nn_1', 'nn_node_2', 'drop_nn_2',
                   'nn_node_3']
+    initial_graph = CustomGraphModel()
+
     parent_node = None
     for ind, type in enumerate(nodes_list):
-        parent_node = create_graph(graph=init_graph, node_type=type, params=params, parent=parent_node)
+        parent_node = create_graph(graph=initial_graph, node_type=type, params=params, parent=parent_node)
 
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
@@ -89,7 +91,7 @@ def train_opt_graph(file_path: str, init_graph: CustomGraphModel = None, timeout
     )
 
     optimiser = GPNNGraphOptimiser(
-        initial_graph=[init_graph], requirements=requirements, graph_generation_params=graph_generation_params,
+        initial_graph=[initial_graph], requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
         log=default_log(logger_name='Bayesian', verbose_level=0))
 
@@ -111,5 +113,5 @@ def train_opt_graph(file_path: str, init_graph: CustomGraphModel = None, timeout
 
 if __name__ == '__main__':
     file_path = os.path.join(root, 'Generated_dataset')
-    initial_graph = CustomGraphModel()
-    train_opt_graph(file_path=file_path, init_graph=initial_graph)
+    set_tf_compat()
+    start_example_with_init_graph(file_path=file_path)

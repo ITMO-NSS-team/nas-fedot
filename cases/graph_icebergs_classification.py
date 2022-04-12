@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 import tensorflow as tf
 
-from nas.patches.utils import project_root
+from nas.patches.utils import project_root, set_tf_compat
 
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphNode, CustomGraphAdapter
@@ -95,11 +95,7 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
 
 if __name__ == '__main__':
     # the dataset was obtained from https://www.kaggle.com/competitions/statoil-iceberg-classifier-challenge
-
     # a dataset that will be used as a train and test set during composition
-    setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
-    setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
-    setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
-
+    set_tf_compat()
     file_path = os.path.join(root, 'IcebergsDataset', 'train.json')
     run_custom_example(file_path)

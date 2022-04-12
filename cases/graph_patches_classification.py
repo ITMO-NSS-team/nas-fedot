@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 import tensorflow as tf
 
-from nas.patches.utils import project_root
+from nas.patches.utils import project_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
@@ -96,8 +96,5 @@ if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     path = os.path.join(root, 'Generated_dataset.pickle')
     # A dataset that will be used as a train and test set during composition
-    setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
-    setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
-    setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
-
+    set_tf_compat()
     run_patches_classification(file_path=path, epochs=1)
