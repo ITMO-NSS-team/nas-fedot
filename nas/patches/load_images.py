@@ -13,14 +13,14 @@ from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 def load_images(file_path, size=120, number_of_classes=10):
     if number_of_classes == 10:
-        with open('dataset_files/labels_10.json', 'r') as fp:
+        with open('../dataset_files/labels_10.json', 'r') as fp:
             labels_dict = json.load(fp)
-        with open('dataset_files/encoded_labels_10.json', 'r') as fp:
+        with open('../dataset_files/encoded_labels_10.json', 'r') as fp:
             encoded_labels = json.load(fp)
     elif number_of_classes == 3:
-        with open('dataset_files/labels.json', 'r') as fp:
+        with open('../dataset_files/labels.json', 'r') as fp:
             labels_dict = json.load(fp)
-        with open('dataset_files/encoded_labels.json', 'r') as fp:
+        with open('../dataset_files/encoded_labels.json', 'r') as fp:
             encoded_labels = json.load(fp)
     else:
         print('specify the number of classes correctly')

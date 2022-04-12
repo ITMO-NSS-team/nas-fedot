@@ -1,12 +1,11 @@
+import os.path
 import random
 import datetime
 
 import numpy as np
 import tensorflow as tf
 
-from typing import Tuple
-from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
-from nas.patches.utils import set_root
+from nas.patches.utils import project_root
 
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphNode, CustomGraphAdapter
@@ -19,30 +18,14 @@ from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameter
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from fedot.core.data.data import InputData
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from nas.graph_cnn_mutations import cnn_simple_mutation
+from nas.composer.metrics import calculate_validation_metric
 
-set_root(__file__)
+root = project_root()
 random.seed(2)
 np.random.seed(2)
-
-
-def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData) -> Tuple[float, float, float]:
-    # the execution of the obtained composite models
-    predicted = graph.predict(dataset_to_validate)
-    # the quality assessment for the simulation results
-    roc_auc_value = roc_auc(y_true=dataset_to_validate.target,
-                            y_score=predicted.predict)
-    y_pred = [np.float64(predict[0]) for predict in predicted.predict]
-    log_loss_value = log_loss(y_true=dataset_to_validate.target,
-                              y_pred=y_pred)
-    y_pred = [round(predict[0]) for predict in predicted.predict]
-    accuracy_score_value = accuracy_score(y_true=dataset_to_validate.target,
-                                          y_pred=y_pred)
-
-    return roc_auc_value, log_loss_value, accuracy_score_value
 
 
 def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
@@ -101,13 +84,13 @@ def run_custom_example(filepath: str, timeout: datetime.timedelta = None):
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = 'model_ice.json'
+    json_file = '../models/model_ice.json'
     model_json = optimized_network.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
     # saving the weights of the model
-    optimized_network.model.save_weights('model_ice.h5')
+    optimized_network.model.save_weights('../models/model_ice.h5')
 
 
 if __name__ == '__main__':
@@ -118,5 +101,5 @@ if __name__ == '__main__':
     setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
 
-    file_path = 'IcebergsDataset/train.json'
+    file_path = os.path.join(root, 'IcebergsDataset', 'train.json')
     run_custom_example(file_path)

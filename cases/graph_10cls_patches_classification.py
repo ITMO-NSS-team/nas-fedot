@@ -1,24 +1,19 @@
 import os
 import random
-import statistics
 import datetime
 
 import numpy as np
 import tensorflow as tf
 
-from typing import Tuple
-from sklearn.metrics import roc_auc_score as roc_auc, log_loss, accuracy_score
-from nas.patches.utils import set_root
+from nas.patches.utils import set_root, project_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from fedot.core.data.data import InputData
-
-from nas.layer import LayerTypesIdsEnum
-from nas.patches.load_images import from_images
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphNode, CustomGraphAdapter
-from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
+from nas.layer import LayerTypesIdsEnum
 
 from fedot.core.log import default_log
+from nas.patches.load_images import from_images
+from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
 from fedot.core.optimisers.optimizer import GraphGenerationParams
@@ -26,52 +21,12 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from nas.graph_cnn_mutations import cnn_simple_mutation
+from nas.composer.metrics import calculate_validation_metric
 
-set_root(__file__)
+root = project_root()
+set_root(root)
 random.seed(2)
 np.random.seed(2)
-
-
-def calculate_validation_metric_multiclass(graph: CustomGraphModel,
-                                           dataset_to_validate: InputData) -> Tuple[float, float, float]:
-    # the execution of the obtained composite models
-    predicted = graph.predict(dataset_to_validate)
-    # the quality assessment for the simulation results
-    y_pred = []
-    roc_auc_values = []
-    for predict, true in zip(predicted.predict, dataset_to_validate.target):
-        roc_auc_score = roc_auc(y_true=true, y_score=predict)
-        roc_auc_values.append(roc_auc_score)
-    roc_auc_value = statistics.mean(roc_auc_values)
-    for predict in predicted.predict:
-        values = []
-        for val in predict:
-            values.append(round(val))
-        y_pred.append(np.float64(values))
-    y_pred = np.array(y_pred)
-    log_loss_value = log_loss(y_true=dataset_to_validate.target,
-                              y_pred=y_pred)
-    accuracy_score_value = accuracy_score(y_true=dataset_to_validate.target, y_pred=y_pred)
-
-    return roc_auc_value, log_loss_value, accuracy_score_value
-
-
-def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: InputData,
-                                num_of_classes: int) -> Tuple[float, float, float]:
-    # the execution of the obtained composite models
-    predicted = graph.predict(dataset_to_validate)
-    # the quality assessment for the simulation results
-    roc_auc_value = roc_auc(y_true=dataset_to_validate.target, y_score=predicted.predict,
-                            multi_class="ovo", average="macro")
-    y_values_pred = np.zeros((predicted.idx.size, num_of_classes))
-    for i, predict in enumerate(predicted.predict):
-        y_class_pred = np.argmax(predict)
-        y_values_pred[i][y_class_pred] = 1
-    y_pred = np.array([predict for predict in predicted.predict])
-    y_values_pred = np.array(y_values_pred)
-    log_loss_value = log_loss(y_true=dataset_to_validate.target, y_pred=y_pred)
-    accuracy_score_value = accuracy_score(dataset_to_validate.target, y_values_pred)
-    return roc_auc_value, log_loss_value, accuracy_score_value
 
 
 def run_patches_classification(file_path, timeout: datetime.timedelta = None):
@@ -108,14 +63,14 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
-    optimized_network.show(path='graph_10_cls_result.png')
+    optimized_network.show(path='../graph_10_cls_result.png')
     print('Best model structure:')
     for node in optimized_network.nodes:
         print(node)
 
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
                           epochs=20, classes=num_of_classes, verbose=True)
-    # the quality assessment for the obtained composite models
+    # The quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)
 
@@ -123,21 +78,20 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = 'model_10cls.json'
+    json_file = '../models/model_10cls.json'
     model_json = optimized_network.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
-    # saving the weights of the model
-    optimized_network.model.save_weights('model_10cls.h5')
+    # Saving the weights of the model
+    optimized_network.model.save_weights('../models/model_10cls.h5')
     return optimized_network
 
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    file_path = '10cls_Generated_dataset.pickle'
-
-    # a dataset that will be used as a train and test set during composition
+    file_path = os.path.join(root, '10cls_Generated_dataset')
+    # A dataset that will be used as a train and test set during composition
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)

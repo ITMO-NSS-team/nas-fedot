@@ -1,3 +1,5 @@
+import numpy as np
+
 from typing import Any
 
 from tensorflow.keras import layers
@@ -13,10 +15,26 @@ from tensorflow.python.keras.layers import deserialize, serialize
 from tensorflow.python.keras.saving import saving_utils
 
 
+def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
+    if is_multiclass:
+        output = []
+        for prediction in predictions:
+            values = []
+            for val in prediction:
+                values.append(round(val))
+            output.append(np.float64(values))
+    else:
+        output = np.zeros(predictions.shape)
+        for i, prediction in enumerate(predictions):
+            class_prediction = np.argmax(prediction)
+            output[i][class_prediction] = 1
+    return output
+
+
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
                     epochs: int = 10):
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-    mcp_save = ModelCheckpoint('.mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
+    mcp_save = ModelCheckpoint('../models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, epsilon=1e-4, mode='min')
 
     model.fit(input_data.features, input_data.target,
@@ -28,9 +46,11 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
     return keras_model_predict(model, input_data)
 
 
-def keras_model_predict(model, input_data: InputData, output_mode: str = 'default') -> OutputData:
+def keras_model_predict(model, input_data: InputData, output_mode: str = 'default',
+                        is_multiclass: bool = False) -> OutputData:
     if output_mode == 'label':
-        evaluation_result = model.predict(input_data.features)
+        evaluation_result = model.predict_proba(input_data.features)
+        evaluation_result = _keras_model_prob2labels(predictions=evaluation_result, is_multiclass=is_multiclass)
     elif output_mode == 'default':
         evaluation_result = model.predict_proba(input_data.features)
     else:

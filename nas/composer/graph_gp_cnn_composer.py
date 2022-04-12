@@ -154,8 +154,8 @@ class CustomGraphModel(OptGraph):
         # TODO mb need to add target in output
         return train_predicted
 
-    def predict(self, input_data: InputData, output_mode: str = 'default') -> OutputData:
-        evaluation_result = keras_model_predict(self.model, input_data, output_mode)
+    def predict(self, input_data: InputData, output_mode: str = 'default', is_multiclass: bool = False) -> OutputData:
+        evaluation_result = keras_model_predict(self.model, input_data, output_mode, is_multiclass=is_multiclass)
         return evaluation_result
 
 
@@ -204,9 +204,8 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
 
-        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        # return [metric_function(graph, test_data)]
-        return [1]
+        graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        return [metric_function(graph, test_data)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
