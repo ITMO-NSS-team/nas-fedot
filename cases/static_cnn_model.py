@@ -21,59 +21,9 @@ from fedot.core.optimisers.gp_comp.operators.regularization import Regularizatio
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
 from nas.composer.metrics import calculate_validation_metric
+from nas.graph_cnn_gp_operators import generate_static_graph
 
 root = project_root()
-
-
-def add_skip_connections(graph: NNGraph):
-    res_blocks_num = random.randint(0, graph.cnn_depth - 1)
-    for _ in range(res_blocks_num):
-        is_residual = random.randint(0, 1)
-        for conv_id in range(graph.cnn_depth - 1):
-            conv_node = graph.nodes[conv_id]
-            if is_residual:
-                res_depth = random.randint(conv_id, graph.cnn_depth - 1)
-                if res_depth == 1:
-                    continue
-                if len(graph.nodes[res_depth].nodes_from) > 1:
-                    continue
-                graph.nodes[res_depth].nodes_from.append(conv_node)
-    return graph
-
-
-def create_graph(graph: NNGraph, node_type: str, params: dict, parent=None, residual_parent=None,
-                 prev_conv: bool = False):
-    parent = None if not parent else [parent]
-    is_residual = 0
-    drop = node_type.startswith('drop')
-    is_skip = not drop and residual_parent is None
-    is_end = not drop and residual_parent is not None
-
-    if node_type.startswith('conv'):
-        new_node = NNNode(nodes_from=parent, content={'name': params[0]['layer_type'],
-                                                      'params': params[0], 'conv': True})
-        prev_conv = True
-    elif node_type.startswith('drop'):
-        new_node = NNNode(nodes_from=parent,
-                          content={'name': LayerTypesIdsEnum.dropout.value,
-                                   'params': {'layer_type': LayerTypesIdsEnum.dropout.value,
-                                              'drop': 0.2}})
-    else:
-        new_node = NNNode(nodes_from=parent, content={'name': params[1]['layer_type'],
-                                                      'params': params[1]})
-    if is_residual and is_end:
-        new_node.nodes_from.append(residual_parent)
-        residual_parent.content['skip_connection_to'] = new_node
-        new_node.content['skip_connection_from'] = residual_parent
-        residual_parent = None
-    if is_residual and is_skip:
-        residual_parent = new_node
-    if prev_conv and not node_type.startswith('conv'):
-        new_node.content['conv'] = True
-        prev_conv = False
-
-    graph.add_node(new_node)
-    return new_node, residual_parent, prev_conv
 
 
 def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None):
@@ -96,24 +46,16 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     num_of_filters = 16
     rules = [has_no_self_cycled_nodes, has_no_cycle]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    conv_layer_params = {'layer_type': cnn_node_types[0], 'activation': activation, 'kernel_size': conv_kernel_size,
-                         'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
-                         'pool_strides': pool_strides, 'pool_type': pool_types[0]}
-    nn_layer_params = {'activation': 'relu', 'layer_type': nn_node_types[0], 'neurons': 121}
-    params = [conv_layer_params, nn_layer_params]
-    nodes_list = ['conv_1', 'drop_1', 'conv_2', 'drop_2', 'conv_3', 'drop_3', 'conv_4', 'drop_4',
-                  'nn_node_1', 'drop_nn_1', 'nn_node_2', 'drop_nn_2', 'nn_node_3']
+    nodes_list = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'batch_norm', 'conv2d', 'dropout',
+                  'dense', 'dropout', 'dense', 'dropout', 'dense']
+    skip_connection_ids = [0, 4, 8]
+    skip_connections_len = 4
     initial_graph = NNGraph()
-
-    parent_node = None
-    residual_parent = None
-    prev_conv = False
-    for ind, type in enumerate(nodes_list):
-        parent_node, residual_parent, prev_conv = create_graph(graph=initial_graph, node_type=type, params=params,
-                                                               parent=parent_node, residual_parent=residual_parent,
-                                                               prev_conv=prev_conv)
-    initial_graph = add_skip_connections(initial_graph)
-    initial_graph.show()
+    initial_graph = generate_static_graph(graph=initial_graph, node_func=NNNode,
+                                          node_list=nodes_list,
+                                          has_skip_connections=True,
+                                          skip_connections_id=skip_connection_ids,
+                                          shortcuts_len=skip_connections_len)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
@@ -122,7 +64,8 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
         max_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     optimiser_params = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation],
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation,
+                                                                                 single_edge_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
@@ -151,6 +94,6 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
 
 
 if __name__ == '__main__':
-    file_path = os.path.join(root, 'Generated_dataset')
+    file_path = os.path.join(root, 'compressed_Generated_dataset.pickle')
     set_tf_compat()
     start_example_with_init_graph(file_path=file_path)

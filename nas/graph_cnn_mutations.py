@@ -47,7 +47,12 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                 new_nodes_from = None if not node.nodes_from else [node.nodes_from[0]]
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],
-                                           'params': new_layer_params, 'conv': True})
+                                           'params': new_layer_params, 'conv': True, 'batch_norm': False})
+                # TODO
+                if node.content['batch_norm']:
+                    new_node.content['batch_norm'] = True
+                    new_node.content['params']['momentum'] = node.content['params']['momentum']
+                    new_node.content['params']['epsilon'] = node.content['params']['epsilon']
                 graph.update_node(node, new_node)
         else:
             if random() < node_mutation_probability:
@@ -58,6 +63,10 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                     new_node = NNNode(nodes_from=new_nodes_from,
                                       content={'name': new_layer_params["layer_type"],
                                                'params': new_layer_params})
+                if node.content['batch_norm']:
+                    new_node.content['batch_norm'] = True
+                    new_node.content['params']['momentum'] = node.content['params']['momentum']
+                    new_node.content['params']['epsilon'] = node.content['params']['epsilon']
                 try:
                     graph.update_node(node, new_node)
                 except Exception as ex:

@@ -39,8 +39,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
-    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value,
-                 LayerTypesIdsEnum.batch_normalization.value]
+    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
     conv_types = [LayerTypesIdsEnum.conv2d.value]
     pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
     nn_primary = [LayerTypesIdsEnum.dense.value]
@@ -75,6 +74,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
         print(node)
 
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
+    # optimized_network.save('../graph_patches_struct.json')
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=epochs,
                           classes=num_of_classes, verbose=True)
 
@@ -97,7 +97,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    path = os.path.join(root, '_compressed_Generated_dataset.pickle')
+    path = os.path.join(root, 'compressed_Generated_dataset.pickle')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
     run_patches_classification(file_path=path, epochs=20)

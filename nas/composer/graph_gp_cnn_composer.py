@@ -10,6 +10,7 @@ from typing import (
 
 import numpy as np
 
+from fedot.core.pipelines.template import PipelineTemplate
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData, OutputData
@@ -17,7 +18,7 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 from nas.layer import activation_types
-from nas.graph_cnn_gp_operators import random_cnn_graph
+from nas.graph_cnn_gp_operators import random_conv_graph_generation
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
 
@@ -124,6 +125,7 @@ class NNGraph(OptGraph):
     def __init__(self, nodes=None, fitted_model=None):
         super().__init__(nodes)
         self.model = fitted_model
+        self.template = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth}"
@@ -163,6 +165,9 @@ class NNGraph(OptGraph):
         evaluation_result = keras_model_predict(self.model, input_data, output_mode, is_multiclass=is_multiclass)
         return evaluation_result
 
+    def save(self, path: str = None, datetime_in_path: bool = True) -> Tuple[str, dict]:
+        raise NotImplementedError
+
 
 class NNNode(OptNode):
     def __init__(self, content: dict, nodes_from: Optional[List['NNNode']]):
@@ -170,6 +175,7 @@ class NNNode(OptNode):
         self.nodes_from = nodes_from
         if 'params' in content:
             self.content = content
+            self.content['batch_norm'] = False
 
     def __str__(self):
         return str(self.content['name'])
@@ -189,7 +195,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          parameters=parameters,
                          log=log)
 
-        self.parameters.graph_generation_function = random_cnn_graph
+        self.parameters.graph_generation_function = random_conv_graph_generation
         self.graph_generation_function = partial(self.parameters.graph_generation_function,
                                                  graph_class=NNGraph,
                                                  requirements=self.requirements,
@@ -211,8 +217,12 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
-        graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        return [metric_function(graph, test_data)]
+        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        # return [metric_function(graph, test_data)]
+        if len(graph.nodes_without_skip_connections) == 4:
+            return [-len(graph.nodes)]
+        else:
+            return [len(graph.nodes)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)

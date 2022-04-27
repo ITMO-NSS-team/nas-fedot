@@ -46,7 +46,8 @@ def run_patches_classification(file_path, epochs: int, timeout: datetime.timedel
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[single_edge_mutation],
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[single_edge_mutation,
+                                                                                 cnn_simple_mutation],
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),

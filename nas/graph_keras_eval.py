@@ -120,17 +120,17 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
                     sc_layers[n] = node
         return sc_layers
 
-    nn_structure = graph.nodes[::-1]
+    nn_structure = graph.nodes
     make_keras_picklable()
     inputs = keras.Input(shape=input_shape)
+    in_layer = inputs
     cnn_nodes_count = 0
     skip_connection_nodes_dict = _get_skip_connection_list(graph)
     skip_connection_destination_dict = {}
+    graph.show()
     for i, layer in enumerate(nn_structure):
-        layer_type = layer.content['params']["layer_type"]
+        layer_type = layer.content['params']['layer_type']
         is_free_node = layer in graph.nodes_without_skip_connections
-        if i == 0:
-            in_layer = inputs
         if layer in skip_connection_nodes_dict:
             skip_connection_id = skip_connection_nodes_dict.pop(layer)
             if skip_connection_id not in skip_connection_destination_dict:
@@ -144,8 +144,6 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
                                                  is_free_node=is_free_node)
         elif layer_type == LayerTypesIdsEnum.dropout.value:
             in_layer = nn_layers.make_dropout_layer(idx=i, input_layer=in_layer, current_node=layer)
-        elif layer_type == LayerTypesIdsEnum.batch_normalization.value:
-            in_layer = nn_layers.make_batch_norm_layer(idx=i, input_layer=in_layer, current_node=layer)
         elif type == LayerTypesIdsEnum.dense.value:
             in_layer = nn_layers.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
         if cnn_nodes_count == graph.cnn_depth - 1:
