@@ -1,12 +1,10 @@
 import os
 import datetime
-import random
 
 from nas.patches.utils import project_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
-from nas.layer import LayerTypesIdsEnum
 from nas.patches.load_images import from_images
 from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, GPNNGraphOptimiser
@@ -34,16 +32,10 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     num_of_classes = 3
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes)
 
-    cnn_node_types = [LayerTypesIdsEnum.conv2d.value]
-    conv_strides = (1, 1)
-    conv_kernel_size = (3, 3)
-    pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
-    pool_size = (2, 2)
-    pool_strides = (2, 2)
-    nn_node_types = [LayerTypesIdsEnum.dense.value, LayerTypesIdsEnum.serial_connection.value]
-    secondary_node_types = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
-    activation = 'relu'
-    num_of_filters = 16
+    cnn_node_types = ['conv2d']
+    pool_types = ['max_pool2d', 'average_pool2d']
+    nn_node_types = ['dense', 'serial_connection']
+    secondary_node_types = ['serial_connection', 'dropout']
     rules = [has_no_self_cycled_nodes, has_no_cycle]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     nodes_list = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'batch_norm', 'conv2d', 'dropout',
@@ -61,7 +53,7 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
         conv_types=cnn_node_types, pool_types=pool_types, cnn_secondary=secondary_node_types,
         primary=nn_node_types, secondary=secondary_node_types, min_arity=2, max_arity=3,
-        max_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
+        max_nn_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     optimiser_params = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation,

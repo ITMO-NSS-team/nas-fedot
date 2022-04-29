@@ -1,13 +1,19 @@
-from random import random, choice, sample
+from random import random, choice
 from typing import Any
 from copy import deepcopy
 
 from fedot.core.dag.validation_rules import ERROR_PREFIX
 from fedot.core.optimisers.optimizer import GraphGenerationParams
-from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum, MAX_NUM_OF_ATTEMPTS
+from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 from nas.graph_cnn_gp_operators import get_random_layer_params
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, NNNode, NNGraph
-from nas.layer import LayerTypesIdsEnum
+
+
+def has_no_flatten_layer(graph: 'NNGraph'):
+    for node in graph.nodes:
+        if node.content['name'] == 'flatten':
+            return True
+    raise ValueError(f'{ERROR_PREFIX} Graph has no flatten layer')
 
 
 def has_no_flatten_skip(graph: 'NNGraph'):
@@ -25,14 +31,18 @@ def has_no_flatten_skip(graph: 'NNGraph'):
 
 def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, params: GraphGenerationParams,
                         max_depth) -> Any:
+    was_flatten = True
     node_mutation_probability = requirements.mutation_prob
-    nn_structure = graph.nodes
+    nn_structure = graph.nodes[::-1]
     secondary_nodes = requirements.secondary
     for i, node in enumerate(nn_structure):
-        if 'conv' in node.content:
+        if node.content['name'] == 'flatten':
+            was_flatten = False
+            continue
+        if not was_flatten:
             if random() < node_mutation_probability:
                 old_node_type = node.content['params']['layer_type']
-                if old_node_type == LayerTypesIdsEnum.conv2d.value:
+                if old_node_type == 'conv2d':
                     activation = choice(requirements.activation_types).value
                     new_layer_params = {'layer_type': old_node_type, 'activation': activation,
                                         'kernel_size': node.content['params']['kernel_size'],
@@ -47,10 +57,8 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                 new_nodes_from = None if not node.nodes_from else [node.nodes_from[0]]
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],
-                                           'params': new_layer_params, 'conv': True, 'batch_norm': False})
-                # TODO
-                if node.content['batch_norm']:
-                    new_node.content['batch_norm'] = True
+                                           'params': new_layer_params, 'conv': True})
+                if 'momentum' in node.content['params']:
                     new_node.content['params']['momentum'] = node.content['params']['momentum']
                     new_node.content['params']['epsilon'] = node.content['params']['epsilon']
                 graph.update_node(node, new_node)
@@ -63,8 +71,7 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                     new_node = NNNode(nodes_from=new_nodes_from,
                                       content={'name': new_layer_params["layer_type"],
                                                'params': new_layer_params})
-                if node.content['batch_norm']:
-                    new_node.content['batch_norm'] = True
+                if 'momentum' in node.content['params']:
                     new_node.content['params']['momentum'] = node.content['params']['momentum']
                     new_node.content['params']['epsilon'] = node.content['params']['epsilon']
                 try:

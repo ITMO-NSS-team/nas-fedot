@@ -1,25 +1,28 @@
 import random
 from math import floor
 from typing import (Tuple, List, Any, Callable)
-from nas.layer import LayerTypesIdsEnum
 from nas.graph_keras_eval import generate_structure
-from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
 
 BATCH_NORM_PROB = 0.4
 DEFAULT_NODES_PARAMS = {
-    'conv2d': {'layer_type': LayerTypesIdsEnum.conv2d.value, 'activation': 'relu', 'kernel_size': (3, 3),
+    'conv2d': {'layer_type': 'conv2d', 'activation': 'relu', 'kernel_size': (3, 3),
                'conv_strides': (2, 2), 'num_of_filters': 16, 'pool_size': (2, 2),
-               'pool_strides': (2, 2), 'pool_type': LayerTypesIdsEnum.maxpool2d.value},
-    'dropout': {'layer_type': LayerTypesIdsEnum.dropout.value,
+               'pool_strides': (2, 2), 'pool_type': 'max_pool2d'},
+    'dropout': {'layer_type': 'dropout',
                 'drop': 0.2},
-    'batch_norm': {'layer_type': LayerTypesIdsEnum.batch_normalization.value, 'epsilon': 0.001, 'momentum': 0.99},
-    'dense': {'activation': 'relu', 'layer_type': LayerTypesIdsEnum.dense.value, 'neurons': 121},
-    'serial_connection': {'layer_type': LayerTypesIdsEnum.serial_connection.value}}
+    'batch_norm': {'layer_type': 'batch_normalization', 'epsilon': 0.001, 'momentum': 0.99},
+    'dense': {'activation': 'relu', 'layer_type': 'dense', 'neurons': 121},
+    'serial_connection': {'layer_type': 'serial_connection'}}
+
+
+def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
+    flatten_node = node_func(nodes_from=[current_node],
+                             content={'name': 'flatten', 'params': False})
+    graph.add_node(flatten_node)
 
 
 def _add_batch_norm2node(node, requirements):
-    batch_norm_params = get_random_layer_params(LayerTypesIdsEnum.batch_normalization.value, requirements)
-    node.content['batch_norm'] = True
+    batch_norm_params = get_random_layer_params('batch_normalization', requirements)
     node.content['params'] = node.content['params'] | batch_norm_params
 
 
@@ -48,7 +51,7 @@ def create_conv2d_node(node_func: Callable, requirements, image_size: List):
                     'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
                     'pool_strides': pool_strides, 'pool_type': pool_type}
     new_node = node_func(content={'name': f'{layer_params["layer_type"]}',
-                                  'conv': True, 'batch_norm': False,
+                                  'conv': True,
                                   'params': layer_params}, nodes_from=None)
     if random.uniform(0, 1) > BATCH_NORM_PROB:
         _add_batch_norm2node(new_node, requirements)
@@ -58,8 +61,7 @@ def create_conv2d_node(node_func: Callable, requirements, image_size: List):
 def create_secondary_node(node_func: Callable, requirements, is_conv=False):
     new_node = random.choice(requirements.cnn_secondary)
     layer_params = get_random_layer_params(new_node, requirements)
-    # TODO remove 'batch_norm' hyperparameter
-    new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params, 'batch_norm': False},
+    new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
                          nodes_from=None)
     if is_conv:
         new_node.content['conv'] = True
@@ -71,7 +73,7 @@ def create_secondary_node(node_func: Callable, requirements, is_conv=False):
 def create_primary_nn_node(node_func: Callable, requirements):
     new_node = random.choice(requirements.primary)
     layer_params = get_random_layer_params(new_node, requirements)
-    new_node = node_func(content={'name': layer_params['layer_type'], 'batch_norm': False, 'params': layer_params},
+    new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
                          nodes_from=None)
     if random.uniform(0, 1) > BATCH_NORM_PROB:
         _add_batch_norm2node(new_node, requirements)
@@ -79,30 +81,28 @@ def create_primary_nn_node(node_func: Callable, requirements):
 
 
 def create_dropout_node(node_func: Callable, requirements):
-    new_node = LayerTypesIdsEnum.dropout.value
+    new_node = 'dropout'
     layer_params = get_random_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'],
-                                  'conv': True, 'params': layer_params, 'batch_norm': False}, nodes_from=None)
-    if random.uniform(0, 1) > BATCH_NORM_PROB:
-        _add_batch_norm2node(new_node, requirements)
+                                  'conv': True, 'params': layer_params}, nodes_from=None)
     return new_node
 
 
-def get_random_layer_params(type: str, requirements):
+def get_random_layer_params(layer_type: str, requirements):
     layer_params = None
-    if type == LayerTypesIdsEnum.serial_connection.value:
-        layer_params = {'layer_type': type}
-    elif type == LayerTypesIdsEnum.dropout.value:
+    if layer_type == 'serial_connection':
+        layer_params = {'layer_type': layer_type}
+    elif layer_type == 'dropout':
         drop_value = random.randint(1, (requirements.max_drop_size * 10)) / 10
-        layer_params = {'layer_type': type, 'drop': drop_value}
-    elif type == LayerTypesIdsEnum.batch_normalization.value:
+        layer_params = {'layer_type': layer_type, 'drop': drop_value}
+    elif layer_type == 'batch_normalization':
         momentum = random.uniform(0, 1)
         epsilon = random.uniform(0, 1)
-        layer_params = {'layer_type': type, 'momentum': momentum, 'epsilon': epsilon}
-    elif type == LayerTypesIdsEnum.dense.value:
+        layer_params = {'layer_type': layer_type, 'momentum': momentum, 'epsilon': epsilon}
+    elif layer_type == 'dense':
         activation = random.choice(requirements.activation_types).value
         neurons = random.randint(requirements.min_num_of_neurons, requirements.max_num_of_neurons)
-        layer_params = {'layer_type': type, 'neurons': neurons, 'activation': activation}
+        layer_params = {'layer_type': layer_type, 'neurons': neurons, 'activation': activation}
     return layer_params
 
 
@@ -127,10 +127,10 @@ def conv_output_shape(node, image_size):
     return image_size
 
 
-def generate_static_graph(graph: NNGraph, node_func: Callable, node_list: List, has_skip_connections: bool = False,
-                          skip_connections_id: List[int] = None, shortcuts_len: int = None) -> NNGraph:
+def generate_static_graph(graph: 'NNGraph', node_func: Callable, node_list: List, has_skip_connections: bool = False,
+                          skip_connections_id: List[int] = None, shortcuts_len: int = None) -> 'NNGraph':
     """
-    Method for initial graph generation from defined nodes list
+    Method for initial graph generation from defined nodes list.
 
     :param graph: Initial graph class
     :param node_func: Node class
@@ -154,13 +154,13 @@ def generate_static_graph(graph: NNGraph, node_func: Callable, node_list: List, 
         graph.add_node(new_node)
         return new_node, is_conv_node
 
-    def _add_skip_connections(nodes_id: List[int], shortcuts_len: int = 2):
+    def _add_skip_connections(nodes_id: List[int], shortcuts_length: int = 2):
 
-        for node in nodes_id:
-            is_first_conv = 'conv' in graph.nodes[node].content
-            is_second_conv = 'conv' in graph.nodes[node + shortcuts_len].content
-            if is_first_conv == is_second_conv and (node + shortcuts_len) < len(graph.nodes):
-                graph.nodes[node + shortcuts_len].nodes_from.append(graph.nodes[node])
+        for current_node in nodes_id:
+            is_first_conv = 'conv' in graph.nodes[current_node].content
+            is_second_conv = 'conv' in graph.nodes[current_node + shortcuts_length].content
+            if is_first_conv == is_second_conv and (current_node + shortcuts_length) < len(graph.nodes):
+                graph.nodes[current_node + shortcuts_length].nodes_from.append(graph.nodes[current_node])
             else:
                 print('Wrong connection. Connection dropped.')
 
@@ -170,12 +170,12 @@ def generate_static_graph(graph: NNGraph, node_func: Callable, node_list: List, 
         created_node, is_conv = _add_node_to_graph(node_type=node, parent_node=created_node,
                                                    prev_conv=is_conv)
     if has_skip_connections:
-        _add_skip_connections(nodes_id=skip_connections_id, shortcuts_len=shortcuts_len)
+        _add_skip_connections(nodes_id=skip_connections_id, shortcuts_length=shortcuts_len)
 
     return graph
 
 
-def add_skip_connections(graph: NNGraph):
+def add_skip_connections(graph: 'NNGraph'):
     """
     Add random skip connection to given graph
 
@@ -186,8 +186,8 @@ def add_skip_connections(graph: NNGraph):
     skip_connection_prob = 0.35
     for _ in range(skip_connection_nodes_num):
         for node_id in range(max_depth - 1):
-            if graph.nodes[node_id].content['params']['layer_type'] == 'dropout' or \
-                    graph.nodes[node_id].content['params']['layer_type'] == 'batch_norm':
+            if graph.nodes[node_id].content['name'] == 'dropout' or \
+                    graph.nodes[node_id].content['name'] == 'flatten':
                 continue
             is_residual = random.uniform(0, 1) > skip_connection_prob
             if is_residual:
@@ -203,7 +203,7 @@ def add_skip_connections(graph: NNGraph):
                 graph.nodes[destination_node_id].nodes_from.append(graph_node)
 
 
-def random_conv_graph_generation(graph_class: Callable, node_func: Callable, requirements) -> NNGraph:
+def random_conv_graph_generation(graph_class: Callable, node_func: Callable, requirements) -> 'NNGraph':
     """
     Method for random graph generation with given requirements
 
@@ -211,6 +211,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
     :param node_func: type of generated node
     :param requirements: list of requirements to nodes
     """
+
     def _random_cnn(max_num_of_conv: int = None,
                     min_num_of_conv: int = None, image_size: List[float] = None, parent_nodes: Any = None):
         """
@@ -222,7 +223,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
         :param parent_nodes: node from conv part will grow
         """
         max_num_of_conv = max_num_of_conv if max_num_of_conv is not None else requirements.max_num_of_conv_layers
-        min_num_of_conv = min_num_of_conv if min_num_of_conv is not None else requirements.max_num_of_conv_layers
+        min_num_of_conv = min_num_of_conv if min_num_of_conv is not None else requirements.min_num_of_conv_layers
         num_of_conv = random.randint(min_num_of_conv, max_num_of_conv)
 
         if image_size is None:
@@ -236,49 +237,62 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
             new_node, img_size = create_conv2d_node(node_func=node_func, requirements=requirements,
                                                     image_size=img_size)
             new_node.nodes_from = nodes_from
+            depth += 1
+            if depth > num_of_conv:
+                return
             graph.add_node(new_node)
             nodes_from = new_node
             if depth < num_of_conv - 1:
                 new_node = create_secondary_node(node_func=node_func,
                                                  requirements=requirements, is_conv=True)
                 new_node.nodes_from = [nodes_from]
+                depth += 1
+                if depth > num_of_conv:
+                    return
                 graph.add_node(new_node)
             else:
                 is_dropout = random.randint(0, 1)
                 if is_dropout:
                     new_node = create_dropout_node(node_func=node_func, requirements=requirements)
+                    depth += 1
+                    if depth > num_of_conv:
+                        return
                     graph.add_node(new_node)
                     new_node.nodes_from = [nodes_from]
             nodes_from = new_node
             if depth < num_of_conv:
-                _growth_conv_node(node_parent=nodes_from, img_size=img_size, depth=depth + 2)
+                _growth_conv_node(node_parent=nodes_from, img_size=img_size, depth=depth)
 
         parent_nodes = parent_nodes if parent_nodes else None
         _growth_conv_node(node_parent=parent_nodes, img_size=image_size)
+        _add_flatten_node(node_func, graph.nodes[-1], graph)
 
-    def _random_nn(root_node: Any = None, max_depth: int = None, start_height: int = None):
+    def _random_nn(root_node: Any = None, max_depth: int = None):
         """
         Method that generates dense part of the graph
 
-        :param root_node:
-        :param max_depth:
-        :param start_height:
-        :return:
+        :param root_node: parent node where dense part starts grow from
+        :param max_depth: max number of nodes in dense part
         """
-        max_depth = max_depth if max_depth is not None else requirements.max_depth
+        max_depth = max_depth if max_depth is not None else requirements.max_nn_depth
 
         def _growth_nn(node_parent: Any = None, depth: int = None):
             nodes_from = [node_parent] if node_parent is not None else None
             depth = 0 if depth is None else depth
             new_node = create_primary_nn_node(node_func=node_func, requirements=requirements)
             new_node.nodes_from = nodes_from
+            depth += 1
+            if depth > max_depth:
+                return
             graph.add_node(new_node)
             nodes_from = new_node
-            graph.add_node(new_node)
             if depth < max_depth - 1:
                 new_node = create_secondary_node(node_func=node_func, requirements=requirements,
                                                  is_conv=False)
                 new_node.nodes_from = [nodes_from]
+                depth += 1
+                if depth > max_depth:
+                    return
                 graph.add_node(new_node)
                 nodes_from = new_node
             else:
@@ -286,13 +300,16 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
                 if is_additional_dense:
                     new_node = create_primary_nn_node(node_func=node_func, requirements=requirements)
                     new_node.nodes_from = [nodes_from]
+                    depth += 1
+                    if depth > max_depth:
+                        return
                     graph.add_node(new_node)
                     nodes_from = new_node
             if depth < max_depth:
-                _growth_nn(node_parent=nodes_from, depth=depth + 2)
+                _growth_nn(node_parent=nodes_from, depth=depth)
 
         root_node = root_node if root_node else None
-        _growth_nn(node_parent=root_node, depth=start_height)
+        _growth_nn(node_parent=root_node)
 
     graph = graph_class()
     _random_cnn()
@@ -301,6 +318,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
 
     if not hasattr(graph, 'parent_operators'):
         setattr(graph, 'parent_operators', [])
+    # graph.show()
     return graph
 
 
@@ -340,9 +358,9 @@ def kernel_parameters_correction(input_image_size: List[float], kernel_size: Tup
         new_kernel_size, new_strides = one_side_parameters_correction(input_image_size[0], kernel_size[0],
                                                                       strides[0])
         if new_kernel_size != kernel_size:
-            kernel_size = tuple([new_kernel_size for i in range(len(input_image_size))])
+            kernel_size = tuple([new_kernel_size for _ in range(len(input_image_size))])
         if new_strides != strides:
-            strides = tuple([new_strides for i in range(len(input_image_size))])
+            strides = tuple([new_strides for _ in range(len(input_image_size))])
     else:
         new_kernel_size = []
         new_strides = []
@@ -366,6 +384,6 @@ def branch_output_shape(root: Any, image_size: List[float], subtree_to_delete: A
         nodes = subtree_to_delete.ordered_subnodes_hierarchy
         structure = [node for node in structure if node not in nodes]
     for node in structure:
-        if node.content['params'].layer_type == LayerTypesIdsEnum.conv2d.value:
+        if node.content['params'].layer_type == 'conv2d':
             image_size = conv_output_shape(node, image_size)
     return image_size

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Tuple, List, Optional
+from typing import Tuple, List
 
 
 class ActivationTypesIdsEnum(Enum):
@@ -15,23 +15,14 @@ class ActivationTypesIdsEnum(Enum):
     sigmoid = 'sigmoid'
     linear = 'linear'
 
+
 activation_types = [type_ for type_ in ActivationTypesIdsEnum]
 
-class LayerTypesIdsEnum(Enum):
-    conv2d = 'conv2d'
-    flatten = 'flatten'
-    dense = 'dense'
-    dropout = 'dropout'
-    maxpool2d = 'maxpool2d'
-    averagepool2d = 'averagepool2d'
-    serial_connection = 'serial_connection'
-    skip_connection = 'skip_connection'
-    batch_normalization = 'batch_norm'
 
 @dataclass
 class LayerParams:
     layer_type: str
-    pool_type: Optional[LayerTypesIdsEnum] = None
+    pool_type: str = None
     neurons: int = None
     activation: str = None
     drop: float = None

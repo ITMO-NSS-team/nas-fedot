@@ -6,7 +6,6 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import optimizers
 
-from nas.layer import LayerTypesIdsEnum
 from fedot.core.data.data import InputData, OutputData
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
@@ -120,16 +119,14 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
                     sc_layers[n] = node
         return sc_layers
 
-    nn_structure = graph.nodes
+    nn_structure = graph.nodes[::-1]
     make_keras_picklable()
     inputs = keras.Input(shape=input_shape)
     in_layer = inputs
-    cnn_nodes_count = 0
     skip_connection_nodes_dict = _get_skip_connection_list(graph)
     skip_connection_destination_dict = {}
-    graph.show()
     for i, layer in enumerate(nn_structure):
-        layer_type = layer.content['params']['layer_type']
+        layer_type = layer.content['name']
         is_free_node = layer in graph.nodes_without_skip_connections
         if layer in skip_connection_nodes_dict:
             skip_connection_id = skip_connection_nodes_dict.pop(layer)
@@ -139,19 +136,16 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
                 skip_connection_destination_dict[skip_connection_id].append(in_layer)
         in_layer = nn_layers.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
                                                         layers_dict=skip_connection_destination_dict)
-        if layer_type == LayerTypesIdsEnum.conv2d.value:
+        if layer_type == 'conv2d':
             in_layer = nn_layers.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
                                                  is_free_node=is_free_node)
-        elif layer_type == LayerTypesIdsEnum.dropout.value:
+        elif layer_type == 'dropout':
             in_layer = nn_layers.make_dropout_layer(idx=i, input_layer=in_layer, current_node=layer)
-        elif type == LayerTypesIdsEnum.dense.value:
+        elif layer_type == 'dense':
             in_layer = nn_layers.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
-        if cnn_nodes_count == graph.cnn_depth - 1:
+        elif layer_type == 'flatten':
             flatten = layers.Flatten()
             in_layer = flatten(in_layer)
-            cnn_nodes_count = None
-        if 'conv' in layer.content and cnn_nodes_count is not None:
-            cnn_nodes_count += 1
     # Output
     output_shape = 1 if classes == 2 else classes
     activation_func = 'sigmoid' if classes == 2 else 'softmax'

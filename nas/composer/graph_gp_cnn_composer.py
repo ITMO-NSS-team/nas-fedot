@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 from functools import partial
 from copy import deepcopy
@@ -10,7 +11,6 @@ from typing import (
 
 import numpy as np
 
-from fedot.core.pipelines.template import PipelineTemplate
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData, OutputData
@@ -18,12 +18,11 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 from nas.layer import activation_types
-from nas.graph_cnn_gp_operators import random_conv_graph_generation
+from nas.graph_cnn_gp_operators import random_conv_graph_generation, permissible_kernel_parameters_correct
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
 
 from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
-from nas.graph_cnn_gp_operators import *
 
 random.seed(1)
 np.random.seed(1)
@@ -42,27 +41,28 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     channels_num: int = 3
     max_drop_size: int = 0.5
     image_size: List[int] = None
-    conv_types: List[LayerTypesIdsEnum] = None
-    cnn_secondary: List[LayerTypesIdsEnum] = None
-    pool_types: List[LayerTypesIdsEnum] = None
+    conv_types: List[str] = None
+    cnn_secondary: List[str] = None
+    pool_types: List[str] = None
     train_epochs_num: int = 5
     batch_size: int = 72
     num_of_classes: int = 10
     activation_types = activation_types
-    max_num_of_conv_layers = 4
-    min_num_of_conv_layers = 2
+    max_num_of_conv_layers: int = 4
+    min_num_of_conv_layers: int = 2
+    max_nn_depth: int = 6
 
     def __post_init__(self):
         if not self.cnn_secondary:
-            self.cnn_secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
+            self.cnn_secondary = ['serial_connection', 'dropout']
         if not self.conv_types:
-            self.conv_types = [LayerTypesIdsEnum.conv2d.value]
+            self.conv_types = ['conv2d']
         if not self.pool_types:
-            self.pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
+            self.pool_types = ['max_pool2d', 'average_pool2d']
         if not self.primary:
-            self.primary = [LayerTypesIdsEnum.dense.value]
+            self.primary = ['dense']
         if not self.secondary:
-            self.secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
+            self.secondary = ['serial_connection', 'dropout']
         if self.max_drop_size > 1:
             self.max_drop_size = 1
         if not all([side_size > 3 for side_size in self.image_size]):
@@ -73,6 +73,8 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
         self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.image_size,
                                                                                   self.pool_size,
                                                                                   self.pool_strides, True)
+        self.max_depth = self.max_nn_depth + self.max_num_of_conv_layers + 1
+
         if self.min_num_of_neurons < 1:
             raise ValueError(f'min_num_of_neurons value is unacceptable')
         if self.max_num_of_neurons < 1:
@@ -148,6 +150,7 @@ class NNGraph(OptGraph):
                 skip_connections_start_nodes.remove(node)
         return free_nodes
 
+    # TODO delete and remove 'conv' from node params
     @property
     def cnn_depth(self):
         depth = [node for node in self.nodes if 'conv' in node.content]
@@ -175,7 +178,6 @@ class NNNode(OptNode):
         self.nodes_from = nodes_from
         if 'params' in content:
             self.content = content
-            self.content['batch_norm'] = False
 
     def __str__(self):
         return str(self.content['name'])
@@ -217,12 +219,10 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
+        # TODO
         # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
         # return [metric_function(graph, test_data)]
-        if len(graph.nodes_without_skip_connections) == 4:
-            return [-len(graph.nodes)]
-        else:
-            return [len(graph.nodes)]
+        return [-len(graph.nodes)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)

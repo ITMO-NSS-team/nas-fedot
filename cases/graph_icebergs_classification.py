@@ -3,13 +3,11 @@ import random
 import datetime
 
 import numpy as np
-import tensorflow as tf
 
 from nas.patches.utils import project_root, set_tf_compat
 
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode, CustomGraphAdapter
-from nas.layer import LayerTypesIdsEnum
 from nas.cnn_data import from_json
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
@@ -20,7 +18,8 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation
+from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
+    single_drop_mutation, single_add_mutation
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
 from nas.composer.metrics import calculate_validation_metric
 
@@ -35,14 +34,14 @@ def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta =
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
-    secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value,
-                 LayerTypesIdsEnum.batch_normalization.value]
-    conv_types = [LayerTypesIdsEnum.conv2d.value]
-    pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
-    nn_primary = [LayerTypesIdsEnum.dense.value]
+    secondary = ['serial_connection', 'dropout', 'batch_normalization']
+    conv_types = ['conv2d']
+    pool_types = ['max_pool2d', 'average_pool2d']
+    nn_primary = ['dense']
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
+    # TODO add new mutations
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
         mutation_types=[single_edge_mutation, cnn_simple_mutation],
@@ -56,7 +55,7 @@ def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta =
         max_num_of_neurons=128, min_filters=16, max_filters=64, image_size=[75, 75],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
         primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,
-        max_depth=6, pop_size=5, num_of_generations=5,
+        max_nn_depth=6, pop_size=5, num_of_generations=5,
         crossover_prob=0, mutation_prob=0,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     optimiser = GPNNGraphOptimiser(
@@ -65,7 +64,7 @@ def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta =
         graph_generation_params=graph_generation_params,
         metrics=metric_function,
         parameters=optimiser_parameters,
-        log=default_log(logger_name='Bayesian', verbose_level=1))
+        log=default_log(logger_name='NAS_Iceberg', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network.show(path='../iceberg_result.png')
