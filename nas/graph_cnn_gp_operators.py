@@ -1,7 +1,7 @@
 import random
 from math import floor
 from typing import (Tuple, List, Any, Callable)
-from nas.graph_keras_eval import generate_structure
+
 
 BATCH_NORM_PROB = 0.4
 DEFAULT_NODES_PARAMS = {
@@ -12,7 +12,8 @@ DEFAULT_NODES_PARAMS = {
                 'drop': 0.2},
     'batch_norm': {'layer_type': 'batch_normalization', 'epsilon': 0.001, 'momentum': 0.99},
     'dense': {'activation': 'relu', 'layer_type': 'dense', 'neurons': 121},
-    'serial_connection': {'layer_type': 'serial_connection'}}
+    'serial_connection': {'layer_type': 'serial_connection'},
+    'flatten': None}
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
@@ -146,7 +147,7 @@ def generate_static_graph(graph: 'NNGraph', node_func: Callable, node_list: List
                            prev_conv=False):
         parent = None if not parent_node else [parent_node]
         is_conv_node = node_type.startswith('conv')
-        new_node = node_func(nodes_from=parent, content={'name': node_params[node_type]['layer_type'],
+        new_node = node_func(nodes_from=parent, content={'name': node_type,
                                                          'params': node_params[node_type]})
         if prev_conv or is_conv_node:
             new_node.content['conv'] = True
@@ -373,17 +374,17 @@ def kernel_parameters_correction(input_image_size: List[float], kernel_size: Tup
     return kernel_size, strides
 
 
-def check_cnn_branch(root_node: Any, image_size: List[int]):
-    image_size = branch_output_shape(root_node, image_size)
-    return is_image_has_permissible_size(image_size, 2)
-
-
-def branch_output_shape(root: Any, image_size: List[float], subtree_to_delete: Any = None):
-    structure = generate_structure(root)
-    if subtree_to_delete:
-        nodes = subtree_to_delete.ordered_subnodes_hierarchy
-        structure = [node for node in structure if node not in nodes]
-    for node in structure:
-        if node.content['params'].layer_type == 'conv2d':
-            image_size = conv_output_shape(node, image_size)
-    return image_size
+# def check_cnn_branch(root_node: Any, image_size: List[int]):
+#     image_size = branch_output_shape(root_node, image_size)
+#     return is_image_has_permissible_size(image_size, 2)
+#
+#
+# def branch_output_shape(root: Any, image_size: List[float], subtree_to_delete: Any = None):
+#     structure = generate_structure(root)
+#     if subtree_to_delete:
+#         nodes = subtree_to_delete.ordered_subnodes_hierarchy
+#         structure = [node for node in structure if node not in nodes]
+#     for node in structure:
+#         if node.content['params'].layer_type == 'conv2d':
+#             image_size = conv_output_shape(node, image_size)
+#     return image_size

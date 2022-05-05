@@ -27,8 +27,8 @@ from nas.composer.metrics import calculate_validation_metric
 from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
 
 root = project_root()
-random.seed(7)
-np.random.seed(7)
+random.seed(17)
+np.random.seed(17)
 
 
 def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None):
@@ -67,14 +67,15 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
         log=default_log(logger_name='NAS_patches', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
+    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     print('save best graph structure...')
     optimized_network.show(path='../graph_patches_result.png')
+    optimized_network.save(path='../graph_patches_graph.json')
 
     print('Best model structure:')
     for node in optimized_network.nodes:
         print(node)
 
-    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=epochs,
                           classes=num_of_classes, verbose=True)
 

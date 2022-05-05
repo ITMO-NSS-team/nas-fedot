@@ -16,7 +16,8 @@ from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameter
     GeneticSchemeTypesEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation
+from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
+    single_drop_mutation, single_add_mutation
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
 from nas.composer.metrics import calculate_validation_metric
 from nas.graph_cnn_gp_operators import generate_static_graph
@@ -37,8 +38,10 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     nn_node_types = ['dense', 'serial_connection']
     secondary_node_types = ['serial_connection', 'dropout']
     rules = [has_no_self_cycled_nodes, has_no_cycle]
+    mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
+                 single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    nodes_list = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'batch_norm', 'conv2d', 'dropout',
+    nodes_list = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'dropout', 'flatten',
                   'dense', 'dropout', 'dense', 'dropout', 'dense']
     skip_connection_ids = [0, 4, 8]
     skip_connections_len = 4
@@ -56,8 +59,7 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
         max_nn_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     optimiser_params = GPGraphOptimiserParameters(
-        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=[cnn_simple_mutation,
-                                                                                 single_edge_mutation],
+        genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=mutations,
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),

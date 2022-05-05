@@ -24,8 +24,8 @@ from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
 from nas.composer.metrics import calculate_validation_metric
 
 root = project_root()
-random.seed(2)
-np.random.seed(2)
+random.seed()
+np.random.seed()
 
 
 def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta = None):
@@ -39,12 +39,13 @@ def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta =
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip]
+    mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
+                 single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
-    # TODO add new mutations
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-        mutation_types=[single_edge_mutation, cnn_simple_mutation],
+        mutation_types=mutations,
         crossover_types=[CrossoverTypesEnum.subtree],
         regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(

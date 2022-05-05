@@ -62,54 +62,6 @@ def keras_model_predict(model, input_data: InputData, output_mode: str = 'defaul
                       task=input_data.task, data_type=input_data.data_type)
 
 
-def generate_structure(node: Any):
-    if node.nodes_from:
-        struct = []
-        if len(node.nodes_from) == 1:
-            struct.append(node)
-            struct += generate_structure(node.nodes_from[0])
-            return struct
-        elif len(node.nodes_from) == 2:
-            struct += generate_structure(node.nodes_from[0])
-            struct.append(node)
-            struct += generate_structure(node.nodes_from[1])
-            return struct
-        elif len(node.nodes_from) == 3:
-            struct += generate_structure(node.nodes_from[0])
-            struct.append(node)
-            struct += generate_structure(node.nodes_from[1])
-            struct.append(node)
-            struct += generate_structure(node.nodes_from[2])
-            return struct
-    else:
-        return [node]
-
-
-def unpack(model, training_config, weights):
-    restored_model = deserialize(model)
-    if training_config is not None:
-        restored_model.compile(
-            **saving_utils.compile_args_from_training_config(
-                training_config
-            )
-        )
-    restored_model.set_weights(weights)
-    return restored_model
-
-
-# Hotfix function
-def make_keras_picklable():
-    def __reduce__(self):
-        model_metadata = saving_utils.model_metadata(self)
-        training_config = model_metadata.get("training_config", None)
-        model = serialize(self)
-        weights = self.get_weights()
-        return unpack, (model, training_config, weights)
-
-    cls = Model
-    cls.__reduce__ = __reduce__
-
-
 def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
     def _get_skip_connection_list(graph_structure):
         sc_layers = {}
@@ -119,19 +71,21 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
                     sc_layers[n] = node
         return sc_layers
 
-    nn_structure = graph.nodes[::-1]
-    make_keras_picklable()
+    nn_structure = graph.get_struct()
     inputs = keras.Input(shape=input_shape)
     in_layer = inputs
     skip_connection_nodes_dict = _get_skip_connection_list(graph)
     skip_connection_destination_dict = {}
+    was_flatten = False
     for i, layer in enumerate(nn_structure):
         layer_type = layer.content['name']
-        is_free_node = layer in graph.nodes_without_skip_connections
+        is_free_node = layer in graph.free_nodes
         if layer in skip_connection_nodes_dict:
             skip_connection_id = skip_connection_nodes_dict.pop(layer)
             if skip_connection_id not in skip_connection_destination_dict:
                 skip_connection_destination_dict[skip_connection_id] = [in_layer]
+                if not was_flatten:
+                    in_layer = layers.Conv2D(in_layer.shape[-1], (1, 1))(in_layer)
             else:
                 skip_connection_destination_dict[skip_connection_id].append(in_layer)
         in_layer = nn_layers.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
@@ -146,6 +100,7 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
         elif layer_type == 'flatten':
             flatten = layers.Flatten()
             in_layer = flatten(in_layer)
+            was_flatten = True
     # Output
     output_shape = 1 if classes == 2 else classes
     activation_func = 'sigmoid' if classes == 2 else 'softmax'

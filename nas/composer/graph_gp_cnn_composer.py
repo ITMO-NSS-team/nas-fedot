@@ -1,3 +1,4 @@
+import json
 import random
 from dataclasses import dataclass
 from functools import partial
@@ -11,14 +12,17 @@ from typing import (
 
 import numpy as np
 
+from fedot.core.utils import DEFAULT_PARAMS_STUB
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData, OutputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
+from fedot.core.serializers import Serializer
 from nas.layer import activation_types
-from nas.graph_cnn_gp_operators import random_conv_graph_generation, permissible_kernel_parameters_correct
+from nas.graph_cnn_gp_operators import random_conv_graph_generation, permissible_kernel_parameters_correct, \
+    DEFAULT_NODES_PARAMS
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
 
@@ -120,6 +124,8 @@ class CustomGraphAdapter(DirectAdapter):
         obj.__class__ = self.base_graph_class
         for node in obj.nodes:
             node.__class__ = self.base_node_class
+            if node.content['name'] == DEFAULT_PARAMS_STUB:
+                node.content['name'] = DEFAULT_NODES_PARAMS[node.content['name']]
         return obj
 
 
@@ -136,14 +142,14 @@ class NNGraph(OptGraph):
         return self is other
 
     @property
-    def nodes_without_skip_connections(self):
+    def free_nodes(self):
         free_nodes = []
         skip_connections_start_nodes = set()
-        reversed_graph = deepcopy(self.nodes)[::-1]
+        reversed_graph = deepcopy(self.get_struct())[::-1]
         for node in reversed_graph:
-            is_skip_connection_end = len(node.nodes_from) > 1
             if len(skip_connections_start_nodes) == 0:
                 free_nodes.append(node)
+            is_skip_connection_end = len(node.nodes_from) > 1
             if is_skip_connection_end:
                 skip_connections_start_nodes.update(node.nodes_from[1:])
             if node in skip_connections_start_nodes:
@@ -169,7 +175,15 @@ class NNGraph(OptGraph):
         return evaluation_result
 
     def save(self, path: str = None, datetime_in_path: bool = True) -> Tuple[str, dict]:
-        raise NotImplementedError
+        res = json.dumps(self, indent=4, cls=Serializer)
+        with open(path, 'w') as f:
+            f.write(res)
+
+    def get_struct(self):
+        if self.nodes[0].content['name'] != 'conv2d':
+            return self.nodes[::-1]
+        else:
+            return self.nodes
 
 
 class NNNode(OptNode):
@@ -222,7 +236,10 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         # TODO
         # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
         # return [metric_function(graph, test_data)]
-        return [-len(graph.nodes)]
+        if len(graph.free_nodes) < 5:
+            return [-len(graph.nodes)]
+        else:
+            return [len(graph.nodes)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
