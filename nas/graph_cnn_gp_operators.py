@@ -52,7 +52,6 @@ def create_conv2d_node(node_func: Callable, requirements, image_size: List):
                     'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
                     'pool_strides': pool_strides, 'pool_type': pool_type}
     new_node = node_func(content={'name': f'{layer_params["layer_type"]}',
-                                  'conv': True,
                                   'params': layer_params}, nodes_from=None)
     if random.uniform(0, 1) > BATCH_NORM_PROB:
         _add_batch_norm2node(new_node, requirements)
@@ -64,8 +63,6 @@ def create_secondary_node(node_func: Callable, requirements, is_conv=False):
     layer_params = get_random_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
                          nodes_from=None)
-    if is_conv:
-        new_node.content['conv'] = True
     if random.uniform(0, 1) > BATCH_NORM_PROB:
         _add_batch_norm2node(new_node, requirements)
     return new_node
@@ -85,7 +82,7 @@ def create_dropout_node(node_func: Callable, requirements):
     new_node = 'dropout'
     layer_params = get_random_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'],
-                                  'conv': True, 'params': layer_params}, nodes_from=None)
+                                  'params': layer_params}, nodes_from=None)
     return new_node
 
 
@@ -149,17 +146,13 @@ def generate_static_graph(graph: 'NNGraph', node_func: Callable, node_list: List
         is_conv_node = node_type.startswith('conv')
         new_node = node_func(nodes_from=parent, content={'name': node_type,
                                                          'params': node_params[node_type]})
-        if prev_conv or is_conv_node:
-            new_node.content['conv'] = True
-
         graph.add_node(new_node)
         return new_node, is_conv_node
 
     def _add_skip_connections(nodes_id: List[int], shortcuts_length: int = 2):
-
         for current_node in nodes_id:
-            is_first_conv = 'conv' in graph.nodes[current_node].content
-            is_second_conv = 'conv' in graph.nodes[current_node + shortcuts_length].content
+            is_first_conv = current_node < graph.cnn_depth
+            is_second_conv = current_node + shortcuts_length < graph.cnn_depth
             if is_first_conv == is_second_conv and (current_node + shortcuts_length) < len(graph.nodes):
                 graph.nodes[current_node + shortcuts_length].nodes_from.append(graph.nodes[current_node])
             else:
@@ -186,20 +179,21 @@ def add_skip_connections(graph: 'NNGraph'):
     skip_connection_nodes_num = random.randint(0, max_depth - 1)
     skip_connection_prob = 0.35
     for _ in range(skip_connection_nodes_num):
+        was_flatten = False
         for node_id in range(max_depth - 1):
             if graph.nodes[node_id].content['name'] == 'dropout' or \
                     graph.nodes[node_id].content['name'] == 'flatten':
+                was_flatten = True if graph.nodes[node_id].content['name'] == 'flatten' else was_flatten
                 continue
+            destination_node_id = node_id
+            graph_node = graph.nodes[node_id]
             is_residual = random.uniform(0, 1) > skip_connection_prob
             if is_residual:
-                destination_node_id = node_id
-                graph_node = graph.nodes[node_id]
-                is_conv = 'conv' in graph_node.content
-                if is_conv and is_residual:
+                if not was_flatten:
                     destination_node_id = random.randint(node_id, graph.cnn_depth - 1)
-                elif not is_conv and is_residual:
+                elif was_flatten:
                     destination_node_id = random.randint(node_id, max_depth - 1)
-                if not is_residual or destination_node_id == node_id:
+                if destination_node_id == node_id or destination_node_id == node_id + 1:
                     continue
                 graph.nodes[destination_node_id].nodes_from.append(graph_node)
 
@@ -319,7 +313,6 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
 
     if not hasattr(graph, 'parent_operators'):
         setattr(graph, 'parent_operators', [])
-    # graph.show()
     return graph
 
 
@@ -372,19 +365,3 @@ def kernel_parameters_correction(input_image_size: List[float], kernel_size: Tup
         kernel_size = tuple(new_kernel_size) if kernel_size != tuple(new_kernel_size) else kernel_size
         strides = tuple(new_strides) if strides != tuple(new_strides) else strides
     return kernel_size, strides
-
-
-# def check_cnn_branch(root_node: Any, image_size: List[int]):
-#     image_size = branch_output_shape(root_node, image_size)
-#     return is_image_has_permissible_size(image_size, 2)
-#
-#
-# def branch_output_shape(root: Any, image_size: List[float], subtree_to_delete: Any = None):
-#     structure = generate_structure(root)
-#     if subtree_to_delete:
-#         nodes = subtree_to_delete.ordered_subnodes_hierarchy
-#         structure = [node for node in structure if node not in nodes]
-#     for node in structure:
-#         if node.content['params'].layer_type == 'conv2d':
-#             image_size = conv_output_shape(node, image_size)
-#     return image_size

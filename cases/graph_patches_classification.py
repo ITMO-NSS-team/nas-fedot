@@ -19,7 +19,7 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
 from nas.composer.metrics import calculate_validation_metric
@@ -43,7 +43,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
     conv_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
@@ -69,8 +69,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     print('save best graph structure...')
-    optimized_network.show(path='../graph_patches_result.png')
-    optimized_network.save(path='../graph_patches_graph.json')
+    optimiser.save(save_folder='../graph_patches', history=True, image=True)
 
     print('Best model structure:')
     for node in optimized_network.nodes:
@@ -98,7 +97,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    path = os.path.join(root, 'compressed_Generated_dataset.pickle')
+    path = os.path.join(root, 'very_compressed_Generated_dataset.pickle')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
     run_patches_classification(file_path=path, epochs=20)

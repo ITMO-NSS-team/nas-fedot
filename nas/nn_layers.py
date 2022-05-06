@@ -84,8 +84,6 @@ def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_
         if current_node.nodes_from[0].content['name'] == 'serial_connection':
             return input_layer
         start_layer = tmp.pop(0)
-        if len(input_layer.shape) == 4:
-            input_layer = layers.Conv2D(input_layer.shape[-1], (1, 1))(input_layer)
         input_layer = layers.concatenate([start_layer, input_layer],
                                          axis=-1, name=f'residual_end_{idx}')
         input_layer = layers.Activation('relu')(input_layer)

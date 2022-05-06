@@ -9,10 +9,6 @@ from tensorflow.keras import optimizers
 from fedot.core.data.data import InputData, OutputData
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
-from tensorflow.keras.models import Model
-from tensorflow.python.keras.layers import deserialize, serialize
-from tensorflow.python.keras.saving import saving_utils
-
 from nas import nn_layers
 
 
@@ -71,12 +67,11 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
                     sc_layers[n] = node
         return sc_layers
 
-    nn_structure = graph.get_struct()
+    nn_structure = graph.graph_struct
     inputs = keras.Input(shape=input_shape)
     in_layer = inputs
     skip_connection_nodes_dict = _get_skip_connection_list(graph)
     skip_connection_destination_dict = {}
-    was_flatten = False
     for i, layer in enumerate(nn_structure):
         layer_type = layer.content['name']
         is_free_node = layer in graph.free_nodes
@@ -84,8 +79,6 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
             skip_connection_id = skip_connection_nodes_dict.pop(layer)
             if skip_connection_id not in skip_connection_destination_dict:
                 skip_connection_destination_dict[skip_connection_id] = [in_layer]
-                if not was_flatten:
-                    in_layer = layers.Conv2D(in_layer.shape[-1], (1, 1))(in_layer)
             else:
                 skip_connection_destination_dict[skip_connection_id].append(in_layer)
         in_layer = nn_layers.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
@@ -100,7 +93,6 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
         elif layer_type == 'flatten':
             flatten = layers.Flatten()
             in_layer = flatten(in_layer)
-            was_flatten = True
     # Output
     output_shape = 1 if classes == 2 else classes
     activation_func = 'sigmoid' if classes == 2 else 'softmax'

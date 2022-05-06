@@ -18,14 +18,15 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, \
+    graph_has_wrong_structure
 from nas.composer.metrics import calculate_validation_metric
 from nas.graph_cnn_gp_operators import generate_static_graph
 
 root = project_root()
 
 
-def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None):
+def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None, epochs: int = 1):
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
@@ -37,7 +38,8 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_node_types = ['dense', 'serial_connection']
     secondary_node_types = ['serial_connection', 'dropout']
-    rules = [has_no_self_cycled_nodes, has_no_cycle]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, flatten_check, has_no_flatten_skip,
+             graph_has_wrong_structure]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
@@ -71,13 +73,12 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
         metrics=metric_function, parameters=optimiser_params,
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
-    optimized_graph = optimiser.compose(data=dataset_to_compose)
-    optimized_graph.show(path='../test_result.png')
-
-    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_graph)
+    optimized_network = optimiser.compose(data=dataset_to_compose)
+    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
+    optimiser.save(save_folder='../test_graph', history=True, image=True)
 
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
-                          epochs=20, classes=num_of_classes, verbose=True)
+                          epochs=epochs, classes=num_of_classes, verbose=True)
 
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)
@@ -88,6 +89,6 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
 
 
 if __name__ == '__main__':
-    file_path = os.path.join(root, 'compressed_Generated_dataset.pickle')
+    file_path = os.path.join(root, 'very_compressed_Generated_dataset.pickle')
     set_tf_compat()
-    start_example_with_init_graph(file_path=file_path)
+    start_example_with_init_graph(file_path=file_path, epochs=1)

@@ -20,13 +20,13 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check
 from nas.composer.metrics import calculate_validation_metric
 
 root = project_root()
 set_root(root)
-random.seed(2)
-np.random.seed(2)
+random.seed(17)
+np.random.seed(17)
 
 
 def run_patches_classification(file_path, epochs: int, timeout: datetime.timedelta = None):
@@ -37,11 +37,11 @@ def run_patches_classification(file_path, epochs: int, timeout: datetime.timedel
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
-    secondary = ['serial_connection', 'dropout', 'batch_normalization']
+    secondary = ['serial_connection', 'dropout']
     conv_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
@@ -69,7 +69,7 @@ def run_patches_classification(file_path, epochs: int, timeout: datetime.timedel
     print('Best model structure:')
     for node in optimized_network.nodes:
         print(node)
-
+    optimized_network = graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
                           epochs=epochs, classes=num_of_classes, verbose=True)
     # The quality assessment for the obtained composite models

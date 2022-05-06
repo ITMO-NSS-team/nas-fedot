@@ -9,23 +9,30 @@ from nas.graph_cnn_gp_operators import get_random_layer_params
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, NNNode, NNGraph
 
 
-def has_no_flatten_layer(graph: 'NNGraph'):
+def flatten_check(graph: 'NNGraph'):
+    cnt = 0
     for node in graph.nodes:
         if node.content['name'] == 'flatten':
-            return True
-    raise ValueError(f'{ERROR_PREFIX} Graph has no flatten layer')
+            cnt += 1
+            if cnt > 1:
+                raise ValueError(f'{ERROR_PREFIX} Graph should have only one flatten layer')
+    return True
 
 
 def has_no_flatten_skip(graph: 'NNGraph'):
-    reversed_graph = deepcopy(graph.nodes)[::-1]
-    skip_connection_parents_list = []
-    for node in reversed_graph:
-        if len(node.nodes_from) > 1:
-            skip_connection_parents_list.extend(node.nodes_from[1:])
-            for parent in skip_connection_parents_list:
-                is_wrong_connection = ['conv' in parent.content and 'conv' not in node.content]
-                if is_wrong_connection:
-                    raise ValueError(f'{ERROR_PREFIX} Graph has cycles')
+    for node in graph.free_nodes:
+        if node.content['name'] == 'flatten':
+            return True
+    raise ValueError(f'{ERROR_PREFIX} Graph has wrong skip connections')
+
+
+def graph_has_wrong_structure(graph: 'NNGraph'):
+    cnt = 0
+    for node in graph.graph_struct:
+        if not node.nodes_from:
+            cnt += 1
+        if cnt > 1:
+            raise ValueError(f'{ERROR_PREFIX} Graph has more than one start node')
     return True
 
 
@@ -57,7 +64,7 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                 new_nodes_from = None if not node.nodes_from else [node.nodes_from[0]]
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],
-                                           'params': new_layer_params, 'conv': True})
+                                           'params': new_layer_params})
                 if 'momentum' in node.content['params']:
                     new_node.content['params']['momentum'] = node.content['params']['momentum']
                     new_node.content['params']['epsilon'] = node.content['params']['epsilon']

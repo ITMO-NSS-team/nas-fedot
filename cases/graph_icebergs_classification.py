@@ -20,7 +20,7 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check
 from nas.composer.metrics import calculate_validation_metric
 
 root = project_root()
@@ -34,11 +34,11 @@ def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta =
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
-    secondary = ['serial_connection', 'dropout', 'batch_normalization']
+    secondary = ['serial_connection', 'dropout']
     conv_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
@@ -68,13 +68,14 @@ def run_custom_example(filepath: str, epochs: int, timeout: datetime.timedelta =
         log=default_log(logger_name='NAS_Iceberg', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
-    optimized_network.show(path='../iceberg_result.png')
+    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
+    print('save best graph structure...')
+    optimiser.save(save_folder='../graph_iceberg', history=True, image=True)
 
     print('Best model structure:')
     for node in optimized_network.nodes:
         print(node)
 
-    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(75, 75, 3), epochs=epochs, classes=num_of_classes,
                           verbose=True)
     # the quality assessment for the obtained composite models

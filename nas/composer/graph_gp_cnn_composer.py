@@ -1,5 +1,6 @@
 import json
 import random
+import os
 from dataclasses import dataclass
 from functools import partial
 from copy import deepcopy
@@ -124,8 +125,8 @@ class CustomGraphAdapter(DirectAdapter):
         obj.__class__ = self.base_graph_class
         for node in obj.nodes:
             node.__class__ = self.base_node_class
-            if node.content['name'] == DEFAULT_PARAMS_STUB:
-                node.content['name'] = DEFAULT_NODES_PARAMS[node.content['name']]
+            if node.content['params'] == DEFAULT_PARAMS_STUB:
+                node.content['params'] = DEFAULT_NODES_PARAMS[node.content['name']]
         return obj
 
 
@@ -133,7 +134,6 @@ class NNGraph(OptGraph):
     def __init__(self, nodes=None, fitted_model=None):
         super().__init__(nodes)
         self.model = fitted_model
-        self.template = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth}"
@@ -145,7 +145,7 @@ class NNGraph(OptGraph):
     def free_nodes(self):
         free_nodes = []
         skip_connections_start_nodes = set()
-        reversed_graph = deepcopy(self.get_struct())[::-1]
+        reversed_graph = deepcopy(self.graph_struct)[::-1]
         for node in reversed_graph:
             if len(skip_connections_start_nodes) == 0:
                 free_nodes.append(node)
@@ -156,11 +156,11 @@ class NNGraph(OptGraph):
                 skip_connections_start_nodes.remove(node)
         return free_nodes
 
-    # TODO delete and remove 'conv' from node params
     @property
     def cnn_depth(self):
-        depth = [node for node in self.nodes if 'conv' in node.content]
-        return len(depth)
+        for idx, node in enumerate(self.nodes):
+            if node.content['name'] == 'flatten':
+                return idx
 
     def fit(self, input_data: InputData, verbose=False, input_shape: tuple = None,
             min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
@@ -174,12 +174,13 @@ class NNGraph(OptGraph):
         evaluation_result = keras_model_predict(self.model, input_data, output_mode, is_multiclass=is_multiclass)
         return evaluation_result
 
-    def save(self, path: str = None, datetime_in_path: bool = True) -> Tuple[str, dict]:
+    def save(self, path: str = None):
         res = json.dumps(self, indent=4, cls=Serializer)
-        with open(path, 'w') as f:
+        with open(f'{path}/optimized_graph.json', 'w') as f:
             f.write(res)
 
-    def get_struct(self):
+    @property
+    def graph_struct(self):
         if self.nodes[0].content['name'] != 'conv2d':
             return self.nodes[::-1]
         else:
@@ -222,6 +223,20 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         else:
             self.population = initial_graph or self._make_population(self.requirements.pop_size)
 
+    def save(self, save_folder: str = None, history: bool = True, image: bool = True):
+        print(f'Saving files into {os.path.abspath(save_folder)}')
+        if not os.path.isdir(save_folder):
+            os.mkdir(save_folder)
+        if not isinstance(self.best_individual.graph, NNGraph):
+            graph = self.graph_generation_params.adapter.restore(self.best_individual.graph)
+        else:
+            graph = self.best_individual.graph
+        graph.save(path=save_folder)
+        if history:
+            self.history.save(json_file_path=f'{save_folder}/opt_history.json')
+        if image:
+            graph.show(path=f'{save_folder}/optimized_graph.png')
+
     def _make_population(self, pop_size: int):
         initial_graphs = [self.graph_generation_function() for _ in range(pop_size)]
         ind_graphs = []
@@ -234,12 +249,12 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
         # TODO
-        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        # return [metric_function(graph, test_data)]
-        if len(graph.free_nodes) < 5:
-            return [-len(graph.nodes)]
-        else:
-            return [len(graph.nodes)]
+        graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        return [metric_function(graph, test_data)]
+        # if len(graph.free_nodes) < 5:
+        #     return [-len(graph.nodes)]
+        # else:
+        #     return [len(graph.nodes)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
