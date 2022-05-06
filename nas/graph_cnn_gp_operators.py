@@ -175,14 +175,14 @@ def add_skip_connections(graph: 'NNGraph'):
 
     :param graph: initial graph
     """
+    skip_list = ['flatten', 'dropout', 'serial_connection']
     max_depth = len(graph.nodes)
     skip_connection_nodes_num = random.randint(0, max_depth - 1)
     skip_connection_prob = 0.35
     for _ in range(skip_connection_nodes_num):
         was_flatten = False
         for node_id in range(max_depth - 1):
-            if graph.nodes[node_id].content['name'] == 'dropout' or \
-                    graph.nodes[node_id].content['name'] == 'flatten':
+            if graph.nodes[node_id].content['name'] in skip_list:
                 was_flatten = True if graph.nodes[node_id].content['name'] == 'flatten' else was_flatten
                 continue
             destination_node_id = node_id
