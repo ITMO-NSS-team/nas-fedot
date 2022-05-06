@@ -97,7 +97,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    path = os.path.join(root, 'very_compressed_Generated_dataset.pickle')
+    path = os.path.join(root, 'compress_Generated_dataset.pickle')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
     run_patches_classification(file_path=path, epochs=20)

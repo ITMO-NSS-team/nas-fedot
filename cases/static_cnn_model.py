@@ -89,6 +89,6 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
 
 
 if __name__ == '__main__':
-    file_path = os.path.join(root, 'very_compressed_Generated_dataset.pickle')
+    file_path = os.path.join(root, 'compress_Generated_dataset.pickle')
     set_tf_compat()
     start_example_with_init_graph(file_path=file_path, epochs=1)
