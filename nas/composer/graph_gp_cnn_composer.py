@@ -1,4 +1,6 @@
+import json
 import random
+import os
 from dataclasses import dataclass
 from functools import partial
 from copy import deepcopy
@@ -8,25 +10,24 @@ from typing import (
     Any,
     Optional
 )
-from uuid import uuid4
 
 import numpy as np
-import pandas as pd
 
+from fedot.core.utils import DEFAULT_PARAMS_STUB
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData, OutputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
-from nas.layer import LayerTypesIdsEnum, activation_types, LayerParams
-from nas.graph_cnn_gp_operators import random_cnn_graph
+from fedot.core.serializers import Serializer
+from nas.layer import activation_types
+from nas.graph_cnn_gp_operators import random_conv_graph_generation, permissible_kernel_parameters_correct, \
+    DEFAULT_NODES_PARAMS
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
 
 from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
-from nas.graph_cnn_gp_operators import *
 
 random.seed(1)
 np.random.seed(1)
@@ -45,27 +46,28 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     channels_num: int = 3
     max_drop_size: int = 0.5
     image_size: List[int] = None
-    conv_types: List[LayerTypesIdsEnum] = None
-    cnn_secondary: List[LayerTypesIdsEnum] = None
-    pool_types: List[LayerTypesIdsEnum] = None
+    conv_types: List[str] = None
+    cnn_secondary: List[str] = None
+    pool_types: List[str] = None
     train_epochs_num: int = 5
     batch_size: int = 72
     num_of_classes: int = 10
     activation_types = activation_types
-    max_num_of_conv_layers = 4
-    min_num_of_conv_layers = 2
+    max_num_of_conv_layers: int = 4
+    min_num_of_conv_layers: int = 2
+    max_nn_depth: int = 6
 
     def __post_init__(self):
         if not self.cnn_secondary:
-            self.cnn_secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
+            self.cnn_secondary = ['serial_connection', 'dropout']
         if not self.conv_types:
-            self.conv_types = [LayerTypesIdsEnum.conv2d.value]
+            self.conv_types = ['conv2d']
         if not self.pool_types:
-            self.pool_types = [LayerTypesIdsEnum.maxpool2d.value, LayerTypesIdsEnum.averagepool2d.value]
+            self.pool_types = ['max_pool2d', 'average_pool2d']
         if not self.primary:
-            self.primary = [LayerTypesIdsEnum.dense.value]
+            self.primary = ['dense']
         if not self.secondary:
-            self.secondary = [LayerTypesIdsEnum.serial_connection.value, LayerTypesIdsEnum.dropout.value]
+            self.secondary = ['serial_connection', 'dropout']
         if self.max_drop_size > 1:
             self.max_drop_size = 1
         if not all([side_size > 3 for side_size in self.image_size]):
@@ -76,6 +78,8 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
         self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.image_size,
                                                                                   self.pool_size,
                                                                                   self.pool_strides, True)
+        self.max_depth = self.max_nn_depth + self.max_num_of_conv_layers + 1
+
         if self.min_num_of_neurons < 1:
             raise ValueError(f'min_num_of_neurons value is unacceptable')
         if self.max_num_of_neurons < 1:
@@ -121,6 +125,8 @@ class CustomGraphAdapter(DirectAdapter):
         obj.__class__ = self.base_graph_class
         for node in obj.nodes:
             node.__class__ = self.base_node_class
+            if node.content['params'] == DEFAULT_PARAMS_STUB:
+                node.content['params'] = DEFAULT_NODES_PARAMS[node.content['name']]
         return obj
 
 
@@ -136,9 +142,25 @@ class NNGraph(OptGraph):
         return self is other
 
     @property
+    def free_nodes(self):
+        free_nodes = []
+        skip_connections_start_nodes = set()
+        reversed_graph = deepcopy(self.graph_struct)[::-1]
+        for node in reversed_graph:
+            if len(skip_connections_start_nodes) == 0:
+                free_nodes.append(node)
+            is_skip_connection_end = len(node.nodes_from) > 1
+            if is_skip_connection_end:
+                skip_connections_start_nodes.update(node.nodes_from[1:])
+            if node in skip_connections_start_nodes:
+                skip_connections_start_nodes.remove(node)
+        return free_nodes
+
+    @property
     def cnn_depth(self):
-        depth = [node for node in self.nodes if 'conv' in node.content]
-        return len(depth)
+        for idx, node in enumerate(self.nodes):
+            if node.content['name'] == 'flatten':
+                return idx
 
     def fit(self, input_data: InputData, verbose=False, input_shape: tuple = None,
             min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
@@ -151,6 +173,18 @@ class NNGraph(OptGraph):
     def predict(self, input_data: InputData, output_mode: str = 'default', is_multiclass: bool = False) -> OutputData:
         evaluation_result = keras_model_predict(self.model, input_data, output_mode, is_multiclass=is_multiclass)
         return evaluation_result
+
+    def save(self, path: str = None):
+        res = json.dumps(self, indent=4, cls=Serializer)
+        with open(f'{path}/optimized_graph.json', 'w') as f:
+            f.write(res)
+
+    @property
+    def graph_struct(self):
+        if self.nodes[0].content['name'] != 'conv2d':
+            return self.nodes[::-1]
+        else:
+            return self.nodes
 
 
 class NNNode(OptNode):
@@ -178,7 +212,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          parameters=parameters,
                          log=log)
 
-        self.parameters.graph_generation_function = random_cnn_graph
+        self.parameters.graph_generation_function = random_conv_graph_generation
         self.graph_generation_function = partial(self.parameters.graph_generation_function,
                                                  graph_class=NNGraph,
                                                  requirements=self.requirements,
@@ -188,6 +222,20 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
             self.population = [initial_graph] * requirements.pop_size
         else:
             self.population = initial_graph or self._make_population(self.requirements.pop_size)
+
+    def save(self, save_folder: str = None, history: bool = True, image: bool = True):
+        print(f'Saving files into {os.path.abspath(save_folder)}')
+        if not os.path.isdir(save_folder):
+            os.mkdir(save_folder)
+        if not isinstance(self.best_individual.graph, NNGraph):
+            graph = self.graph_generation_params.adapter.restore(self.best_individual.graph)
+        else:
+            graph = self.best_individual.graph
+        graph.save(path=save_folder)
+        if history:
+            self.history.save(json_file_path=f'{save_folder}/opt_history.json')
+        if image:
+            graph.show(path=f'{save_folder}/optimized_graph.png')
 
     def _make_population(self, pop_size: int):
         initial_graphs = [self.graph_generation_function() for _ in range(pop_size)]
