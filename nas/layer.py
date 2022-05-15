@@ -15,7 +15,14 @@ class ActivationTypesIdsEnum(Enum):
     sigmoid = 'sigmoid'
     linear = 'linear'
 
+
 activation_types = [type_ for type_ in ActivationTypesIdsEnum]
+
+
+class PaddingTypesIdsEnum(Enum):
+    valid = "valid"
+    same = "same"
+
 
 class LayerTypesIdsEnum(Enum):
     conv2d = 'conv2d'
@@ -31,17 +38,20 @@ class LayerTypesIdsEnum(Enum):
     def description(cls, name):
         return cls.description_layer.value
 
+
 @dataclass
 class LayerParams:
     layer_type: LayerTypesIdsEnum
     pool_type: Optional[LayerTypesIdsEnum] = None
     neurons: int = None
-    max_params: int = None
+    max_neurons_flatten: int = None
     activation: str = None
     drop: float = None
+    batch_norm: int = None
     pool_size: Tuple[int, int] = None
     kernel_size: Tuple[int, int] = None
     conv_strides: Tuple[int, int] = None
     pool_strides: Tuple[int, int] = None
+    padding: str = None
     num_of_filters: int = None
     output_shape: List[float] = None

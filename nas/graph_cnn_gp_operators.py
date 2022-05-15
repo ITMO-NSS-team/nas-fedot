@@ -1,3 +1,4 @@
+import random
 from math import floor
 from random import choice, randint
 from typing import (Tuple, List, Any, Callable)
@@ -29,7 +30,8 @@ def one_side_parameters_correction(input_dimension: float, kernel_size: int, str
 def permissible_kernel_parameters_correct(image_size: List[float], kernel_size: Tuple[int, int],
                                           strides: Tuple[int, int],
                                           pooling: bool) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-    is_strides_permissible = all([strides[i] < kernel_size[i] for i in range(len(strides))])
+    # TODO changed to <=
+    is_strides_permissible = all([strides[i] <= kernel_size[i] for i in range(len(strides))])
     is_kernel_size_permissible = all([kernel_size[i] < image_size[i] for i in range(len(strides))])
     if not is_strides_permissible:
         if pooling:
@@ -68,11 +70,16 @@ def is_image_has_permissible_size(image_size, min_size: int = 2):
     return all([side_size >= min_size for side_size in image_size])
 
 
-def set_correct_num_convs(n_convs: int, img_size: int, pad_size=0, kernel_size=3, stride_size=1):
+def set_correct_num_convs(n_convs: int, img_size, requirements):
     """checks the output size of feature map according to the number of convolutions,
     need to set correct max number of convs"""
+    img_size = int(img_size[0])
+    max_kernel_size = requirements.conv_kernel_size_range
+    pad_size = 0
+    kernel_size = 3
+    stride_size = 1
     size_out = img_size
-    for i in range(n_convs):
+    for i in range(int(n_convs)):
         size_out = (size_out + 2 * pad_size - kernel_size) / stride_size + 1
         size_out = size_out // 2
         if size_out < 3:
@@ -80,7 +87,16 @@ def set_correct_num_convs(n_convs: int, img_size: int, pad_size=0, kernel_size=3
     return n_convs
 
 
-import random
+def get_output_size(kern, stride, pad_type, input_size):
+    p = kern - 1 if pad_type == 'same' else 0
+    output_feature_map_size = ((input_size - kern + 2 * p) / stride) + 1
+    return output_feature_map_size
+
+
+def get_min_input_feauturemap_size(kern, stride, pad_type, out=1):
+    p = kern - 1 if pad_type == 'same' else 0
+    min_input_size = (out - 1) * stride + kern - 2 * p
+    return min_input_size
 
 
 def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, max_num_of_conv: int = None,
@@ -90,27 +106,36 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
     else:
         current_image_size = image_size
 
-    max_num_of_conv = max_num_of_conv if max_num_of_conv else requirements.max_num_of_conv_layers + 1
+    max_num_of_conv = max_num_of_conv if max_num_of_conv else requirements.max_num_of_conv_layers
     min_num_of_conv = min_num_of_conv if min_num_of_conv else requirements.min_num_of_conv_layers
 
-    max_num_of_conv = set_correct_num_convs(max_num_of_conv, int(current_image_size[0]), pad_size=0, kernel_size=3,
-                                            stride_size=1)
-
     num_of_conv = randint(min_num_of_conv, max_num_of_conv)
-    for conv_num in range(num_of_conv):
-
+    output_feature_map_size = min(current_image_size)
+    while num_of_conv:
+        num_of_conv -= 1
+        if output_feature_map_size == 1:
+            break
+        # for conv_num in range(num_of_conv):
         node_type = choice(requirements.conv_types)
         activation = choice(requirements.activation_types)
-        rand_kernel_size = random.randint(*requirements.conv_kernel_size_range)
+        rand_kernel_size = randint(*requirements.conv_kernel_size_range)
         kernel_size = (rand_kernel_size, rand_kernel_size)
-        rand_conv_strides = random.randint(*requirements.conv_strides_range)
+        rand_conv_strides = randint(*requirements.conv_strides_range)
         conv_strides = (rand_conv_strides, rand_conv_strides)
-        max_params = requirements.max_params
+        padding = choice(requirements.padding) if conv_strides == 1 else 'valid'
+        max_neurons_flatten = requirements.max_neurons_flatten
         num_of_filters = choice(requirements.filters)
-        rand_pool_size = random.randint(*requirements.pool_size_range)
+        rand_pool_size = randint(*requirements.pool_size_range)
         pool_size = None
         pool_strides = None
         pool_type = None
+        batch_norm_prob = requirements.batch_norm_prob
+        batch_norm = random.choices([0, 1], weights=(1 - batch_norm_prob * 100, batch_norm_prob * 100))[0]
+        # p = rand_kernel_size - 1 if padding == 'same' else 0
+        # output_feature_map_size = ((output_feature_map_size - rand_kernel_size + 2 * p) / rand_conv_strides) + 1
+        output_feature_map_size = get_output_size(kern=rand_kernel_size, stride=rand_conv_strides, pad_type=padding,
+                                                  input_size=output_feature_map_size)
+
         if is_image_has_permissible_size(current_image_size, rand_pool_size):
             current_image_size = [output_dimension(current_image_size[i], kernel_size[i], conv_strides[i]) for i in
                                   range(len(kernel_size))]
@@ -127,25 +152,18 @@ def random_cnn(secondary_node_func: Callable, requirements, graph: Any = None, m
             break
         layer_params = LayerParams(layer_type=node_type, activation=activation,
                                    kernel_size=kernel_size, conv_strides=conv_strides, num_of_filters=num_of_filters,
-                                   pool_size=pool_size, pool_strides=pool_strides, pool_type=pool_type,
-                                   max_params=max_params)
+                                   pool_size=pool_size, pool_strides=pool_strides, pool_type=pool_type, padding=padding,
+                                   max_neurons_flatten=max_neurons_flatten, batch_norm=batch_norm)
         new_node = secondary_node_func(layer_params=layer_params)
         graph.add_cnn_node(new_node)
         if pool_size is None:
             break
-
-        if conv_num != num_of_conv - 1:
-            node_type = choice(requirements.cnn_secondary)
+        add_dropout_layer = randint(0, 1)
+        if add_dropout_layer:
+            node_type = LayerTypesIdsEnum.dropout
             layer_params = get_random_layer_params(node_type, requirements)
             new_node = secondary_node_func(layer_params=layer_params)
             graph.add_cnn_node(new_node)
-        if conv_num == num_of_conv - 1:
-            add_dropout_layer = randint(0, 1)
-            if add_dropout_layer:
-                node_type = LayerTypesIdsEnum.dropout
-                layer_params = get_random_layer_params(node_type, requirements)
-                new_node = secondary_node_func(layer_params=layer_params)
-                graph.add_cnn_node(new_node)
 
 
 def random_nn_branch(secondary_node_func: Callable, primary_node_func: Callable, requirements, graph: Any = None,
@@ -200,16 +218,20 @@ def random_cnn_graph(graph_class: Any, secondary_node_func: Callable, primary_no
 
 def get_random_layer_params(type, requirements) -> LayerParams:
     layer_params = None
-    max_params = requirements.max_params
+    max_neurons_flatten = requirements.max_neurons_flatten
+    batch_norm_prob = requirements.batch_norm_prob
     if type == LayerTypesIdsEnum.serial_connection:
-        layer_params = LayerParams(layer_type=type, max_params=max_params)
+        layer_params = LayerParams(layer_type=type, max_neurons_flatten=max_neurons_flatten)
     elif type == LayerTypesIdsEnum.dropout:
         drop = randint(1, (requirements.max_drop_size * 10)) / 10
-        layer_params = LayerParams(layer_type=type, drop=drop, max_params=max_params)
+        layer_params = LayerParams(layer_type=type, drop=drop, max_neurons_flatten=max_neurons_flatten)
     if type == LayerTypesIdsEnum.dense:
         activation = choice(requirements.activation_types)
         neurons = randint(requirements.min_num_of_neurons, requirements.max_num_of_neurons)
-        layer_params = LayerParams(layer_type=type, neurons=neurons, activation=activation, max_params=max_params)
+        batch_norm_prob = requirements.batch_norm_prob
+        batch_norm = random.choices([0, 1], weights=(1 - batch_norm_prob * 100, batch_norm_prob * 100))[0]
+        layer_params = LayerParams(layer_type=type, neurons=neurons, activation=activation,
+                                   batch_norm=batch_norm, max_neurons_flatten=max_neurons_flatten)
     return layer_params
 
 

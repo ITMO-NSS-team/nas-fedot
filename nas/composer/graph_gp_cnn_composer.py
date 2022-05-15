@@ -1,5 +1,5 @@
-import random
 from copy import deepcopy
+from dataclasses import dataclass
 from functools import partial
 from typing import (
     Optional
@@ -8,7 +8,6 @@ from uuid import uuid4
 
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
 
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 from fedot.core.data.data import InputData
@@ -22,7 +21,7 @@ from nas.graph_cnn_gp_operators import *
 from nas.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
 from nas.graph_nas_node import NNNode
 from nas.graph_nas_node import NNNodeGenerator
-from nas.layer import activation_types
+from nas.layer import activation_types, PaddingTypesIdsEnum
 
 random.seed(1)
 np.random.seed(1)
@@ -34,25 +33,27 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     conv_strides_range: Tuple[int, int] = (1, 1)
     pool_size_range: Tuple[int, int] = (2, 2)
     pool_strides: Tuple[int, int] = (2, 2)
+    padding: List[PaddingTypesIdsEnum] = ("valid", "same")
     min_num_of_neurons: int = 50
     max_num_of_neurons: int = 200
     min_filters: int = 16
     max_filters: int = 128
     channels_num: int = 3
     max_drop_size: int = 0.5
+    batch_norm_prob: int = 0.8
     image_size: List[int] = None
     conv_types: List[LayerTypesIdsEnum] = None
     cnn_secondary: List[LayerTypesIdsEnum] = None
     pool_types: List[LayerTypesIdsEnum] = None
     train_epochs_num: int = 5
-    batch_size: int = 72
+    batch_size: int = 128
     num_of_classes: int = 10
     activation_types = activation_types
     max_num_of_conv_layers: int = 4
     min_num_of_conv_layers: int = 2
     primary: List[LayerTypesIdsEnum] = None
     secondary: List[LayerTypesIdsEnum] = None
-    max_params: int = 1000000
+    max_neurons_flatten: int = 1000
 
     def __post_init__(self):
         if not self.cnn_secondary:
@@ -69,12 +70,13 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             self.max_drop_size = 1
         if not all([side_size > 3 for side_size in self.image_size]):
             raise ValueError(f'Specified image size is unacceptable')
-        self.conv_kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.image_size,
-                                                                                         self.conv_kernel_size_range,
-                                                                                         self.conv_strides_range, False)
-        self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.image_size,
-                                                                                  self.pool_size_range,
-                                                                                  self.pool_strides, True)
+        self.conv_kernel_size_range, self.conv_strides_range = permissible_kernel_parameters_correct(self.image_size,
+                                                                                                     self.conv_kernel_size_range,
+                                                                                                     self.conv_strides_range,
+                                                                                                     False)
+        self.pool_size_range, self.pool_strides = permissible_kernel_parameters_correct(self.image_size,
+                                                                                        self.pool_size_range,
+                                                                                        self.pool_strides, True)
         if self.min_num_of_neurons < 1:
             raise ValueError(f'min_num_of_neurons value is unacceptable')
         if self.max_num_of_neurons < 1:
@@ -167,7 +169,11 @@ class CustomGraphModel(OptGraph):
 
     def sort_nodes(self):
         """layer by layer sorting"""
-        nodes = self.root_node.ordered_subnodes_hierarchy
+        # TODO added check
+        if isinstance(self.root_node.ordered_subnodes_hierarchy, Callable):
+            nodes = self.root_node.ordered_subnodes_hierarchy()
+        else:
+            nodes = self.root_node.ordered_subnodes_hierarchy
         self.nodes = nodes
 
     def replace_node_with_parents(self, old_node: NNNode, new_node: NNNode):
@@ -200,7 +206,7 @@ class CustomGraphModel(OptGraph):
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
     def __init__(self, initial_graph, requirements, graph_generation_params,
-                 metrics, parameters, log):
+                 metrics: Any, parameters, log):
         self.metrics = metrics
 
         super().__init__(initial_graph=initial_graph, requirements=requirements,
@@ -220,7 +226,6 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
             self.population = [initial_graph] * requirements.pop_size
         else:
             self.population = initial_graph or self._make_population(self.requirements.pop_size)
-            # print(self.population)
 
     def _make_population(self, pop_size: int):
         initial_graphs = [self.graph_generation_function() for _ in range(pop_size)]
@@ -235,7 +240,10 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          graph) -> list:
 
         graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        return [metric_function[0](graph, test_data)]
+        # TODO was one metric
+        return [metric_function[0](graph, test_data),
+                metric_function[1](graph, test_data),
+                metric_function[2](graph, test_data)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)

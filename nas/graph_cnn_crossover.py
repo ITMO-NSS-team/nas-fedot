@@ -54,13 +54,18 @@ def cnn_crossover(graph_first: Any, graph_second: Any, max_depth) -> Any:
             part_from_second = part_from_second[:-int(part_for_delete_in_second)]
 
         additional_layer = []
-        if part_from_first[len(part_from_first) - 1].layer_params.layer_type == LayerTypesIdsEnum.conv2d and \
-                part_from_second[0].layer_params.layer_type == LayerTypesIdsEnum.conv2d:
-            layer_params = LayerParams(layer_type=LayerTypesIdsEnum.serial_connection)
-            new_node = NNNodeGenerator.secondary_node(layer_params=layer_params)
-            additional_layer.append(new_node)
-        old_nodes = part_from_first + additional_layer
-        new_nodes = part_from_second
+        # TODO added condition to avoid index error
+        if all([len(part_from_second), len(part_from_first)]):
+            if part_from_first[-1].layer_params.layer_type == LayerTypesIdsEnum.conv2d and \
+                    part_from_second[0].layer_params.layer_type == LayerTypesIdsEnum.conv2d:
+                layer_params = LayerParams(layer_type=LayerTypesIdsEnum.serial_connection)
+                new_node = NNNodeGenerator.secondary_node(layer_params=layer_params)
+                additional_layer.append(new_node)
+            old_nodes = part_from_first + additional_layer
+            new_nodes = part_from_second
+        else:
+            old_nodes = parts[0]
+            new_nodes = []
     else:
         old_nodes = parts[0]
         new_nodes = []

@@ -1,4 +1,3 @@
-import copy
 import datetime
 import os
 import random
@@ -22,9 +21,9 @@ from fedot.core.repository.quality_metrics_repository import MetricsRepository, 
 from nas.composer.graph_gp_cnn_composer import CustomGraphModel, CustomGraphAdapter
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
 from nas.graph_cnn_crossover import cnn_subtree_crossover
-from nas.graph_cnn_mutation import cnn_simple_mutation
+from nas.graph_cnn_mutation import cnn_simple_mutation, cnn_growth_mutation
 from nas.graph_nas_node import NNNode
-from nas.layer import LayerTypesIdsEnum
+from nas.layer import LayerTypesIdsEnum, PaddingTypesIdsEnum
 from nas.patches.load_images import from_images
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -32,7 +31,7 @@ os.chdir(ROOT)
 sys.path.append(ROOT)
 random.seed(2)
 np.random.seed(2)
-os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
 setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
 setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
@@ -88,7 +87,7 @@ def calculate_validation_metric(graph: CustomGraphModel, dataset_to_validate: In
     roc_auc_value = roc_auc(y_true=dataset_to_validate.target,
                             y_score=predicted.predict,
                             multi_class="ovo", average="macro")
-    y_values_pred = [list(range(10)) for _ in range(predicted.idx.size)]
+    y_values_pred = [[0 for i in range(10)] for _ in range(predicted.idx.size)]
     for i, predict in enumerate(predicted.predict):
         y_class_pred = np.argmax(predict)
         y_values_pred[i][y_class_pred] = 1
@@ -108,10 +107,11 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes, img_size=size)
 
     if not timeout:
-        timeout = datetime.timedelta(hours=60)
+        timeout = datetime.timedelta(hours=100)
 
     cnn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
     conv_types = [LayerTypesIdsEnum.conv2d]
+    padding_types = [PaddingTypesIdsEnum.valid, PaddingTypesIdsEnum.same]
     pool_types = [LayerTypesIdsEnum.maxpool2d, LayerTypesIdsEnum.averagepool2d]
     nn_primary = [LayerTypesIdsEnum.dense]
     nn_secondary = [LayerTypesIdsEnum.serial_connection, LayerTypesIdsEnum.dropout]
@@ -120,21 +120,19 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
 
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-        # mutation_types=[MutationTypesEnum.simple],
-        mutation_types=[cnn_simple_mutation],
-        # crossover_types=[CrossoverTypesEnum.cnn_subtree],
+        mutation_types=[cnn_simple_mutation, cnn_growth_mutation],
         crossover_types=[cnn_subtree_crossover],
-        regularization_type=RegularizationTypesEnum.none)
-
+        regularization_type=RegularizationTypesEnum.none,
+        stopping_after_n_generation=12)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=CustomGraphModel, base_node_class=NNNode),
         rules_for_constraint=rules)
-
     requirements = GPNNComposerRequirements(
-        conv_kernel_size_range=(1, 4), conv_strides_range=(1, 2), pool_size_range=(2, 4),
-        min_num_of_neurons=16, max_num_of_neurons=128, min_filters=16, max_filters=128,
-        min_arity=1, max_arity=3, max_depth=4, min_num_of_conv_layers=1, max_num_of_conv_layers=4, max_params=2000000,
-        pop_size=15, num_of_generations=30, crossover_prob=0.7, mutation_prob=0.25, train_epochs_num=15,
+        conv_kernel_size_range=(1, 3), conv_strides_range=(1, 2), pool_size_range=(2, 3), padding=padding_types,
+        min_num_of_neurons=16, max_num_of_neurons=256, min_filters=8, max_filters=128,
+        min_arity=1, max_arity=3, max_depth=4, min_num_of_conv_layers=2, max_num_of_conv_layers=8,
+        max_neurons_flatten=1000,
+        pop_size=20, num_of_generations=100, crossover_prob=0.7, mutation_prob=0.3, train_epochs_num=10,
         num_of_classes=num_of_classes, timeout=timeout, image_size=[size, size], conv_types=conv_types,
         pool_types=pool_types, cnn_secondary=cnn_secondary, primary=nn_primary, secondary=nn_secondary)
     optimiser = GPNNGraphOptimiser(
@@ -158,7 +156,7 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
         print(f"{name}, {val}")
     optimized_network_custom = CustomGraphModel(nodes=optimized_network.nodes, cnn_nodes=optimized_network.cnn_nodes,
                                                 fitted_model=None)
-    optimized_network_custom.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=20,
+    optimized_network_custom.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=50,
                                  classes=num_of_classes)
 
     # the quality assessment for the obtained composite models
@@ -169,14 +167,16 @@ def run_patches_classification(file_path, timeout: datetime.timedelta = None):
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = f'models_saved/{num_of_classes}cls'f'_{round(accuracy_score_on_valid_evo_composed, 3)}_acc_best.json'
+    json_file = f'models_saved/{num_of_classes}cls'f'_{round(accuracy_score_on_valid_evo_composed, 3)}_acc_' \
+                f'{round(roc_on_valid_evo_composed, 3)}_auc_best.json'
     model_json = optimized_network_custom.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
     # saving the weights of the model
     optimized_network_custom.model.save_weights(f'models_saved/{num_of_classes}cls'
-                                                f'_{round(accuracy_score_on_valid_evo_composed, 3)}_acc_best.h5')
+                                                f'_{round(accuracy_score_on_valid_evo_composed, 3)}_acc_'
+                                                f'{round(roc_on_valid_evo_composed, 3)}_auc_best.h5')
 
 
 if __name__ == '__main__':

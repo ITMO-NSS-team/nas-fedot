@@ -15,9 +15,10 @@ from nas.layer import LayerTypesIdsEnum
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
                     epochs: int = 10):
-    earlyStopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-    mcp_save = ModelCheckpoint('.mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
-    reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, epsilon=1e-4, mode='min')
+    earlyStopping = EarlyStopping(monitor='val_loss', patience=15, verbose=1, mode='min')
+    mcp_save = ModelCheckpoint(f'{input_data.num_classes}_mdl_wts.hdf5', save_best_only=True, monitor='val_loss',
+                               mode='min')
+    reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=10, verbose=1, epsilon=1e-4, mode='min')
     model.summary()
     model.fit(input_data.features, input_data.target,
               batch_size=batch_size,
@@ -104,6 +105,8 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
     generated_struc = generate_structure(graph.root_node)
     if any(generated_struc):
         nn_structure = graph.cnn_nodes + generated_struc
+    else:
+        nn_structure = graph
     # nn_structure = graph.nodes + generate_structure(graph.root_node)
     make_keras_picklable()
     model = models.Sequential()
@@ -114,16 +117,18 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
             kernel_size = layer.layer_params.kernel_size
             conv_strides = layer.layer_params.conv_strides
             filters_num = layer.layer_params.num_of_filters
+            padding = layer.layer_params.padding
+            batch_norm = layer.layer_params.batch_norm
             if i == 0:
                 model.add(
                     layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation, input_shape=input_shape,
-                                  strides=conv_strides))
+                                  strides=conv_strides, padding=padding))
             else:
                 if not max(kernel_size) > max(model.layers[-1].output_shape[1:3]):
                     model.add(layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
-                                            strides=conv_strides))
-                    # model.add(layers.Conv2D(filters_num, kernel_size=kernel_size, activation=activation,
-                    #                   strides=conv_strides, data_format='channels_first'))
+                                            strides=conv_strides, padding=padding))
+            if batch_norm:
+                model.add(layers.BatchNormalization())
             if layer.layer_params.pool_size:
                 pool_size = layer.layer_params.pool_size
                 pool_strides = layer.layer_params.pool_strides
@@ -138,16 +143,23 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
         elif type == LayerTypesIdsEnum.dense:
             activation = layer.layer_params.activation.value
             neurons_num = layer.layer_params.neurons
+            batch_norm = layer.layer_params.batch_norm
             model.add(layers.Dense(neurons_num, activation=activation))
+            if batch_norm:
+                model.add(layers.BatchNormalization())
         # if i == len(graph.cnn_nodes) - 1:
         if i == len(graph.cnn_nodes) - 1:
-            max_params = int(layer.layer_params.max_params or nn_structure[i - 1].layer_params.max_params) ** (1 / 2)
-            while get_shape_dim(model.layers[-1].output_shape) > max_params:
+            max_neurons_flatten = int(layer.layer_params.max_neurons_flatten or
+                                      nn_structure[i - 1].layer_params.max_neurons_flatten or 1000)
+            batch_norm = layer.layer_params.batch_norm
+            while get_shape_dim(model.layers[-1].output_shape) > max_neurons_flatten:
                 if model.layers[-1].output_shape[-1] >= 64:
                     print('too many neurons, added 1x1 convolution')
                     model.add(
                         layers.Conv2D(model.layers[-1].output_shape[-1] // 2, kernel_size=(1, 1), activation='relu',
                                       strides=(1, 1)))
+                    if batch_norm:
+                        model.add(layers.BatchNormalization())
                 else:
                     print('too many neurons, added max pooling')
                     model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
