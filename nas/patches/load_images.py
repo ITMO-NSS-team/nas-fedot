@@ -14,7 +14,7 @@ from nas.patches.utils import project_root
 root = project_root()
 
 
-def load_images(file_path, size=120, number_of_classes=10):
+def load_images(file_path, size=120, number_of_classes=10, per_class_limit=None):
     if number_of_classes == 10:
         with open(os.path.join(root, 'dataset_files', 'labels_10.json'), 'r') as fp:
             labels_dict = json.load(fp)
@@ -32,20 +32,41 @@ def load_images(file_path, size=120, number_of_classes=10):
 
     files = [f for f in os.listdir(file_path) if isfile(join(file_path, f))]
     files.sort()
+    encountered_targets_count = {} if per_class_limit is not None else None
     for filename in files:
         image = cv2.imread(join(file_path, filename))
         image = cv2.resize(image, (size, size))
-        images_array.append(image)
         label_names = labels_dict[filename[:-4]]
-        each_file_labels = [0 for _ in range(number_of_classes)]
         for name in label_names:
             num_label = encoded_labels[name]
-            each_file_labels[num_label] = 1
-        labels_array.append(each_file_labels)
+            if encountered_targets_count is not None:
+                if name not in encountered_targets_count:
+                    encountered_targets_count[name] = 1
+                elif encountered_targets_count[name] >= per_class_limit:
+                    continue
+                else:
+                    encountered_targets_count[name] += 1
+                images_array.append(image)
+                labels_array.append(num_label)
     images_array = np.array(images_array)
     labels_array = np.array(labels_array)
-
     return images_array, labels_array
+
+
+def data2pickle(path, num_of_classes, per_class_limit=None, save=True):
+    """
+    Convert dataset to pickle format with given limit of samples per class
+    """
+    x_arr, y_arr = load_images(path, number_of_classes=num_of_classes, per_class_limit=per_class_limit)
+    dataset = []
+    dataset.extend([x_arr, y_arr])
+    if per_class_limit is not None:
+        output_path = os.path.join(root, 'datasets', f'{per_class_limit}_samples_per_class_{path[17:]}.pickle')
+    else:
+        os.path.join(root, 'datasets', f'{path[17:]}.pickle')
+    if save:
+        with open(output_path, 'wb') as pickle_data:
+            pickle.dump(dataset, pickle_data)
 
 
 def from_pickle(path):
@@ -54,10 +75,11 @@ def from_pickle(path):
     return images_array, labels_array
 
 
-def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum.classification):
+def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum.classification, per_class_limit=None):
     _, extension = os.path.splitext(file_path)
     if not extension:
-        images, labels = load_images(file_path, size=120, number_of_classes=num_classes)
+        images, labels = load_images(file_path, size=120, number_of_classes=num_classes,
+                                     per_class_limit=per_class_limit)
     elif extension == '.pickle':
         images, labels = from_pickle(file_path)
     else:
@@ -69,3 +91,9 @@ def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum
     validation_input_data = Data.from_image(images=images_val, labels=labels_val, task=task)
 
     return train_input_data, validation_input_data
+
+
+if __name__ == '__main__':
+    print('Converting dataset to pickle...')
+    dataset_path = os.path.join('D:/work/datasets/Generated_dataset')
+    data2pickle(dataset_path, 3, 15)

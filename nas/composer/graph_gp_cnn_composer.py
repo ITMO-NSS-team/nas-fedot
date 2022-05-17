@@ -145,8 +145,7 @@ class NNGraph(OptGraph):
     def free_nodes(self):
         free_nodes = []
         skip_connections_start_nodes = set()
-        reversed_graph = deepcopy(self.graph_struct)[::-1]
-        for node in reversed_graph:
+        for node in self.graph_struct[::-1]:
             if len(skip_connections_start_nodes) == 0:
                 free_nodes.append(node)
             is_skip_connection_end = len(node.nodes_from) > 1

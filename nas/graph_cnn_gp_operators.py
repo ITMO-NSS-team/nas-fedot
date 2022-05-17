@@ -2,7 +2,7 @@ import random
 from math import floor
 from typing import (Tuple, List, Any, Callable)
 
-
+VERBOSE_VAL = {0: -1, 1: 1}
 BATCH_NORM_PROB = 0.4
 DEFAULT_NODES_PARAMS = {
     'conv2d': {'layer_type': 'conv2d', 'activation': 'relu', 'kernel_size': (3, 3),
@@ -125,12 +125,13 @@ def conv_output_shape(node, image_size):
     return image_size
 
 
-def generate_static_graph(graph: 'NNGraph', node_func: Callable, node_list: List, has_skip_connections: bool = False,
-                          skip_connections_id: List[int] = None, shortcuts_len: int = None) -> 'NNGraph':
+def generate_static_graph(graph_class: 'NNGraph', node_func: Callable, node_list: List,
+                          has_skip_connections: bool = False, skip_connections_id: List[int] = None,
+                          shortcuts_len: int = None) -> 'NNGraph':
     """
     Method for initial graph generation from defined nodes list.
 
-    :param graph: Initial graph class
+    :param graph_class: Initial graph class
     :param node_func: Node class
     :param node_list: list of nodes to graph generation
     :param has_skip_connections: is graph has skip connections. If True, skip connections will be
@@ -158,6 +159,7 @@ def generate_static_graph(graph: 'NNGraph', node_func: Callable, node_list: List
             else:
                 print('Wrong connection. Connection dropped.')
 
+    graph = graph_class()
     created_node = None
     is_conv = False
     for node in node_list:
@@ -169,16 +171,17 @@ def generate_static_graph(graph: 'NNGraph', node_func: Callable, node_list: List
     return graph
 
 
+# TODO optimize skip connections for both cases
 def add_skip_connections(graph: 'NNGraph'):
     """
-    Add random skip connection to given graph
+    Add random skip connection to given graph_class
 
-    :param graph: initial graph
+    :param graph: initial graph_class
     """
     skip_list = ['flatten', 'dropout', 'serial_connection']
     max_depth = len(graph.nodes)
-    skip_connection_nodes_num = random.randint(0, max_depth - 1)
-    skip_connection_prob = 0.35
+    skip_connection_nodes_num = random.randint(0, max_depth // 2)
+    skip_connection_prob = 0.2
     for _ in range(skip_connection_nodes_num):
         was_flatten = False
         for node_id in range(max_depth - 1):
@@ -200,9 +203,9 @@ def add_skip_connections(graph: 'NNGraph'):
 
 def random_conv_graph_generation(graph_class: Callable, node_func: Callable, requirements) -> 'NNGraph':
     """
-    Method for random graph generation with given requirements
+    Method for random graph_class generation with given requirements
 
-    :param graph_class: type of graph to generate
+    :param graph_class: type of graph_class to generate
     :param node_func: type of generated node
     :param requirements: list of requirements to nodes
     """
@@ -210,10 +213,10 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
     def _random_cnn(max_num_of_conv: int = None,
                     min_num_of_conv: int = None, image_size: List[float] = None, parent_nodes: Any = None):
         """
-        Method for generation convolutional part of the graph
+        Method for generation convolutional part of the graph_class
 
-        :param max_num_of_conv: max number of nodes in conv part of the graph
-        :param min_num_of_conv: min number of nodes in conv part of the graph
+        :param max_num_of_conv: max number of nodes in conv part of the graph_class
+        :param min_num_of_conv: min number of nodes in conv part of the graph_class
         :param image_size: input image size
         :param parent_nodes: node from conv part will grow
         """
@@ -228,6 +231,8 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
 
         def _growth_conv_node(node_parent: Any = None, depth: int = None, img_size: List[float] = None):
             depth = 0 if depth is None else depth
+            # TODO add nodes from to node creation func;
+            #  also add skip connection creation which can be turned on and off
             nodes_from = None if node_parent is None else [node_parent]
             new_node, img_size = create_conv2d_node(node_func=node_func, requirements=requirements,
                                                     image_size=img_size)
@@ -264,7 +269,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
 
     def _random_nn(root_node: Any = None, max_depth: int = None):
         """
-        Method that generates dense part of the graph
+        Method that generates dense part of the graph_class
 
         :param root_node: parent node where dense part starts grow from
         :param max_depth: max number of nodes in dense part
@@ -309,7 +314,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
     graph = graph_class()
     _random_cnn()
     _random_nn(root_node=graph.nodes[-1])
-    add_skip_connections(graph)
+    # add_skip_connections(graph_class)
 
     if not hasattr(graph, 'parent_operators'):
         setattr(graph, 'parent_operators', [])

@@ -31,10 +31,11 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None):
+def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None, per_class_limit=None):
     size = 120
     num_of_classes = 3
-    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes)
+    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
+                                                          per_class_limit=per_class_limit)
 
     if not timeout:
         timeout = datetime.timedelta(hours=20)
@@ -68,8 +69,9 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
-    print('save best graph structure...')
-    optimiser.save(save_folder='../graph_patches', history=True, image=True)
+    print('save best graph_class structure...')
+    save_path = os.path.join(root, 'graph_patches')
+    optimiser.save(save_folder=save_path, history=True, image=True)
 
     print('Best model structure:')
     for node in optimized_network.nodes:
@@ -97,7 +99,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    path = os.path.join(root, 'compress_Generated_dataset.pickle')
+    path = os.path.join(root, 'datasets', 'Generated_dataset')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
-    run_patches_classification(file_path=path, epochs=20)
+    run_patches_classification(file_path=path, epochs=20, per_class_limit=30)

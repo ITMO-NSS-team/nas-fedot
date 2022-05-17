@@ -26,13 +26,15 @@ from nas.graph_cnn_gp_operators import generate_static_graph
 root = project_root()
 
 
-def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None, epochs: int = 1):
+def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None, epochs: int = 1,
+                                  per_class_limit=None):
     if not timeout:
         timeout = datetime.timedelta(hours=20)
 
     size = 120
     num_of_classes = 3
-    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes)
+    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
+                                                          per_class_limit=per_class_limit)
 
     cnn_node_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
@@ -43,16 +45,16 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    nodes_list = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'dropout', 'flatten',
-                  'dense', 'dropout', 'dense', 'dropout', 'dense']
+    nodes_list = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
+                  'dense', 'dense']
     skip_connection_ids = [0, 4, 8]
     skip_connections_len = 4
-    initial_graph = NNGraph()
-    initial_graph = generate_static_graph(graph=initial_graph, node_func=NNNode,
+    initial_graph = generate_static_graph(graph_class=NNGraph, node_func=NNNode,
                                           node_list=nodes_list,
                                           has_skip_connections=True,
                                           skip_connections_id=skip_connection_ids,
                                           shortcuts_len=skip_connections_len)
+    initial_graph.fit(dataset_to_compose, False, (size, size, 3))
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
@@ -75,7 +77,8 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
-    optimiser.save(save_folder='../test_graph', history=True, image=True)
+    save_path = os.path.join(root, 'test_graph')
+    optimiser.save(save_folder=save_path, history=True, image=True)
 
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
                           epochs=epochs, classes=num_of_classes, verbose=True)
@@ -89,6 +92,6 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
 
 
 if __name__ == '__main__':
-    file_path = os.path.join(root, 'compress_Generated_dataset.pickle')
+    file_path = os.path.join(root, 'datasets', 'Generated_dataset.pickle')
     set_tf_compat()
     start_example_with_init_graph(file_path=file_path, epochs=1)

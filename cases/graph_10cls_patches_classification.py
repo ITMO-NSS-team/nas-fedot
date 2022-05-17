@@ -29,10 +29,11 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int, timeout: datetime.timedelta = None):
+def run_patches_classification(file_path, epochs: int, timeout: datetime.timedelta = None, per_class_limit=None):
     size = 120
     num_of_classes = 10
-    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes)
+    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
+                                                          per_class_limit=per_class_limit)
 
     if not timeout:
         timeout = datetime.timedelta(hours=20)
@@ -65,13 +66,15 @@ def run_patches_classification(file_path, epochs: int, timeout: datetime.timedel
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
-    optimized_network.show(path='../graph_10_cls_result.png')
     print('Best model structure:')
     for node in optimized_network.nodes:
         print(node)
     optimized_network = graph_generation_params.adapter.restore(optimized_network)
-    optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
-                          epochs=epochs, classes=num_of_classes, verbose=True)
+    print('Save best model structure...')
+    save_path = os.path.join(root, 'graph_10cls')
+    optimiser.save(save_path, history=True, image=True)
+    optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3), epochs=epochs,
+                          classes=num_of_classes, verbose=True)
     # The quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, dataset_to_validate)
@@ -92,7 +95,7 @@ def run_patches_classification(file_path, epochs: int, timeout: datetime.timedel
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    file_path = os.path.join(root, '10cls_Generated_dataset.pickle')
+    file_path = os.path.join(root, 'datasets', '10cls_Generated_dataset')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
-    run_patches_classification(file_path=file_path, epochs=1)
+    run_patches_classification(file_path=file_path, epochs=1, per_class_limit=15)
