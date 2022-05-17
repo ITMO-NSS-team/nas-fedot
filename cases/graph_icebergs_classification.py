@@ -24,8 +24,8 @@ from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, fl
 from nas.composer.metrics import calculate_validation_metric
 
 root = project_root()
-random.seed(177013)
-np.random.seed(177013)
+random.seed(17)
+np.random.seed(17)
 
 
 def run_custom_example(filepath: str, epochs: int, verbose: int = 1, timeout: datetime.timedelta = None):
