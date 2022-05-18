@@ -18,3 +18,19 @@ def test_validation():
         if not successful_generation:
             break
     assert successful_generation
+
+
+def test_has_no_flatten_skip():
+    raise NotImplementedError
+
+
+def test_graph_has_wrong_structure():
+    raise NotImplementedError
+
+
+def test_flatten_check():
+    raise NotImplementedError
+
+
+def test_cnn_mutation():
+    raise NotImplementedError

@@ -1,6 +1,5 @@
 from random import random, choice
 from typing import Any
-from copy import deepcopy
 
 from fedot.core.dag.validation_rules import ERROR_PREFIX
 from fedot.core.optimisers.optimizer import GraphGenerationParams

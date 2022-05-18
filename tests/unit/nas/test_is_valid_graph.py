@@ -4,7 +4,7 @@ from nas.graph_cnn_gp_operators import random_conv_graph_generation, generate_st
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
 
-from nas.graph_cnn_mutations import has_no_flatten_skip, flatten_check
+from nas.graph_cnn_mutations import has_no_flatten_skip, flatten_check, graph_has_wrong_structure
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.dag.graph_operator import GraphOperator
 
@@ -35,7 +35,8 @@ def test_random_graph_generation():
     for _ in range(100):
         graph = random_conv_graph_generation(NNGraph, NNNode, requirements)
         if not successful_generation:
-            for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes]:
+            for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
+                        graph_has_wrong_structure, has_no_self_cycled_nodes]:
                 try:
                     successful_generation = val(graph)
                 except ValueError:
@@ -50,7 +51,8 @@ def test_static_graph_generation():
     graph = generate_static_graph(NNGraph, NNNode, NODE_LIST)
     successful_generation = False
     if not successful_generation:
-        for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes]:
+        for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
+                    graph_has_wrong_structure, has_no_self_cycled_nodes]:
             try:
                 successful_generation = val(graph)
             except ValueError:
@@ -61,3 +63,4 @@ def test_static_graph_generation():
 
 def test_is_graph_valid():
     static_graph = generate_static_graph(NNGraph, NNNode, NODE_LIST)
+    assert True
