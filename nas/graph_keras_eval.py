@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow
 
 from typing import Any
 
@@ -33,30 +34,30 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
                     epochs: int = 10):
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('../models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
-    reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7, verbose=1, epsilon=1e-4, mode='min')
+    reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
+                                       verbose=1, min_delta=1e-4, mode='min')
     if input_data.num_classes == 2:
         encoded_targets = input_data.target
     else:
-        encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes)
+        encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes, dtype='int')
+    multiclass = input_data.num_classes > 2
     model.fit(input_data.features, encoded_targets,
               batch_size=batch_size,
               epochs=epochs,
               verbose=verbose,
               validation_split=0.2,
               callbacks=[early_stopping, reduce_lr_loss, mcp_save])
-    return keras_model_predict(model, input_data)
+    return keras_model_predict(model, input_data, is_multiclass=multiclass)
 
 
 def keras_model_predict(model, input_data: InputData, output_mode: str = 'default',
                         is_multiclass: bool = False) -> OutputData:
+    evaluation_result = model.predict(input_data.features)
     if output_mode == 'label':
-        evaluation_result = model.predict_on_batch(input_data.features)
-        # evaluation_result = _keras_model_prob2labels(predictions=evaluation_result, is_multiclass=is_multiclass)
-        evaluation_result = np.argmax(evaluation_result, axis=1)
-    elif output_mode == 'default':
-        evaluation_result = model.predict_on_batch(input_data.features)
-    else:
-        raise ValueError('Wrong mode')
+        if is_multiclass:
+            evaluation_result = np.argmax(evaluation_result, axis=1)
+        else:
+            evaluation_result = np.where(evaluation_result > 0.5, 1, 0)
     return OutputData(idx=input_data.idx,
                       features=input_data.features,
                       predict=evaluation_result,
@@ -106,5 +107,5 @@ def create_nn_model(graph: Any, input_shape: tuple, classes: int = 3):
     outputs = dense(in_layer)
     model = keras.Model(inputs=inputs, outputs=outputs, name='custom_model')
     model.compile(loss=loss_func, optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
-    model.summary()
+    # model.summary()
     return model

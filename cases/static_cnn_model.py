@@ -1,6 +1,8 @@
 import os
 import datetime
 
+from keras.engine.sequential import relax_input_shape
+
 from nas.patches.utils import project_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
@@ -26,13 +28,11 @@ from nas.graph_cnn_gp_operators import generate_static_graph
 root = project_root()
 
 
-def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = None, epochs: int = 1,
-                                  per_class_limit=None):
-    if not timeout:
-        timeout = datetime.timedelta(hours=20)
-
+def start_example_with_init_graph(file_path: str, epochs: int = 1, timeout: datetime.timedelta = None,
+                                  per_class_limit: int = None):
     size = 120
     num_of_classes = 3
+    timeout = datetime.timedelta(hours=20) if not timeout else timeout
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
                                                           per_class_limit=per_class_limit)
 
@@ -54,7 +54,6 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
                                           has_skip_connections=True,
                                           skip_connections_id=skip_connection_ids,
                                           shortcuts_len=skip_connections_len)
-    initial_graph.fit(dataset_to_compose, False, (size, size, 3))
     requirements = GPNNComposerRequirements(
         conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
@@ -92,6 +91,6 @@ def start_example_with_init_graph(file_path: str, timeout: datetime.timedelta = 
 
 
 if __name__ == '__main__':
-    file_path = os.path.join(root, 'datasets', 'Generated_dataset.pickle')
+    file_path = os.path.join(root, 'datasets', 'Generated_dataset')
     set_tf_compat()
     start_example_with_init_graph(file_path=file_path, epochs=1)

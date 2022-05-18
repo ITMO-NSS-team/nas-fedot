@@ -29,14 +29,13 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int, timeout: datetime.timedelta = None, per_class_limit=None):
+def run_patches_classification(file_path, epochs: int = 1, timeout: datetime.timedelta = None,
+                               per_class_limit: int = None):
     size = 120
     num_of_classes = 10
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
                                                           per_class_limit=per_class_limit)
-
-    if not timeout:
-        timeout = datetime.timedelta(hours=20)
+    timeout = datetime.timedelta(hours=20) if not timeout else timeout
 
     secondary = ['serial_connection', 'dropout']
     conv_types = ['conv2d']

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import partial
 from copy import deepcopy
 from typing import (
+    Tuple,
     List,
     Any,
     Optional
@@ -21,8 +22,8 @@ from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 from fedot.core.serializers import Serializer
 from nas.layer import activation_types
-from nas.graph_cnn_gp_operators import random_conv_graph_generation, permissible_kernel_parameters_correct
-from nas.var import DEFAULT_NODES_PARAMS
+from nas.graph_cnn_gp_operators import random_conv_graph_generation, permissible_kernel_parameters_correct, \
+    DEFAULT_NODES_PARAMS
 
 from fedot.core.optimisers.graph import OptGraph, OptNode
 
@@ -34,10 +35,10 @@ np.random.seed(1)
 
 @dataclass
 class GPNNComposerRequirements(PipelineComposerRequirements):
-    conv_kernel_size: List[int] = None
-    conv_strides: List[int] = None
-    pool_size: List[int] = None
-    pool_strides: List[int] = None
+    conv_kernel_size: Tuple[int, int] = (3, 3)
+    conv_strides: Tuple[int, int] = (1, 1)
+    pool_size: Tuple[int, int] = (2, 2)
+    pool_strides: Tuple[int, int] = (2, 2)
     min_num_of_neurons: int = 50
     max_num_of_neurons: int = 200
     min_filters: int = 64
@@ -48,8 +49,6 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     conv_types: List[str] = None
     cnn_secondary: List[str] = None
     pool_types: List[str] = None
-    primary: List[str] = None
-    secondary: List[str] = None
     train_epochs_num: int = 5
     batch_size: int = 32  # 72
     num_of_classes: int = 10
@@ -57,17 +56,8 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     max_num_of_conv_layers: int = 4
     min_num_of_conv_layers: int = 2
     max_nn_depth: int = 6
-    init_graph_with_skip_connections: bool = False
 
     def __post_init__(self):
-        if not self.conv_kernel_size:
-            self.conv_kernel_size = [3, 3]
-        if not self.conv_strides:
-            self.conv_strides = [1, 1]
-        if not self.pool_size:
-            self.pool_size = [2, 2]
-        if not self.pool_strides:
-            self.pool_strides = [2, 2]
         if not self.cnn_secondary:
             self.cnn_secondary = ['serial_connection', 'dropout']
         if not self.conv_types:
@@ -140,17 +130,6 @@ class CustomGraphAdapter(DirectAdapter):
         return obj
 
 
-class NNNodeOperatorAdapter:
-    def adapt(self, adaptee) -> OptNode:
-        adaptee.__class__ = OptNode
-        return adaptee
-
-    def restore(self, node) -> 'NNNode':
-        obj = node
-        obj.__class__ = NNNode
-        return obj
-
-
 class NNGraph(OptGraph):
     def __init__(self, nodes=None, fitted_model=None):
         super().__init__(nodes)
@@ -177,17 +156,13 @@ class NNGraph(OptGraph):
         return free_nodes
 
     @property
-    def _node_adapter(self):
-        return NNNodeOperatorAdapter()
-
-    @property
     def cnn_depth(self):
         for idx, node in enumerate(self.nodes):
             if node.content['name'] == 'flatten':
                 return idx
 
     def fit(self, input_data: InputData, verbose=False, input_shape: tuple = None,
-            classes: int = 3, batch_size=24, epochs=15):
+            min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
         if not self.model:
             self.model = create_nn_model(self, input_shape, classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=batch_size, epochs=epochs)
@@ -199,17 +174,9 @@ class NNGraph(OptGraph):
         return evaluation_result
 
     def save(self, path: str = None):
-        path = 'unnamed_graph' if path is None else path
         res = json.dumps(self, indent=4, cls=Serializer)
-        with open(f'{path}_optimized_graph.json', 'w') as f:
+        with open(f'{path}/optimized_graph.json', 'w') as f:
             f.write(res)
-
-    @staticmethod
-    def load(path: str) -> 'NNGraph':
-        """load graph from json file"""
-        with open(path, 'r') as json_file:
-            json_data = json_file.read()
-            return json.loads(json_data, cls=Serializer)
 
     @property
     def graph_struct(self):
@@ -249,7 +216,11 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                                                  graph_class=NNGraph,
                                                  requirements=self.requirements,
                                                  node_func=NNNode)
-        self.population = initial_graph or self._make_population(self.requirements.pop_size)
+
+        if initial_graph and type(initial_graph) != list:
+            self.population = [initial_graph] * requirements.pop_size
+        else:
+            self.population = initial_graph or self._make_population(self.requirements.pop_size)
 
     def save(self, save_folder: str = None, history: bool = True, image: bool = True):
         print(f'Saving files into {os.path.abspath(save_folder)}')
@@ -261,9 +232,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
             graph = self.best_individual.graph
         graph.save(path=save_folder)
         if history:
-            self.history.save(json_file_path=f'{save_folder}_opt_history.json')
+            self.history.save(json_file_path=f'{save_folder}/opt_history.json')
         if image:
-            graph.show(path=f'{save_folder}_optimized_graph.png')
+            graph.show(path=f'{save_folder}/optimized_graph.png')
 
     def _make_population(self, pop_size: int):
         initial_graphs = [self.graph_generation_function() for _ in range(pop_size)]
@@ -276,8 +247,12 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
-        graph.fit(train_data, True, input_shape, train_data.num_classes, batch_size, epochs)
-        return [metric_function(graph, test_data)]
+        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        # return [metric_function(graph, test_data)]
+        if len(graph.free_nodes) < 4 and len(graph.nodes) > 4:
+            return [-len(graph.nodes)]
+        else:
+            return [len(graph.nodes)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
