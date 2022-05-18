@@ -6,6 +6,10 @@ from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
 
 from nas.graph_cnn_mutations import has_no_flatten_skip, flatten_check
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
+from fedot.core.dag.graph_operator import GraphOperator
+
+NODE_LIST = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'dropout', 'flatten',
+             'dense', 'dropout', 'dense', 'dropout', 'dense']
 
 
 def load_data_and_req():
@@ -43,9 +47,7 @@ def test_random_graph_generation():
 
 
 def test_static_graph_generation():
-    node_list = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'dropout', 'flatten',
-                 'dense', 'dropout', 'dense', 'dropout', 'dense']
-    graph = generate_static_graph(NNGraph, NNNode, node_list)
+    graph = generate_static_graph(NNGraph, NNNode, NODE_LIST)
     successful_generation = False
     if not successful_generation:
         for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes]:
@@ -55,3 +57,7 @@ def test_static_graph_generation():
                 continue
     assert successful_generation
     assert type(graph) == NNGraph
+
+
+def test_is_graph_valid():
+    static_graph = generate_static_graph(NNGraph, NNNode, NODE_LIST)

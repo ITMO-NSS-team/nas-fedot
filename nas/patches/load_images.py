@@ -46,8 +46,8 @@ def load_images(file_path, size=120, number_of_classes=10, per_class_limit=None)
                     continue
                 else:
                     encountered_targets_count[name] += 1
-                images_array.append(image)
-                labels_array.append(num_label)
+            images_array.append(image)
+            labels_array.append(num_label)
     images_array = np.array(images_array)
     labels_array = np.array(labels_array)
     return images_array, labels_array

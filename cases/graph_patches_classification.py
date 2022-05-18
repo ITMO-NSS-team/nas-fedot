@@ -19,7 +19,7 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, graph_has_wrong_structure
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
 from nas.composer.metrics import calculate_validation_metric
@@ -31,20 +31,18 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None, per_class_limit=None):
+def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None,
+                               per_class_limit: int = None):
     size = 120
     num_of_classes = 3
+    timeout = datetime.timedelta(hours=20) if not timeout else timeout
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
                                                           per_class_limit=per_class_limit)
-
-    if not timeout:
-        timeout = datetime.timedelta(hours=20)
-
     secondary = ['serial_connection', 'dropout']
     conv_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check, graph_has_wrong_structure]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
@@ -82,7 +80,7 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
 
     # the quality assessment for the obtained composite models
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-        calculate_validation_metric(optimized_network, dataset_to_validate, is_multiclass=False)
+        calculate_validation_metric(optimized_network, dataset_to_validate)
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed Accuracy is {round(accuracy_score_on_valid_evo_composed, 3)}')
@@ -102,4 +100,4 @@ if __name__ == '__main__':
     path = os.path.join(root, 'datasets', 'Generated_dataset')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
-    run_patches_classification(file_path=path, epochs=20, per_class_limit=30)
+    run_patches_classification(file_path=path, epochs=20)

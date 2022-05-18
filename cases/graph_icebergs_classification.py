@@ -56,7 +56,7 @@ def run_custom_example(filepath: str, epochs: int, verbose: int = 1, timeout: da
         max_num_of_neurons=128, min_filters=16, max_filters=64, image_size=[75, 75],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
         primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,
-        max_nn_depth=6, pop_size=20, num_of_generations=5,
+        max_nn_depth=6, pop_size=40, num_of_generations=10,
         crossover_prob=0, mutation_prob=0,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     optimiser = GPNNGraphOptimiser(

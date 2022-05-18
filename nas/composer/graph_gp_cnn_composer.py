@@ -50,7 +50,7 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     cnn_secondary: List[str] = None
     pool_types: List[str] = None
     train_epochs_num: int = 5
-    batch_size: int = 72
+    batch_size: int = 32  # 72
     num_of_classes: int = 10
     activation_types = activation_types
     max_num_of_conv_layers: int = 4
@@ -187,7 +187,7 @@ class NNGraph(OptGraph):
 
 
 class NNNode(OptNode):
-    def __init__(self, content: dict, nodes_from: Optional[List['NNNode']]):
+    def __init__(self, content: dict, nodes_from: Optional[List['NNNode']] = None):
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from
         if 'params' in content:
@@ -247,8 +247,12 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
-        graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        return [metric_function(graph, test_data)]
+        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
+        # return [metric_function(graph, test_data)]
+        if len(graph.free_nodes) < 4 and len(graph.nodes) > 4:
+            return [-len(graph.nodes)]
+        else:
+            return [len(graph.nodes)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
