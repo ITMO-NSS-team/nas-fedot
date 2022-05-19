@@ -11,8 +11,8 @@ root = project_root()
 def generate_graph():
     nodes_list = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                   'dense', 'dense']
-    graph = generate_initial_graph(NNGraph, NNNode, nodes_list, has_skip_connections=True, skip_connections_id=[0, 4, 8],
-                                   shortcuts_len=4)
+    graph = generate_initial_graph(NNGraph, NNNode, nodes_list, has_skip_connections=True,
+                                   skip_connections_id=[0, 4, 8], shortcuts_len=4)
     return graph
 
 
