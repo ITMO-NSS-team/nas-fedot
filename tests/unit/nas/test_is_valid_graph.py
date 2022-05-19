@@ -1,15 +1,15 @@
 import datetime
-
-from nas.graph_cnn_gp_operators import random_conv_graph_generation, generate_static_graph
+import os
+from nas.var import TESTING_ROOT
+from nas.graph_cnn_gp_operators import random_conv_graph_generation, generate_initial_graph
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
 
 from nas.graph_cnn_mutations import has_no_flatten_skip, flatten_check, graph_has_wrong_structure
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
-from fedot.core.dag.graph_operator import GraphOperator
 
-NODE_LIST = ['conv2d', 'dropout', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'dropout', 'flatten',
-             'dense', 'dropout', 'dense', 'dropout', 'dense']
+NODES_LIST = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
+              'dense', 'dense']
 
 
 def load_data_and_req():
@@ -19,7 +19,7 @@ def load_data_and_req():
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
     requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
+        conv_kernel_size=[3, 3], conv_strides=[1, 1], pool_size=[2, 2], min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=64, image_size=[75, 75],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
         primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,
@@ -29,38 +29,43 @@ def load_data_and_req():
     return requirements
 
 
-def test_random_graph_generation():
+def test_static_graph_params_and_generation():
+    loaded_static_graph = NNGraph.load(os.path.join(TESTING_ROOT, 'static_graph.json'))
+    generated_static_graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST, False)
+    assert loaded_static_graph.operator.is_graph_equal(generated_static_graph)
+
+
+def test_random_graph_params_and_generation():
+    loaded_random_graph = NNGraph.load(os.path.join(TESTING_ROOT, 'random_graph.json'))
+    generated_random_graph = random_conv_graph_generation(NNGraph, NNNode,
+                                                          GPNNComposerRequirements(image_size=[120, 120]))
+    assert loaded_random_graph.operator.is_graph_equal(generated_random_graph)
+
+
+def test_graph_validation_rules():
     requirements = load_data_and_req()
-    successful_generation = False
-    for _ in range(100):
+    successful_validation = False
+    for _ in range(1000):
         graph = random_conv_graph_generation(NNGraph, NNNode, requirements)
-        if not successful_generation:
-            for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
-                        graph_has_wrong_structure, has_no_self_cycled_nodes]:
-                try:
-                    successful_generation = val(graph)
-                except ValueError:
-                    continue
-        else:
-            break
-    assert successful_generation
-    assert type(graph) == NNGraph
+        for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
+                    graph_has_wrong_structure, has_no_self_cycled_nodes]:
+            try:
+                val(graph)
+            except ValueError:
+                successful_validation = True
+    assert successful_validation
 
 
 def test_static_graph_generation():
-    graph = generate_static_graph(NNGraph, NNNode, NODE_LIST)
+    graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST)
     successful_generation = False
     if not successful_generation:
         for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
                     graph_has_wrong_structure, has_no_self_cycled_nodes]:
-            try:
-                successful_generation = val(graph)
-            except ValueError:
-                continue
-    assert successful_generation
-    assert type(graph) == NNGraph
+            assert val(graph)
 
 
-def test_is_graph_valid():
-    static_graph = generate_static_graph(NNGraph, NNNode, NODE_LIST)
-    assert True
+def test_graph_has_right_dtype():
+    for _ in range(100):
+        graph = random_conv_graph_generation(NNGraph, NNNode, GPNNComposerRequirements(image_size=[120, 120]))
+        assert type(graph) == NNGraph

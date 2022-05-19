@@ -1,9 +1,9 @@
 import os
 import datetime
+from typing import List
 
-from keras.engine.sequential import relax_input_shape
-
-from nas.patches.utils import project_root, set_tf_compat
+from nas.var import PROJECT_ROOT
+from nas.patches.utils import set_tf_compat, set_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
@@ -23,13 +23,14 @@ from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutatio
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, \
     graph_has_wrong_structure
 from nas.composer.metrics import calculate_validation_metric
-from nas.graph_cnn_gp_operators import generate_static_graph
+from nas.graph_cnn_gp_operators import generate_initial_graph
 
-root = project_root()
+root = PROJECT_ROOT
+set_root(root)
 
 
-def start_example_with_init_graph(file_path: str, epochs: int = 1, timeout: datetime.timedelta = None,
-                                  per_class_limit: int = None):
+def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph_struct: List[str] = None,
+                                  timeout: datetime.timedelta = None, per_class_limit: int = None):
     size = 120
     num_of_classes = 3
     timeout = datetime.timedelta(hours=20) if not timeout else timeout
@@ -45,17 +46,10 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, timeout: date
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    nodes_list = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
-                  'dense', 'dense']
     skip_connection_ids = [0, 4, 8]
     skip_connections_len = 4
-    initial_graph = generate_static_graph(graph_class=NNGraph, node_func=NNNode,
-                                          node_list=nodes_list,
-                                          has_skip_connections=True,
-                                          skip_connections_id=skip_connection_ids,
-                                          shortcuts_len=skip_connections_len)
     requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
+        conv_kernel_size=[3, 3], conv_strides=[1, 1], pool_size=[2, 2], min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
         conv_types=cnn_node_types, pool_types=pool_types, cnn_secondary=secondary_node_types,
         primary=nn_node_types, secondary=secondary_node_types, min_arity=2, max_arity=3,
@@ -68,7 +62,14 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, timeout: date
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules
     )
-
+    if initial_graph_struct:
+        initial_graph = generate_initial_graph(graph_class=NNGraph, node_func=NNNode,
+                                               node_list=initial_graph_struct, requirements=requirements,
+                                               has_skip_connections=True,
+                                               skip_connections_id=skip_connection_ids,
+                                               shortcuts_len=skip_connections_len)
+    else:
+        initial_graph = None
     optimiser = GPNNGraphOptimiser(
         initial_graph=[initial_graph], requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
@@ -91,6 +92,8 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, timeout: date
 
 
 if __name__ == '__main__':
-    file_path = os.path.join(root, 'datasets', 'Generated_dataset')
+    file_path = os.path.join(PROJECT_ROOT, 'datasets', 'Generated_dataset')
+    initial_graph_struct = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
+                            'dense', 'dense']
     set_tf_compat()
-    start_example_with_init_graph(file_path=file_path, epochs=1)
+    start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=None)

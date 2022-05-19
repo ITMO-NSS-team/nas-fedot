@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 
 from nas.patches.utils import project_root, set_tf_compat
-from nas.graph_cnn_gp_operators import VERBOSE_VAL
+from nas.var import VERBOSE_VAL
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode, CustomGraphAdapter
 from nas.cnn_data import from_json

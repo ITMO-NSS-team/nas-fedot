@@ -3,8 +3,8 @@ import random
 import datetime
 
 import numpy as np
-
-from nas.patches.utils import set_root, project_root, set_tf_compat
+from nas.var import PROJECT_ROOT
+from nas.patches.utils import set_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode, CustomGraphAdapter
@@ -23,7 +23,7 @@ from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutatio
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check
 from nas.composer.metrics import calculate_validation_metric
 
-root = project_root()
+root = PROJECT_ROOT()
 set_root(root)
 random.seed(17)
 np.random.seed(17)

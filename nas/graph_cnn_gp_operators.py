@@ -2,60 +2,87 @@ import random
 from math import floor
 from typing import (Tuple, List, Any, Callable)
 
-VERBOSE_VAL = {0: -1, 'auto': 1}
-BATCH_NORM_PROB = 0.4
-DEFAULT_NODES_PARAMS = {
-    'conv2d': {'layer_type': 'conv2d', 'activation': 'relu', 'kernel_size': (3, 3),
-               'conv_strides': (2, 2), 'num_of_filters': 16, 'pool_size': (2, 2),
-               'pool_strides': (2, 2), 'pool_type': 'max_pool2d'},
-    'dropout': {'layer_type': 'dropout',
-                'drop': 0.2},
-    'batch_norm': {'layer_type': 'batch_normalization', 'epsilon': 0.001, 'momentum': 0.99},
-    'dense': {'activation': 'relu', 'layer_type': 'dense', 'neurons': 121},
-    'serial_connection': {'layer_type': 'serial_connection'},
-    'flatten': None}
+from nas.var import BATCH_NORM_PROB, DEFAULT_NODES_PARAMS
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
+    layer_params, _ = get_layer_params('flatten')
     flatten_node = node_func(nodes_from=[current_node],
                              content={'name': 'flatten', 'params': False})
     graph.add_node(flatten_node)
 
 
 def _add_batch_norm2node(node, requirements=None):
-    batch_norm_params = get_layer_params('batch_normalization', requirements)
+    batch_norm_params, _ = get_layer_params('batch_normalization', requirements)
     node.content['params'] = node.content['params'] | batch_norm_params
 
 
-def create_conv2d_node(node_func: Callable, requirements=None, image_size: List = None):
-    if requirements is not None:
-        conv_node_type = random.choice(requirements.conv_types)
-        activation = random.choice(requirements.activation_types).value
-        kernel_size = requirements.conv_kernel_size
-        conv_strides = requirements.conv_strides
-        num_of_filters = random.choice(requirements.filters)
-        pool_size = None
-        pool_strides = None
-        pool_type = None
+def _get_conv2d_requirements(requirements, image_size: List[int]):
+    conv_node_type = random.choice(requirements.conv_types)
+    activation = random.choice(requirements.activation_types).value
+    kernel_size = requirements.conv_kernel_size
+    conv_strides = requirements.conv_strides
+    num_of_filters = random.choice(requirements.filters)
+    image_size = requirements.image_size if image_size is None else image_size
+    pool_size = None
+    pool_strides = None
+    pool_type = None
+    if is_image_has_permissible_size(image_size, 2):
+        img_size = [output_dimension(image_size[i], requirements.pool_size[i], requirements.pool_strides[i]) for i
+                    in
+                    range(len(image_size))]
         if is_image_has_permissible_size(image_size, 2):
-            img_size = [output_dimension(image_size[i], requirements.pool_size[i], requirements.pool_strides[i]) for i
-                        in
-                        range(len(image_size))]
-            if is_image_has_permissible_size(image_size, 2):
-                img_size = [
-                    floor(output_dimension(img_size[i], requirements.pool_size[i], requirements.pool_strides[i]))
-                    for i in range(len(img_size))]
-                if is_image_has_permissible_size(img_size, 2):
-                    pool_size = requirements.pool_size
-                    pool_strides = requirements.pool_strides
-                    pool_type = random.choice(requirements.pool_types)
-        else:
-            return
-        layer_params = {'layer_type': conv_node_type, 'activation': activation, 'kernel_size': kernel_size,
-                        'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
-                        'pool_strides': pool_strides, 'pool_type': pool_type}
+            img_size = [
+                floor(output_dimension(img_size[i], requirements.pool_size[i], requirements.pool_strides[i]))
+                for i in range(len(img_size))]
+            if is_image_has_permissible_size(img_size, 2):
+                pool_size = requirements.pool_size
+                pool_strides = requirements.pool_strides
+                pool_type = random.choice(requirements.pool_types)
     else:
-        layer_params = get_layer_params('conv2d', requirements)
+        return
+    return {'layer_type': conv_node_type, 'activation': activation, 'kernel_size': kernel_size,
+            'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
+            'pool_strides': pool_strides, 'pool_type': pool_type}, img_size
+
+
+def create_conv2d_node(node_func: Callable, requirements=None, image_size: List[int] = None):
+    # if requirements is not None:
+    #     layer_params = _get_conv2d_requirements(requirements, image_size)
+    #     # conv_node_type = random.choice(requirements.conv_types)
+    #     # activation = random.choice(requirements.activation_types).value
+    #     # kernel_size = requirements.conv_kernel_size
+    #     # conv_strides = requirements.conv_strides
+    #     # num_of_filters = random.choice(requirements.filters)
+    #     # pool_size = None
+    #     # pool_strides = None
+    #     # pool_type = None
+    #     # if is_image_has_permissible_size(image_size, 2):
+    #     #     img_size = [output_dimension(image_size[i], requirements.pool_size[i], requirements.pool_strides[i]) for i
+    #     #                 in
+    #     #                 range(len(image_size))]
+    #     #     if is_image_has_permissible_size(image_size, 2):
+    #     #         img_size = [
+    #     #             floor(output_dimension(img_size[i], requirements.pool_size[i], requirements.pool_strides[i]))
+    #     #             for i in range(len(img_size))]
+    #     #         if is_image_has_permissible_size(img_size, 2):
+    #     #             pool_size = requirements.pool_size
+    #     #             pool_strides = requirements.pool_strides
+    #     #             pool_type = random.choice(requirements.pool_types)
+    #     # else:
+    #     #     return
+    #     # layer_params = {'layer_type': conv_node_type, 'activation': activation, 'kernel_size': kernel_size,
+    #     #                 'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
+    #     #                 'pool_strides': pool_strides, 'pool_type': pool_type}
+    # else:
+    if image_size is None:
+        if requirements is None:
+            img_size = [120, 120]
+        else:
+            img_size = requirements.image_size
+    else:
+        img_size = image_size
+    layer_params, img_size = get_layer_params('conv2d', requirements, img_size)
     new_node = node_func(content={'name': f'{layer_params["layer_type"]}',
                                   'params': layer_params}, nodes_from=None)
     if random.uniform(0, 1) > BATCH_NORM_PROB:
@@ -65,7 +92,7 @@ def create_conv2d_node(node_func: Callable, requirements=None, image_size: List 
 
 def create_secondary_node(node_func: Callable, requirements=None):
     new_node = random.choice(requirements.cnn_secondary)
-    layer_params = get_layer_params(new_node, requirements)
+    layer_params, _ = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
                          nodes_from=None)
     if random.uniform(0, 1) > BATCH_NORM_PROB:
@@ -75,7 +102,7 @@ def create_secondary_node(node_func: Callable, requirements=None):
 
 def create_primary_nn_node(node_func: Callable, requirements=None):
     new_node = random.choice(requirements.primary)
-    layer_params = get_layer_params(new_node, requirements)
+    layer_params, _ = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
                          nodes_from=None)
     if random.uniform(0, 1) > BATCH_NORM_PROB:
@@ -85,17 +112,20 @@ def create_primary_nn_node(node_func: Callable, requirements=None):
 
 def create_dropout_node(node_func: Callable, requirements=None):
     new_node = 'dropout'
-    layer_params = get_layer_params(new_node, requirements)
+    layer_params, _ = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'],
                                   'params': layer_params}, nodes_from=None)
     return new_node
 
 
-def get_layer_params(layer_type: str, requirements=None):
+def get_layer_params(layer_type: str, requirements=None, image_size: List[int] = None):
     if requirements is None:
-        return DEFAULT_NODES_PARAMS[layer_type]
+        layer_params = DEFAULT_NODES_PARAMS[layer_type]
+    elif layer_type == 'conv2d':
+        layer_params, image_size = _get_conv2d_requirements(requirements, image_size)
     else:
-        return _get_random_layer_params(layer_type, requirements)
+        layer_params = _get_random_layer_params(layer_type, requirements)
+    return layer_params, image_size
 
 
 def _get_random_layer_params(layer_type: str, requirements):
@@ -137,27 +167,28 @@ def conv_output_shape(node, image_size):
     return image_size
 
 
-def generate_static_graph(graph_class: 'NNGraph', node_func: Callable, node_list: List,
-                          has_skip_connections: bool = False, skip_connections_id: List[int] = None,
-                          shortcuts_len: int = None) -> 'NNGraph':
+def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_list: List, requirements = None,
+                           has_skip_connections: bool = False, skip_connections_id: List[int] = None,
+                           shortcuts_len: int = None) -> 'NNGraph':
     """
     Method for initial graph generation from defined nodes list.
 
     :param graph_class: Initial graph class
     :param node_func: Node class
-    :param node_list: list of nodes to graph generation
-    :param has_skip_connections: is graph has skip connections. If True, skip connections will be
+    :param node_list: List of nodes to graph generation
+    :param requirements: List of parameters with generation restrictions. If none then default params will be chosen
+    :param has_skip_connections: Is graph has skip connections. If True, skip connections will be
     added to graph after generation
-    :param skip_connections_id: indices of nodes where skip connection starts
-    :param shortcuts_len: len of skip connection's shortcut
+    :param skip_connections_id: Indices of nodes where skip connection starts
+    :param shortcuts_len: Len of skip connection's shortcut
     :return: graph:
     """
 
-    def _add_node_to_graph(node_type: str, node_params: dict = DEFAULT_NODES_PARAMS, parent_node=None):
+    def _add_node_to_graph(node_type: str, image_size: List[int] = None, parent_node=None):
         parent = None if not parent_node else [parent_node]
-        # is_conv_node = node_type.startswith('conv')
+        layer_params, image_size = get_layer_params(node_type, requirements, image_size)
         new_node = node_func(nodes_from=parent, content={'name': node_type,
-                                                         'params': node_params[node_type]})
+                                                         'params': layer_params})
         graph.add_node(new_node)
         return new_node
 
@@ -322,7 +353,8 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
     graph = graph_class()
     _random_cnn()
     _random_nn(root_node=graph.nodes[-1])
-    # add_skip_connections(graph_class)
+    if requirements.init_graph_with_skip_connections:
+        add_skip_connections(graph)
 
     if not hasattr(graph, 'parent_operators'):
         setattr(graph, 'parent_operators', [])
@@ -343,23 +375,23 @@ def one_side_parameters_correction(input_dimension: float, kernel_size: int, str
     return kernel_size, stride
 
 
-def permissible_kernel_parameters_correct(image_size: List[float], kernel_size: Tuple[int, int],
-                                          strides: Tuple[int, int],
-                                          pooling: bool) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+def permissible_kernel_parameters_correct(image_size: List[float], kernel_size: List[int],
+                                          strides: List[int],
+                                          pooling: bool) -> Tuple[List[int], List[int]]:
     is_strides_permissible = all([strides[i] < kernel_size[i] for i in range(len(strides))])
     is_kernel_size_permissible = all([kernel_size[i] < image_size[i] for i in range(len(strides))])
     if not is_strides_permissible:
         if pooling:
-            strides = (2, 2)
+            strides = [2, 2]
         else:
-            strides = (1, 1)
+            strides = [1, 1]
     if not is_kernel_size_permissible:
-        kernel_size = (2, 2)
+        kernel_size = [2, 2]
     return kernel_size, strides
 
 
-def kernel_parameters_correction(input_image_size: List[float], kernel_size: Tuple[int, int],
-                                 strides: Tuple[int, int], pooling: bool) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+def kernel_parameters_correction(input_image_size: List[float], kernel_size: List[int],
+                                 strides: List[int], pooling: bool) -> Tuple[List[int], List[int]]:
     kernel_size, strides = permissible_kernel_parameters_correct(input_image_size, kernel_size, strides, pooling)
     if len(set(input_image_size)) == 1:
         new_kernel_size, new_strides = one_side_parameters_correction(input_image_size[0], kernel_size[0],
