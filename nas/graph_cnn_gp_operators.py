@@ -47,34 +47,6 @@ def _get_conv2d_requirements(requirements, image_size: List[int]):
 
 
 def create_conv2d_node(node_func: Callable, requirements=None, image_size: List[int] = None):
-    # if requirements is not None:
-    #     layer_params = _get_conv2d_requirements(requirements, image_size)
-    #     # conv_node_type = random.choice(requirements.conv_types)
-    #     # activation = random.choice(requirements.activation_types).value
-    #     # kernel_size = requirements.conv_kernel_size
-    #     # conv_strides = requirements.conv_strides
-    #     # num_of_filters = random.choice(requirements.filters)
-    #     # pool_size = None
-    #     # pool_strides = None
-    #     # pool_type = None
-    #     # if is_image_has_permissible_size(image_size, 2):
-    #     #     img_size = [output_dimension(image_size[i], requirements.pool_size[i], requirements.pool_strides[i]) for i
-    #     #                 in
-    #     #                 range(len(image_size))]
-    #     #     if is_image_has_permissible_size(image_size, 2):
-    #     #         img_size = [
-    #     #             floor(output_dimension(img_size[i], requirements.pool_size[i], requirements.pool_strides[i]))
-    #     #             for i in range(len(img_size))]
-    #     #         if is_image_has_permissible_size(img_size, 2):
-    #     #             pool_size = requirements.pool_size
-    #     #             pool_strides = requirements.pool_strides
-    #     #             pool_type = random.choice(requirements.pool_types)
-    #     # else:
-    #     #     return
-    #     # layer_params = {'layer_type': conv_node_type, 'activation': activation, 'kernel_size': kernel_size,
-    #     #                 'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
-    #     #                 'pool_strides': pool_strides, 'pool_type': pool_type}
-    # else:
     if image_size is None:
         if requirements is None:
             img_size = [120, 120]
@@ -167,7 +139,7 @@ def conv_output_shape(node, image_size):
     return image_size
 
 
-def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_list: List, requirements = None,
+def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_list: List, requirements=None,
                            has_skip_connections: bool = False, skip_connections_id: List[int] = None,
                            shortcuts_len: int = None) -> 'NNGraph':
     """
