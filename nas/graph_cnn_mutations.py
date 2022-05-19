@@ -64,7 +64,7 @@ def cnn_simple_mutation(graph: Any, requirements, **kwargs) -> Any:
                                         'num_of_filters': choice(requirements.filters)}
                 else:
                     node_type = choice(requirements.secondary)
-                    new_layer_params = get_layer_params(node_type, requirements)
+                    new_layer_params, _ = get_layer_params(node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else [node.nodes_from[0]]
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],
@@ -76,7 +76,7 @@ def cnn_simple_mutation(graph: Any, requirements, **kwargs) -> Any:
         else:
             if random() < node_mutation_probability:
                 new_node_type = choice(secondary_nodes)
-                new_layer_params = get_layer_params(new_node_type, requirements)
+                new_layer_params, _ = get_layer_params(new_node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else node.nodes_from
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],

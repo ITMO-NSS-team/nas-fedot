@@ -1,10 +1,11 @@
 import os
 import random
 import datetime
+from typing import List
 
 import numpy as np
-
-from nas.patches.utils import project_root, set_tf_compat
+from nas.var import PROJECT_ROOT
+from nas.patches.utils import set_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
@@ -26,13 +27,14 @@ from nas.composer.metrics import calculate_validation_metric
 
 from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
 
-root = project_root()
+root = PROJECT_ROOT
+set_root(root)
 random.seed(17)
 np.random.seed(17)
 
 
 def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None,
-                               per_class_limit: int = None):
+                               per_class_limit: int = None, initial_graph: List[str] = None):
     size = 120
     num_of_classes = 3
     timeout = datetime.timedelta(hours=20) if not timeout else timeout

@@ -27,12 +27,12 @@
                     "pool_type": "max_pool2d"
                 }
             },
-            "uid": "37713394-1288-4846-ba46-cc15718c12e8",
+            "uid": "10e43e9d-c76b-47ec-ac86-0b799b5be40c",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "37713394-1288-4846-ba46-cc15718c12e8"
+                "10e43e9d-c76b-47ec-ac86-0b799b5be40c"
             ],
             "content": {
                 "name": "conv2d",
@@ -59,12 +59,12 @@
                     "pool_type": "max_pool2d"
                 }
             },
-            "uid": "5a9561c5-04ca-403b-8cf1-6368b949e590",
+            "uid": "dc8f8ab2-30aa-4bf5-aa71-8edac2e9cf73",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "5a9561c5-04ca-403b-8cf1-6368b949e590"
+                "dc8f8ab2-30aa-4bf5-aa71-8edac2e9cf73"
             ],
             "content": {
                 "name": "dropout",
@@ -73,13 +73,12 @@
                     "drop": 0.2
                 }
             },
-            "uid": "c4dd2752-9836-49ab-a273-f8e4ec81bd87",
+            "uid": "165cff2f-3fbe-4a33-a67d-7f024cd46ee2",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "c4dd2752-9836-49ab-a273-f8e4ec81bd87",
-                "37713394-1288-4846-ba46-cc15718c12e8"
+                "165cff2f-3fbe-4a33-a67d-7f024cd46ee2"
             ],
             "content": {
                 "name": "conv2d",
@@ -106,12 +105,12 @@
                     "pool_type": "max_pool2d"
                 }
             },
-            "uid": "8303152c-810e-4443-93a3-95151d2a082e",
+            "uid": "07de5c9e-bcb0-42f8-99c3-747113cc37ac",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "8303152c-810e-4443-93a3-95151d2a082e"
+                "07de5c9e-bcb0-42f8-99c3-747113cc37ac"
             ],
             "content": {
                 "name": "conv2d",
@@ -138,13 +137,12 @@
                     "pool_type": "max_pool2d"
                 }
             },
-            "uid": "29be2a3e-9eb9-40ca-97e5-940611be8ae4",
+            "uid": "46e553fd-8794-415d-8726-3e2ad954fa76",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "29be2a3e-9eb9-40ca-97e5-940611be8ae4",
-                "c4dd2752-9836-49ab-a273-f8e4ec81bd87"
+                "46e553fd-8794-415d-8726-3e2ad954fa76"
             ],
             "content": {
                 "name": "conv2d",
@@ -171,23 +169,23 @@
                     "pool_type": "max_pool2d"
                 }
             },
-            "uid": "720cf99b-e29c-4e3a-aaea-ed8f470a8475",
+            "uid": "04c025e3-0d70-4f7f-bc0e-a3fb00d2730e",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "720cf99b-e29c-4e3a-aaea-ed8f470a8475"
+                "04c025e3-0d70-4f7f-bc0e-a3fb00d2730e"
             ],
             "content": {
                 "name": "flatten",
                 "params": null
             },
-            "uid": "cc8eab26-18b0-416c-94b5-6b80c949378d",
+            "uid": "e92a1423-a7b5-4fcc-b36e-c7701658e706",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "cc8eab26-18b0-416c-94b5-6b80c949378d"
+                "e92a1423-a7b5-4fcc-b36e-c7701658e706"
             ],
             "content": {
                 "name": "dense",
@@ -197,12 +195,12 @@
                     "neurons": 121
                 }
             },
-            "uid": "e6a42cd1-e2e1-4335-bf2b-baf4860bca81",
+            "uid": "f47d17b3-e35e-443a-88fb-3ee70f55e9cb",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "e6a42cd1-e2e1-4335-bf2b-baf4860bca81"
+                "f47d17b3-e35e-443a-88fb-3ee70f55e9cb"
             ],
             "content": {
                 "name": "dropout",
@@ -211,12 +209,12 @@
                     "drop": 0.2
                 }
             },
-            "uid": "421a140d-f64d-4a0d-9b7f-66e4072685be",
+            "uid": "546271f9-4ca3-4e17-b7b5-1cace6c6d3d4",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "421a140d-f64d-4a0d-9b7f-66e4072685be"
+                "546271f9-4ca3-4e17-b7b5-1cace6c6d3d4"
             ],
             "content": {
                 "name": "dense",
@@ -226,12 +224,12 @@
                     "neurons": 121
                 }
             },
-            "uid": "48d96f1d-6ac9-47a1-b9bb-e052e91001f1",
+            "uid": "9b6ec958-1125-4a7f-bacd-7898913ba53e",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         },
         {
             "_nodes_from": [
-                "48d96f1d-6ac9-47a1-b9bb-e052e91001f1"
+                "9b6ec958-1125-4a7f-bacd-7898913ba53e"
             ],
             "content": {
                 "name": "dense",
@@ -241,7 +239,7 @@
                     "neurons": 121
                 }
             },
-            "uid": "54e1a544-c53b-4ea3-9050-29c128fbbc41",
+            "uid": "1399d0c2-464c-4594-8c03-ddf511a94c4b",
             "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
         }
     ],

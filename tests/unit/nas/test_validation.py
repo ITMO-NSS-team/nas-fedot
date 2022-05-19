@@ -1,11 +1,11 @@
 from nas.graph_cnn_mutations import has_no_flatten_skip, graph_has_wrong_structure, flatten_check
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
-from nas.graph_cnn_gp_operators import generate_static_graph
+from nas.graph_cnn_gp_operators import generate_initial_graph
 
 
 def generate_graph():
     nodes_list = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'flatten', 'dense', 'dropout', 'dense', 'dense']
-    graph = generate_static_graph(NNGraph, NNNode, nodes_list)
+    graph = generate_initial_graph(NNGraph, NNNode, nodes_list)
     return graph
 
 

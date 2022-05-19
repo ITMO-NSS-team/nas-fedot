@@ -1,6 +1,6 @@
 import os
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
-from nas.graph_cnn_gp_operators import generate_static_graph
+from nas.graph_cnn_gp_operators import generate_initial_graph
 from nas.graph_keras_eval import create_nn_model
 from keras.models import model_from_json
 from nas.patches.utils import project_root
@@ -11,8 +11,8 @@ root = project_root()
 def generate_graph():
     nodes_list = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                   'dense', 'dense']
-    graph = generate_static_graph(NNGraph, NNNode, nodes_list, has_skip_connections=True, skip_connections_id=[0, 4, 8],
-                                  shortcuts_len=4)
+    graph = generate_initial_graph(NNGraph, NNNode, nodes_list, has_skip_connections=True, skip_connections_id=[0, 4, 8],
+                                   shortcuts_len=4)
     return graph
 
 
