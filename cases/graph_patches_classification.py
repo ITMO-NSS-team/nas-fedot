@@ -10,12 +10,12 @@ from nas.patches.utils import set_root, set_tf_compat
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
 from nas.patches.load_images import from_images
+from nas.graph_cnn_gp_operators import generate_initial_graph
 from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.log import default_log
-from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, \
-    GeneticSchemeTypesEnum
+from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
@@ -33,8 +33,8 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.timedelta = None,
-                               per_class_limit: int = None, initial_graph: List[str] = None):
+def run_patches_classification(file_path, epochs: int = 20, initial_graph_struct: List[str] = None,
+                               timeout: datetime.timedelta = None, per_class_limit: int = None):
     size = 120
     num_of_classes = 3
     timeout = datetime.timedelta(hours=20) if not timeout else timeout
@@ -56,14 +56,18 @@ def run_patches_classification(file_path, epochs: int = 20, timeout: datetime.ti
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
+        conv_kernel_size=[3, 3], conv_strides=[1, 1], pool_size=[2, 2], min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
         primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,
         max_nn_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
+    if not initial_graph_struct:
+        initial_graph = None
+    else:
+        initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, requirements, False)]
     optimiser = GPNNGraphOptimiser(
-        initial_graph=None, requirements=requirements, graph_generation_params=graph_generation_params,
+        initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_parameters,
         log=default_log(logger_name='NAS_patches', verbose_level=1))
 

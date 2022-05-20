@@ -7,7 +7,7 @@ NODES_LIST = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flat
               'dense', 'dense']
 
 
-# TODO add unit tests for checking nn_layers.py;
+# TODO add unit tests for checking layers.py;
 #  for checking is generated graph is valid(params and nodes) for both static and random graphs
 #  (instead of compare nodes compare graphs) --- DONE;
 #  for mutations(are new params valid);
