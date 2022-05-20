@@ -251,6 +251,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                                                  requirements=self.requirements,
                                                  node_func=NNNode)
         self.population = initial_graph or self._make_population(self.requirements.pop_size)
+        self.requirements = GPNNComposerRequirements(image_size=[120, 120]) if self.requirements is not None else self.requirements
 
     def save(self, save_folder: str = None, history: bool = True, image: bool = True):
         print(f'Saving files into {os.path.abspath(save_folder)}')

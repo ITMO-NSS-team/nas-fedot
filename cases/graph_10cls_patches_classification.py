@@ -1,7 +1,7 @@
 import os
 import random
 import datetime
-from typing import List
+from typing import List, Union
 
 import numpy as np
 from nas.var import PROJECT_ROOT
@@ -22,7 +22,8 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, \
+    graph_has_wrong_structure, graph_has_several_starts
 from nas.composer.metrics import calculate_validation_metric
 
 root = PROJECT_ROOT
@@ -31,8 +32,9 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int = 1, initial_graph_struct: List[str] = None,
-                               timeout: datetime.timedelta = None, per_class_limit: int = None):
+def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, str] = 1,
+                               initial_graph_struct: List[str] = None, timeout: datetime.timedelta = None,
+                               per_class_limit: int = None):
     size = 120
     num_of_classes = 10
     dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
@@ -43,7 +45,8 @@ def run_patches_classification(file_path, epochs: int = 1, initial_graph_struct:
     conv_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check, graph_has_wrong_structure,
+             graph_has_several_starts]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)

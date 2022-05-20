@@ -20,7 +20,8 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, graph_has_several_starts, \
+    graph_has_wrong_structure
 from nas.composer.metrics import calculate_validation_metric
 
 root = project_root()
@@ -38,21 +39,22 @@ def run_custom_example(filepath: str, epochs: int, verbose: int = 1, timeout: da
     conv_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check]
+    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check, graph_has_several_starts,
+             graph_has_wrong_structure]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     optimiser_parameters = GPGraphOptimiserParameters(
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-        mutation_types=[single_edge_mutation],
+        mutation_types=mutations,
         crossover_types=[CrossoverTypesEnum.subtree],
         regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
-        conv_kernel_size=(3, 3), conv_strides=(1, 1), pool_size=(2, 2), min_num_of_neurons=20,
+        conv_kernel_size=[3, 3], conv_strides=[1, 1], pool_size=[2, 2], min_num_of_neurons=20,
         max_num_of_neurons=128, min_filters=16, max_filters=64, image_size=[75, 75],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
         primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,

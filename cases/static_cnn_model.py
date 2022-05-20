@@ -21,7 +21,7 @@ from fedot.core.optimisers.gp_comp.operators.regularization import Regularizatio
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, \
-    graph_has_wrong_structure
+    graph_has_several_starts, graph_has_wrong_structure
 from nas.composer.metrics import calculate_validation_metric
 from nas.graph_cnn_gp_operators import generate_initial_graph
 
@@ -42,7 +42,7 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
     nn_node_types = ['dense', 'serial_connection']
     secondary_node_types = ['serial_connection', 'dropout']
     rules = [has_no_self_cycled_nodes, has_no_cycle, flatten_check, has_no_flatten_skip,
-             graph_has_wrong_structure]
+             graph_has_several_starts, graph_has_wrong_structure]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
@@ -67,6 +67,7 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
     else:
         initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, requirements, True,
                                                 skip_connection_ids, skip_connections_len)]
+    # TODO define image_size before the requirements
     optimiser = GPNNGraphOptimiser(
         initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
