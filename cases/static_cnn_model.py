@@ -62,16 +62,13 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
         adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=rules
     )
-    if initial_graph_struct:
-        initial_graph = generate_initial_graph(graph_class=NNGraph, node_func=NNNode,
-                                               node_list=initial_graph_struct, requirements=requirements,
-                                               has_skip_connections=True,
-                                               skip_connections_id=skip_connection_ids,
-                                               shortcuts_len=skip_connections_len)
-    else:
+    if not initial_graph_struct:
         initial_graph = None
+    else:
+        initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, requirements, True,
+                                                skip_connection_ids, skip_connections_len)]
     optimiser = GPNNGraphOptimiser(
-        initial_graph=[initial_graph], requirements=requirements, graph_generation_params=graph_generation_params,
+        initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
@@ -93,7 +90,7 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
 
 if __name__ == '__main__':
     file_path = os.path.join(PROJECT_ROOT, 'datasets', 'Generated_dataset')
-    initial_graph_struct = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
-                            'dense', 'dense']
+    initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
+                           'dense', 'dense']
     set_tf_compat()
     start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=None)

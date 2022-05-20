@@ -1,6 +1,9 @@
+import os
+
 from nas.graph_cnn_mutations import has_no_flatten_skip, graph_has_wrong_structure, flatten_check
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
 from nas.graph_cnn_gp_operators import generate_initial_graph
+from nas.var import TESTING_ROOT
 
 
 def generate_graph():
@@ -9,6 +12,8 @@ def generate_graph():
     return graph
 
 
+# TODO move to is valid graph.
+#  Generate several random graphs and check them on validation rules for checking is the graph generation func correct
 def test_validation():
     rules_list = [has_no_flatten_skip, graph_has_wrong_structure, flatten_check]
     graph = generate_graph()
@@ -21,7 +26,13 @@ def test_validation():
 
 
 def test_has_no_flatten_skip():
-    raise NotImplementedError
+    graph = NNGraph.load(os.path.join(TESTING_ROOT, 'graph_with_flatten_skip.json'))
+    successful_check = False
+    try:
+        has_no_flatten_skip(graph)
+    except ValueError:
+        successful_check = True
+    assert successful_check
 
 
 def test_graph_has_wrong_structure():
@@ -29,7 +40,13 @@ def test_graph_has_wrong_structure():
 
 
 def test_flatten_check():
-    raise NotImplementedError
+    graph = NNGraph.load(os.path.join(TESTING_ROOT, 'graph_few_flatten.json'))
+    successful_check = False
+    try:
+        flatten_check(graph)
+    except ValueError:
+        successful_check = True
+    assert successful_check
 
 
 def test_cnn_mutation():

@@ -31,7 +31,7 @@ def _get_conv2d_requirements(requirements, image_size: List[int]):
         img_size = [output_dimension(image_size[i], requirements.pool_size[i], requirements.pool_strides[i]) for i
                     in
                     range(len(image_size))]
-        if is_image_has_permissible_size(image_size, 2):
+        if is_image_has_permissible_size(img_size, 2):
             img_size = [
                 floor(output_dimension(img_size[i], requirements.pool_size[i], requirements.pool_strides[i]))
                 for i in range(len(img_size))]
@@ -46,7 +46,7 @@ def _get_conv2d_requirements(requirements, image_size: List[int]):
             'pool_strides': pool_strides, 'pool_type': pool_type}, img_size
 
 
-def create_conv2d_node(node_func: Callable, requirements=None, image_size: List[int] = None):
+def _create_conv2d_node(node_func: Callable, requirements=None, image_size: List[int] = None):
     if image_size is None:
         if requirements is None:
             img_size = [120, 120]
@@ -62,7 +62,7 @@ def create_conv2d_node(node_func: Callable, requirements=None, image_size: List[
     return new_node, img_size
 
 
-def create_secondary_node(node_func: Callable, requirements=None):
+def _create_secondary_node(node_func: Callable, requirements=None):
     new_node = random.choice(requirements.cnn_secondary)
     layer_params, _ = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
@@ -72,7 +72,7 @@ def create_secondary_node(node_func: Callable, requirements=None):
     return new_node
 
 
-def create_primary_nn_node(node_func: Callable, requirements=None):
+def _create_primary_nn_node(node_func: Callable, requirements=None):
     new_node = random.choice(requirements.primary)
     layer_params, _ = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
@@ -82,7 +82,7 @@ def create_primary_nn_node(node_func: Callable, requirements=None):
     return new_node
 
 
-def create_dropout_node(node_func: Callable, requirements=None):
+def _create_dropout_node(node_func: Callable, requirements=None):
     new_node = 'dropout'
     layer_params, _ = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'],
@@ -90,6 +90,7 @@ def create_dropout_node(node_func: Callable, requirements=None):
     return new_node
 
 
+# TODO fix
 def get_layer_params(layer_type: str, requirements=None, image_size: List[int] = None):
     if requirements is None:
         layer_params = DEFAULT_NODES_PARAMS[layer_type]
@@ -166,7 +167,7 @@ def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_lis
 
     def _add_skip_connections(nodes_id: List[int], shortcuts_length: int = 2):
         for current_node in nodes_id:
-            is_first_conv = current_node < graph.cnn_depth
+            is_first_conv = current_node <= graph.cnn_depth
             is_second_conv = current_node + shortcuts_length < graph.cnn_depth
             if is_first_conv == is_second_conv and (current_node + shortcuts_length) < len(graph.nodes):
                 graph.nodes[current_node + shortcuts_length].nodes_from.append(graph.nodes[current_node])
@@ -246,8 +247,8 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
             # TODO add nodes from to node creation func;
             #  also add skip connection creation which can be turned on and off
             nodes_from = None if node_parent is None else [node_parent]
-            new_node, img_size = create_conv2d_node(node_func=node_func, requirements=requirements,
-                                                    image_size=img_size)
+            new_node, img_size = _create_conv2d_node(node_func=node_func, requirements=requirements,
+                                                     image_size=img_size)
             new_node.nodes_from = nodes_from
             depth += 1
             if depth > num_of_conv:
@@ -255,8 +256,8 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
             graph.add_node(new_node)
             nodes_from = new_node
             if depth < num_of_conv - 1:
-                new_node = create_secondary_node(node_func=node_func,
-                                                 requirements=requirements)
+                new_node = _create_secondary_node(node_func=node_func,
+                                                  requirements=requirements)
                 new_node.nodes_from = [nodes_from]
                 depth += 1
                 if depth > num_of_conv:
@@ -265,7 +266,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
             else:
                 is_dropout = random.randint(0, 1)
                 if is_dropout:
-                    new_node = create_dropout_node(node_func=node_func, requirements=requirements)
+                    new_node = _create_dropout_node(node_func=node_func, requirements=requirements)
                     depth += 1
                     if depth > num_of_conv:
                         return
@@ -291,7 +292,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
         def _growth_nn(node_parent: Any = None, depth: int = None):
             nodes_from = [node_parent] if node_parent is not None else None
             depth = 0 if depth is None else depth
-            new_node = create_primary_nn_node(node_func=node_func, requirements=requirements)
+            new_node = _create_primary_nn_node(node_func=node_func, requirements=requirements)
             new_node.nodes_from = nodes_from
             depth += 1
             if depth > max_depth:
@@ -299,7 +300,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
             graph.add_node(new_node)
             nodes_from = new_node
             if depth < max_depth - 1:
-                new_node = create_secondary_node(node_func=node_func, requirements=requirements)
+                new_node = _create_secondary_node(node_func=node_func, requirements=requirements)
                 new_node.nodes_from = [nodes_from]
                 depth += 1
                 if depth > max_depth:
@@ -309,7 +310,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
             else:
                 is_additional_dense = random.randint(0, 1)
                 if is_additional_dense:
-                    new_node = create_primary_nn_node(node_func=node_func, requirements=requirements)
+                    new_node = _create_primary_nn_node(node_func=node_func, requirements=requirements)
                     new_node.nodes_from = [nodes_from]
                     depth += 1
                     if depth > max_depth:

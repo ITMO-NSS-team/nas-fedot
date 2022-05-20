@@ -200,9 +200,9 @@ class NNGraph(OptGraph):
         return evaluation_result
 
     def save(self, path: str = None):
-        path = 'nameless' if path is None else path
+        path = 'unnamed_graph' if path is None else path
         res = json.dumps(self, indent=4, cls=Serializer)
-        with open(f'{path}.json', 'w') as f:
+        with open(f'{path}/optimized_graph.json', 'w') as f:
             f.write(res)
 
     @staticmethod
@@ -250,11 +250,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                                                  graph_class=NNGraph,
                                                  requirements=self.requirements,
                                                  node_func=NNNode)
-
-        if initial_graph[0] and len(initial_graph) == 1:
-            self.population = [initial_graph[0]] * requirements.pop_size
-        else:
-            self.population = initial_graph[0] or self._make_population(self.requirements.pop_size)
+        self.population = initial_graph or self._make_population(self.requirements.pop_size)
 
     def save(self, save_folder: str = None, history: bool = True, image: bool = True):
         print(f'Saving files into {os.path.abspath(save_folder)}')
