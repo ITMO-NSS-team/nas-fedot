@@ -25,13 +25,19 @@ def has_no_flatten_skip(graph: 'NNGraph'):
     raise ValueError(f'{ERROR_PREFIX} Graph has wrong skip connections')
 
 
-def graph_has_wrong_structure(graph: 'NNGraph'):
+def graph_has_several_starts(graph: 'NNGraph'):
     cnt = 0
     for node in graph.graph_struct:
         if not node.nodes_from:
             cnt += 1
         if cnt > 1:
             raise ValueError(f'{ERROR_PREFIX} Graph has more than one start node')
+    return True
+
+
+def graph_has_wrong_structure(graph: 'NNGraph'):
+    if graph.graph_struct[0].content['name'] != 'conv2d':
+        raise ValueError(f'{ERROR_PREFIX} Graph has no conv layers in conv part')
     return True
 
 
@@ -59,7 +65,7 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                                         'num_of_filters': choice(requirements.filters)}
                 else:
                     node_type = choice(requirements.secondary)
-                    new_layer_params, _ = get_layer_params(node_type, requirements)
+                    new_layer_params = get_layer_params(node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else [node.nodes_from[0]]
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],
@@ -71,7 +77,7 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
         else:
             if random() < node_mutation_probability:
                 new_node_type = choice(secondary_nodes)
-                new_layer_params, _ = get_layer_params(new_node_type, requirements)
+                new_layer_params = get_layer_params(new_node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else node.nodes_from
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],

@@ -1,6 +1,6 @@
 import os
 
-from nas.graph_cnn_mutations import has_no_flatten_skip, graph_has_wrong_structure, flatten_check
+from nas.graph_cnn_mutations import has_no_flatten_skip, graph_has_several_starts, flatten_check
 from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
 from nas.graph_cnn_gp_operators import generate_initial_graph
 from nas.var import TESTING_ROOT
@@ -15,7 +15,7 @@ def generate_graph():
 # TODO move to is valid graph.
 #  Generate several random graphs and check them on validation rules for checking is the graph generation func correct
 def test_validation():
-    rules_list = [has_no_flatten_skip, graph_has_wrong_structure, flatten_check]
+    rules_list = [has_no_flatten_skip, graph_has_several_starts, flatten_check]
     graph = generate_graph()
     successful_generation = False
     for rule in rules_list:

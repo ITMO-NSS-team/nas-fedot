@@ -1,10 +1,10 @@
 import os
 import random
 import datetime
-from typing import List
+from typing import List, Union
 
 import numpy as np
-from nas.var import PROJECT_ROOT
+from nas.var import PROJECT_ROOT, VERBOSE_VAL
 from nas.patches.utils import set_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
@@ -20,7 +20,8 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, graph_has_wrong_structure
+from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, graph_has_several_starts, \
+    graph_has_wrong_structure
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
 from nas.composer.metrics import calculate_validation_metric
@@ -33,8 +34,9 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int = 20, initial_graph_struct: List[str] = None,
-                               timeout: datetime.timedelta = None, per_class_limit: int = None):
+def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, str] = 1,
+                               initial_graph_struct: List[str] = None, timeout: datetime.timedelta = None,
+                               per_class_limit: int = None):
     size = 120
     num_of_classes = 3
     timeout = datetime.timedelta(hours=20) if not timeout else timeout
@@ -44,7 +46,8 @@ def run_patches_classification(file_path, epochs: int = 20, initial_graph_struct
     conv_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_primary = ['dense']
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check, graph_has_wrong_structure]
+    rules = [graph_has_wrong_structure, has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, flatten_check,
+             graph_has_several_starts]
     metric_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
@@ -69,7 +72,7 @@ def run_patches_classification(file_path, epochs: int = 20, initial_graph_struct
     optimiser = GPNNGraphOptimiser(
         initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_parameters,
-        log=default_log(logger_name='NAS_patches', verbose_level=1))
+        log=default_log(logger_name='NAS_patches', verbose_level=VERBOSE_VAL[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
@@ -106,4 +109,4 @@ if __name__ == '__main__':
     path = os.path.join(root, 'datasets', 'Generated_dataset')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
-    run_patches_classification(file_path=path, epochs=20)
+    run_patches_classification(file_path=path, epochs=20, per_class_limit=15)
