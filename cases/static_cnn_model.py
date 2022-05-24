@@ -2,7 +2,7 @@ import os
 import datetime
 from typing import List
 
-from nas.var import PROJECT_ROOT
+from nas.var import PROJECT_ROOT, VERBOSE_VAL
 from nas.patches.utils import set_tf_compat, set_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
@@ -30,7 +30,7 @@ set_root(root)
 
 
 def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph_struct: List[str] = None,
-                                  timeout: datetime.timedelta = None, per_class_limit: int = None):
+                                  verbose='auto', timeout: datetime.timedelta = None, per_class_limit: int = None):
     size = 120
     num_of_classes = 3
     timeout = datetime.timedelta(hours=20) if not timeout else timeout
@@ -71,7 +71,7 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
     optimiser = GPNNGraphOptimiser(
         initial_graph=initial_graph, requirements=None, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
-        log=default_log(logger_name='Bayesian', verbose_level=1))
+        log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
@@ -94,4 +94,5 @@ if __name__ == '__main__':
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
     set_tf_compat()
-    start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=initial_graph_nodes)
+    start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=initial_graph_nodes,
+                                  verbose='auto')
