@@ -35,29 +35,6 @@ def test_static_graph_params_and_generation():
     assert loaded_static_graph.operator.is_graph_equal(generated_static_graph)
 
 
-# TODO don't compare random generated graphs
-def test_random_graph_params_and_generation():
-    loaded_random_graph = NNGraph.load(os.path.join(TESTING_ROOT, 'random_graph.json'))
-    generated_random_graph = random_conv_graph_generation(NNGraph, NNNode,
-                                                          GPNNComposerRequirements(image_size=[120, 120]))
-    assert loaded_random_graph.operator.is_graph_equal(generated_random_graph)
-
-
-# TODO test works incorrectly
-def test_graph_validation_rules():
-    requirements = get_requirements()
-    successful_validation = False
-    for _ in range(1000):
-        graph = random_conv_graph_generation(NNGraph, NNNode, requirements)
-        for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
-                    graph_has_several_starts, has_no_self_cycled_nodes]:
-            try:
-                val(graph)
-            except ValueError:
-                successful_validation = True
-    assert True
-
-
 def test_static_graph_generation():
     graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST)
     successful_generation = False
@@ -68,6 +45,19 @@ def test_static_graph_generation():
 
 
 def test_graph_has_right_dtype():
-    for _ in range(100):
+    for _ in range(10):
         graph = random_conv_graph_generation(NNGraph, NNNode, GPNNComposerRequirements(image_size=[120, 120]))
         assert type(graph) == NNGraph
+
+
+def test_validation():
+    rules_list = [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
+                  graph_has_several_starts, has_no_self_cycled_nodes]
+    for _ in range(10):
+        graph = random_conv_graph_generation(NNGraph, NNNode, GPNNComposerRequirements(image_size=[120, 120]))
+        for rule in rules_list:
+            try:
+                successful_generation = rule(graph)
+            except ValueError:
+                continue
+            assert successful_generation

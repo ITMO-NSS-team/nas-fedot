@@ -13,7 +13,7 @@ nodes_list = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flat
 
 def generate_graphs():
     graphs = []
-    for _ in range(100):
+    for _ in range(10):
         graphs.append(random_conv_graph_generation(NNGraph, NNNode, requirements))
     return graphs
 
