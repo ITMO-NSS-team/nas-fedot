@@ -51,4 +51,3 @@ def test_flatten_check():
     except ValueError:
         successful_check = True
     assert successful_check
-
