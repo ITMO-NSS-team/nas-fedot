@@ -155,7 +155,7 @@ def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_lis
 
     def _add_node_to_graph(node_type: str, image_size: List[int] = None, parent_node=None):
         parent = None if not parent_node else [parent_node]
-        layer_params = get_layer_params(node_type, requirements, image_size)
+        layer_params = get_layer_params(node_type, requirements)
         new_node = node_func(nodes_from=parent, content={'name': node_type,
                                                          'params': layer_params})
         graph.add_node(new_node)
@@ -230,11 +230,6 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
         max_num_of_conv = max_num_of_conv if max_num_of_conv is not None else requirements.max_num_of_conv_layers
         min_num_of_conv = min_num_of_conv if min_num_of_conv is not None else requirements.min_num_of_conv_layers
         num_of_conv = random.randint(min_num_of_conv, max_num_of_conv)
-
-        # if image_size is None:
-        #     image_size = requirements.image_size
-        # else:
-        #     image_size = image_size
 
         def _growth_conv_node(node_parent: Any = None, depth: int = None, img_size: List[float] = None):
             depth = 0 if depth is None else depth

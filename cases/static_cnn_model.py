@@ -91,7 +91,7 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
 
 if __name__ == '__main__':
     file_path = os.path.join(PROJECT_ROOT, 'datasets', 'Generated_dataset')
-    initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
+    initial_graph_nodes = ['flatten', 'dense', 'dropout',
                            'dense', 'dense']
     set_tf_compat()
-    start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=None)
+    start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=initial_graph_nodes)
