@@ -187,7 +187,7 @@ class NNGraph(OptGraph):
                 return idx
 
     def fit(self, input_data: InputData, verbose=False, input_shape: tuple = None,
-            min_filters: int = None, max_filters: int = None, classes: int = 3, batch_size=24, epochs=15):
+            classes: int = 3, batch_size=24, epochs=15):
         if not self.model:
             self.model = create_nn_model(self, input_shape, classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=batch_size, epochs=epochs)
@@ -278,12 +278,12 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
-        # graph.fit(train_data, True, input_shape, min_filters, max_filters, classes, batch_size, epochs)
-        # return [metric_function(graph, test_data)]
-        if len(graph.free_nodes) < 4 and len(graph.nodes) > 4:
-            return [-len(graph.nodes)]
-        else:
-            return [len(graph.nodes)]
+        graph.fit(train_data, True, input_shape, train_data.num_classes, batch_size, epochs)
+        return [metric_function(graph, test_data)]
+        # if len(graph.free_nodes) < 4 and len(graph.nodes) > 4:
+        #     return [-len(graph.nodes)]
+        # else:
+        #     return [len(graph.nodes)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)

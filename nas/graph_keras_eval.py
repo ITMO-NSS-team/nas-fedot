@@ -73,7 +73,7 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
         return sc_layers
 
     nn_structure = graph.graph_struct
-    inputs = keras.Input(shape=input_shape)
+    inputs = keras.Input(shape=input_shape, name='input_0')
     in_layer = inputs
     skip_connection_nodes_dict = _get_skip_connection_list(graph)
     skip_connection_destination_dict = {}
