@@ -65,11 +65,11 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
     if not initial_graph_struct:
         initial_graph = None
     else:
-        initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, requirements, True,
+        initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, None, True,
                                                 skip_connection_ids, skip_connections_len)]
     # TODO define image_size before the requirements
     optimiser = GPNNGraphOptimiser(
-        initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
+        initial_graph=initial_graph, requirements=None, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
         log=default_log(logger_name='Bayesian', verbose_level=1))
 
@@ -91,7 +91,7 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
 
 if __name__ == '__main__':
     file_path = os.path.join(PROJECT_ROOT, 'datasets', 'Generated_dataset')
-    initial_graph_nodes = ['flatten', 'dense', 'dropout',
+    initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
     set_tf_compat()
     start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=initial_graph_nodes)

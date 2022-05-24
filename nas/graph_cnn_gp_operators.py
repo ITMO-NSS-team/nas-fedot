@@ -153,7 +153,7 @@ def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_lis
     :return: graph:
     """
 
-    def _add_node_to_graph(node_type: str, image_size: List[int] = None, parent_node=None):
+    def _add_node_to_graph(node_type: str, parent_node=None):
         parent = None if not parent_node else [parent_node]
         layer_params = get_layer_params(node_type, requirements)
         new_node = node_func(nodes_from=parent, content={'name': node_type,
