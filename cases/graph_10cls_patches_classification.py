@@ -4,7 +4,7 @@ import datetime
 from typing import List, Union
 
 import numpy as np
-from nas.var import PROJECT_ROOT
+from nas.var import PROJECT_ROOT, VERBOSE_VAL
 from nas.patches.utils import set_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
@@ -32,7 +32,7 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, str] = 1,
+def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, str] = 'auto',
                                initial_graph_struct: List[str] = None, timeout: datetime.timedelta = None,
                                per_class_limit: int = None):
     size = 120
@@ -71,7 +71,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
     optimiser = GPNNGraphOptimiser(
         initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_parameters,
-        log=default_log(logger_name='Bayesian', verbose_level=1))
+        log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     print('Best model structure:')

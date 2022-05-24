@@ -34,7 +34,7 @@ random.seed(17)
 np.random.seed(17)
 
 
-def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, str] = 1,
+def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, str] = 'auto',
                                initial_graph_struct: List[str] = None, timeout: datetime.timedelta = None,
                                per_class_limit: int = None):
     size = 120
@@ -63,7 +63,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
         max_num_of_neurons=128, min_filters=16, max_filters=128, image_size=[size, size],
         conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
         primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,
-        max_nn_depth=6, pop_size=10, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
+        max_nn_depth=10, pop_size=15, num_of_generations=10, crossover_prob=0.8, mutation_prob=0.5,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
     if not initial_graph_struct:
         initial_graph = None
@@ -109,4 +109,4 @@ if __name__ == '__main__':
     path = os.path.join(root, 'datasets', 'Generated_dataset')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
-    run_patches_classification(file_path=path, epochs=20, per_class_limit=15)
+    run_patches_classification(file_path=path, epochs=20, verbose=1)
