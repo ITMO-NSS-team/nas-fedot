@@ -30,7 +30,8 @@ def test_is_trainable_model():
 
 
 def test_create_nn_model():
-    graph = generate_initial_graph(NNGraph, NNNode, nodes_list, None, True, [0, 2, 6], 3)
+    graph = generate_initial_graph(NNGraph, NNNode, nodes_list, GPNNComposerRequirements(image_size=[120, 120]), True,
+                                   [0, 2, 6], 3)
     file_path = os.path.join(root, 'tests', 'unit', 'test_data', 'test_model.json')
     json_file = open(file_path, 'r')
     loaded_model = json_file.read()
