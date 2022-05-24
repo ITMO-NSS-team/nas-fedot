@@ -1,11 +1,10 @@
 from random import random, choice
 from typing import Any
-from copy import deepcopy
 
 from fedot.core.dag.validation_rules import ERROR_PREFIX
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from nas.graph_cnn_gp_operators import get_random_layer_params
+from nas.graph_cnn_gp_operators import get_layer_params
 from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, NNNode, NNGraph
 
 
@@ -26,7 +25,7 @@ def has_no_flatten_skip(graph: 'NNGraph'):
     raise ValueError(f'{ERROR_PREFIX} Graph has wrong skip connections')
 
 
-def graph_has_wrong_structure(graph: 'NNGraph'):
+def graph_has_several_starts(graph: 'NNGraph'):
     cnt = 0
     for node in graph.graph_struct:
         if not node.nodes_from:
@@ -36,8 +35,13 @@ def graph_has_wrong_structure(graph: 'NNGraph'):
     return True
 
 
-def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, params: GraphGenerationParams,
-                        max_depth) -> Any:
+def graph_has_wrong_structure(graph: 'NNGraph'):
+    if graph.graph_struct[0].content['name'] != 'conv2d':
+        raise ValueError(f'{ERROR_PREFIX} Graph has no conv layers in conv part')
+    return True
+
+
+def cnn_simple_mutation(graph: Any, requirements, **kwargs) -> Any:
     was_flatten = True
     node_mutation_probability = requirements.mutation_prob
     nn_structure = graph.nodes[::-1]
@@ -60,7 +64,7 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
                                         'num_of_filters': choice(requirements.filters)}
                 else:
                     node_type = choice(requirements.secondary)
-                    new_layer_params = get_random_layer_params(node_type, requirements)
+                    new_layer_params = get_layer_params(node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else [node.nodes_from[0]]
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],
@@ -72,7 +76,7 @@ def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, para
         else:
             if random() < node_mutation_probability:
                 new_node_type = choice(secondary_nodes)
-                new_layer_params = get_random_layer_params(new_node_type, requirements)
+                new_layer_params = get_layer_params(new_node_type, requirements)
                 new_nodes_from = None if not node.nodes_from else node.nodes_from
                 new_node = NNNode(nodes_from=new_nodes_from,
                                   content={'name': new_layer_params["layer_type"],

@@ -1,0 +1,74 @@
+{
+    "nodes": [
+        {
+            "_nodes_from": [],
+            "content": {
+                "name": "flatten",
+                "params": null
+            },
+            "uid": "32a7e6cd-e916-4a6c-931e-779c827c87db",
+            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
+        },
+        {
+            "_nodes_from": [
+                "32a7e6cd-e916-4a6c-931e-779c827c87db"
+            ],
+            "content": {
+                "name": "dense",
+                "params": {
+                    "layer_type": "dense",
+                    "neurons": 92,
+                    "activation": "selu"
+                }
+            },
+            "uid": "b1725bf5-e394-415b-8b69-0c648b53b390",
+            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
+        },
+        {
+            "_nodes_from": [
+                "b1725bf5-e394-415b-8b69-0c648b53b390"
+            ],
+            "content": {
+                "name": "dropout",
+                "params": {
+                    "layer_type": "dropout",
+                    "drop": 0.1
+                }
+            },
+            "uid": "8e504e7e-56a0-45cb-b7fb-3972c2d1b9b0",
+            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
+        },
+        {
+            "_nodes_from": [
+                "8e504e7e-56a0-45cb-b7fb-3972c2d1b9b0"
+            ],
+            "content": {
+                "name": "dense",
+                "params": {
+                    "layer_type": "dense",
+                    "neurons": 35,
+                    "activation": "relu"
+                }
+            },
+            "uid": "8346f62c-c6fd-4955-9407-f37bde9adcfc",
+            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
+        },
+        {
+            "_nodes_from": [
+                "8346f62c-c6fd-4955-9407-f37bde9adcfc"
+            ],
+            "content": {
+                "name": "dense",
+                "params": {
+                    "layer_type": "dense",
+                    "neurons": 117,
+                    "activation": "hard_sigmoid"
+                }
+            },
+            "uid": "55e817af-68b4-4af2-af56-051c200cce1e",
+            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
+        }
+    ],
+    "model": null,
+    "_class_path": "nas.composer.graph_gp_cnn_composer/NNGraph"
+}
