@@ -106,4 +106,4 @@ if __name__ == '__main__':
     file_path = os.path.join(root, 'datasets', '10cls_Generated_dataset')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
-    run_patches_classification(file_path=file_path, epochs=1, per_class_limit=15)
+    run_patches_classification(file_path=file_path, epochs=1, per_class_limit=150, verbose='auto')

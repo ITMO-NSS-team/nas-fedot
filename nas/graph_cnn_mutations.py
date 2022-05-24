@@ -41,8 +41,7 @@ def graph_has_wrong_structure(graph: 'NNGraph'):
     return True
 
 
-def cnn_simple_mutation(graph: Any, requirements: GPNNComposerRequirements, params: GraphGenerationParams,
-                        max_depth) -> Any:
+def cnn_simple_mutation(graph: Any, requirements, **kwargs) -> Any:
     was_flatten = True
     node_mutation_probability = requirements.mutation_prob
     nn_structure = graph.nodes[::-1]

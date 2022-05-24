@@ -31,13 +31,12 @@ def get_requirements():
 
 def test_static_graph_params_and_generation():
     loaded_static_graph = NNGraph.load(os.path.join(TESTING_ROOT, 'static_graph.json'))
-    generated_static_graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST,
-                                                    GPNNComposerRequirements(image_size=[120, 120]), False)
+    generated_static_graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST, None, True, [0, 2, 6], 3)
     assert loaded_static_graph.operator.is_graph_equal(generated_static_graph)
 
 
 def test_static_graph_generation():
-    graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST, GPNNComposerRequirements(image_size=[120, 120]), False)
+    graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST, None, False)
     successful_generation = False
     if not successful_generation:
         for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,

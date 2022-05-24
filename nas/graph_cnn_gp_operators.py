@@ -6,7 +6,6 @@ from nas.var import BATCH_NORM_PROB, DEFAULT_NODES_PARAMS
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
-    layer_params = get_layer_params('flatten')
     flatten_node = node_func(nodes_from=[current_node],
                              content={'name': 'flatten', 'params': False})
     graph.add_node(flatten_node)
@@ -24,24 +23,6 @@ def _get_conv2d_requirements(requirements):
     conv_strides = requirements.conv_strides
     num_of_filters = random.choice(requirements.filters)
     image_size = requirements.image_size
-    pool_size = None
-    pool_strides = None
-    pool_type = None
-    # TODO mb add smth like input shape to define pooling params
-    # if is_image_has_permissible_size(image_size, 2):
-    #     image_size = [output_dimension(image_size[i], requirements.pool_size[i], requirements.pool_strides[i]) for i
-    #                   in
-    #                   range(len(image_size))]
-    #     if is_image_has_permissible_size(image_size, 2):
-    #         image_size = [
-    #             floor(output_dimension(image_size[i], requirements.pool_size[i], requirements.pool_strides[i]))
-    #             for i in range(len(image_size))]
-    #         if is_image_has_permissible_size(image_size, 2):
-    #             pool_size = requirements.pool_size
-    #             pool_strides = requirements.pool_strides
-    #             pool_type = random.choice(requirements.pool_types)
-    # else:
-    #     return
     pool_size = requirements.pool_size
     pool_strides = requirements.pool_strides
     pool_type = random.choice(requirements.pool_types)
@@ -90,16 +71,18 @@ def _create_dropout_node(node_func: Callable, requirements=None):
 
 # TODO fix
 def get_layer_params(layer_type: str, requirements=None):
-    if layer_type == 'conv2d':
-        layer_params = _get_conv2d_requirements(requirements)
-    else:
+    if requirements is not None:
         layer_params = _get_random_layer_params(layer_type, requirements)
+    else:
+        layer_params = DEFAULT_NODES_PARAMS[layer_type]
     return layer_params
 
 
 def _get_random_layer_params(layer_type: str, requirements):
     layer_params = None
-    if layer_type == 'serial_connection':
+    if layer_type == 'conv2d':
+        layer_params = _get_conv2d_requirements(requirements)
+    elif layer_type == 'serial_connection':
         layer_params = {'layer_type': layer_type}
     elif layer_type == 'dropout':
         drop_value = random.randint(1, (requirements.max_drop_size * 10)) / 10
@@ -169,7 +152,6 @@ def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_lis
                 graph.nodes[current_node + shortcuts_length].nodes_from.append(graph.nodes[current_node])
             else:
                 print('Wrong connection. Connection dropped.')
-
     graph = graph_class()
     created_node = None
     for node in node_list:
@@ -310,7 +292,6 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
 
         root_node = root_node if root_node else None
         _growth_nn(node_parent=root_node)
-
     graph = graph_class()
     _random_cnn()
     _random_nn(root_node=graph.nodes[-1])
