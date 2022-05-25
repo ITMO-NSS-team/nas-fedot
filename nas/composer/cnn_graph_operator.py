@@ -1,8 +1,8 @@
 import random
 from math import floor
 from typing import (Tuple, List, Any, Callable)
-
-from nas.var import BATCH_NORM_PROB, DEFAULT_NODES_PARAMS
+from nas.utils.var import BATCH_NORM_PROB, DEFAULT_NODES_PARAMS
+from nas.composer.cnn_graph import NNGraph
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
@@ -119,9 +119,9 @@ def conv_output_shape(node, image_size):
     return image_size
 
 
-def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_list: List, requirements=None,
+def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list: List, requirements=None,
                            has_skip_connections: bool = False, skip_connections_id: List[int] = None,
-                           shortcuts_len: int = None) -> 'NNGraph':
+                           shortcuts_len: int = None) -> NNGraph:
     """
     Method for initial graph generation from defined nodes list.
 
@@ -163,7 +163,7 @@ def generate_initial_graph(graph_class: 'NNGraph', node_func: Callable, node_lis
 
 
 # TODO optimize skip connections for both cases
-def add_skip_connections(graph: 'NNGraph'):
+def add_skip_connections(graph: NNGraph):
     """
     Add random skip connection to given graph_class
 
@@ -192,7 +192,7 @@ def add_skip_connections(graph: 'NNGraph'):
                 graph.nodes[destination_node_id].nodes_from.append(graph_node)
 
 
-def random_conv_graph_generation(graph_class: Callable, node_func: Callable, requirements) -> 'NNGraph':
+def random_conv_graph_generation(graph_class: Callable, node_func: Callable, requirements) -> NNGraph:
     """
     Method for random graph_class generation with given requirements
 

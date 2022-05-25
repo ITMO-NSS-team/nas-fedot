@@ -2,13 +2,13 @@ from random import random, choice
 from typing import Any
 
 from fedot.core.dag.validation_rules import ERROR_PREFIX
-from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from nas.graph_cnn_gp_operators import get_layer_params
-from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, NNNode, NNGraph
+from nas.composer.cnn_graph_operator import get_layer_params
+from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph import NNGraph
 
 
-def flatten_check(graph: 'NNGraph'):
+def flatten_check(graph: NNGraph):
     cnt = 0
     for node in graph.nodes:
         if node.content['name'] == 'flatten':
@@ -18,14 +18,14 @@ def flatten_check(graph: 'NNGraph'):
     return True
 
 
-def has_no_flatten_skip(graph: 'NNGraph'):
+def has_no_flatten_skip(graph: NNGraph):
     for node in graph.free_nodes:
         if node.content['name'] == 'flatten':
             return True
     raise ValueError(f'{ERROR_PREFIX} Graph has wrong skip connections')
 
 
-def graph_has_several_starts(graph: 'NNGraph'):
+def graph_has_several_starts(graph: NNGraph):
     cnt = 0
     for node in graph.graph_struct:
         if not node.nodes_from:
@@ -35,7 +35,7 @@ def graph_has_several_starts(graph: 'NNGraph'):
     return True
 
 
-def graph_has_wrong_structure(graph: 'NNGraph'):
+def graph_has_wrong_structure(graph: NNGraph):
     if graph.graph_struct[0].content['name'] != 'conv2d':
         raise ValueError(f'{ERROR_PREFIX} Graph has no conv layers in conv part')
     return True

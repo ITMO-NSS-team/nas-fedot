@@ -1,5 +1,5 @@
 import os
-from nas.patches.utils import project_root
+from nas.utils.utils import project_root
 
 PROJECT_ROOT = project_root()
 TESTING_ROOT = os.path.join(PROJECT_ROOT, 'tests', 'unit', 'test_data')

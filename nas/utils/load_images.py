@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 from os.path import isfile, join
+from typing import List
 
 import cv2
 import numpy as np
@@ -9,9 +10,44 @@ from sklearn.model_selection import train_test_split
 
 from fedot.core.data.data import Data
 from fedot.core.repository.tasks import Task, TaskTypesEnum
-from nas.patches.utils import project_root
+from nas.utils.utils import project_root
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.utils import to_categorical
 
 root = project_root()
+
+
+def str_to_digit(labels):
+    if not labels[0].isdigit():
+        encoder = LabelEncoder()
+        labels = encoder.fit_transform(labels)
+    return labels
+
+
+def load_from_folder(dir_path, image_size: int = None, per_class_limit: int = None):
+    images_array = []
+    labels_array = []
+    for label in os.listdir(dir_path):
+        label_path = os.path.join(dir_path, label)
+        cnt = 0
+        for image_name in os.listdir(label_path):
+
+            if per_class_limit:
+                if cnt >= per_class_limit:
+                    break
+            image_name = os.path.join(label_path, image_name)
+            image = cv2.imread(image_name)
+            image_size = image.shape[0] if image_size is None else image_size
+            if image_size is not None:
+                if image.shape[0] != image_size:
+                    image = cv2.resize(image, (image_size, image_size), interpolation=cv2.INTER_CUBIC)
+            images_array.append(image)
+            labels_array.append(label)
+            cnt += 1
+    labels_array = str_to_digit(labels_array)
+    images_array = np.array(images_array)
+    labels_array = np.array(labels_array)
+    return images_array, labels_array, image_size, len(np.unique(labels_array))
 
 
 def load_images(file_path, size=120, number_of_classes=10, per_class_limit=None):
@@ -91,6 +127,18 @@ def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum
     validation_input_data = Data.from_image(images=images_val, labels=labels_val, task=task)
 
     return train_input_data, validation_input_data
+
+
+def from_directory(file_path, task_type: TaskTypesEnum = TaskTypesEnum.classification,
+                   per_class_limit=None):
+    images, labels, image_size, _ = load_from_folder(file_path, per_class_limit=per_class_limit)
+    images_train, images_val, labels_train, labels_val = train_test_split(images, labels,
+                                                                          random_state=1, train_size=0.8)
+    task = Task(task_type=task_type, task_params=None)
+    train_input_data = Data.from_image(images=images_train, labels=labels_train, task=task)
+    validation_input_data = Data.from_image(images=images_val, labels=labels_val, task=task)
+
+    return train_input_data, validation_input_data, image_size
 
 
 if __name__ == '__main__':
