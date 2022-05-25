@@ -1,9 +1,10 @@
 import datetime
 import os
-from nas.var import TESTING_ROOT
-from nas.graph_cnn_gp_operators import random_conv_graph_generation, generate_initial_graph
-from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode
-from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements
+from nas.utils.var import TESTING_ROOT
+from nas.composer.cnn_graph_operator import random_conv_graph_generation, generate_initial_graph
+from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph import NNGraph
+from nas.composer.gp_cnn_composer import GPNNComposerRequirements
 
 from nas.graph_cnn_mutations import has_no_flatten_skip, flatten_check, graph_has_several_starts
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes

@@ -2,8 +2,8 @@ import os
 
 from fedot.core.data.data import InputData
 
-from nas.patches.load_images import from_images
-from nas.patches.utils import project_root
+from nas.utils.load_images import from_images
+from nas.utils.utils import project_root
 
 root = project_root()
 

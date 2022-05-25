@@ -1,15 +1,18 @@
 import os
 import datetime
-from typing import List
+from typing import List, Union
 
-from nas.var import PROJECT_ROOT, VERBOSE_VAL
-from nas.patches.utils import set_tf_compat, set_root
+from nas.utils.var import PROJECT_ROOT, VERBOSE_VAL
+from nas.utils.utils import set_tf_compat, set_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
-from nas.patches.load_images import from_images
-from nas.composer.graph_gp_cnn_composer import NNGraph, CustomGraphAdapter, NNNode
-from nas.composer.graph_gp_cnn_composer import GPNNComposerRequirements, GPNNGraphOptimiser
+from nas.utils.load_images import from_images, from_directory
+from nas.composer.cnn_adapters import CustomGraphAdapter
+from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph import NNGraph
+from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
+from nas.composer.gp_cnn_composer import GPNNComposerRequirements
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
@@ -23,20 +26,20 @@ from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutatio
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, \
     graph_has_several_starts, graph_has_wrong_structure
 from nas.composer.metrics import calculate_validation_metric
-from nas.graph_cnn_gp_operators import generate_initial_graph
+from nas.composer.cnn_graph_operator import generate_initial_graph
 
 root = PROJECT_ROOT
 set_root(root)
 
 
-def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph_struct: List[str] = None,
-                                  verbose='auto', timeout: datetime.timedelta = None, per_class_limit: int = None):
-    size = 120
-    num_of_classes = 3
+def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = 'auto',
+                       initial_graph_struct: List[str] = None, per_class_limit: int = None,
+                       timeout: datetime.timedelta = None):
+    # size = 120
+    # num_of_classes = 3
     timeout = datetime.timedelta(hours=20) if not timeout else timeout
-    dataset_to_compose, dataset_to_validate = from_images(file_path, num_classes=num_of_classes,
-                                                          per_class_limit=per_class_limit)
-
+    dataset_to_compose, dataset_to_validate, size = from_directory(path, per_class_limit=per_class_limit)
+    num_of_classes = dataset_to_compose.num_classes
     cnn_node_types = ['conv2d']
     pool_types = ['max_pool2d', 'average_pool2d']
     nn_node_types = ['dense', 'serial_connection']
@@ -69,7 +72,7 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
                                                 skip_connection_ids, skip_connections_len)]
     # TODO define image_size before the requirements
     optimiser = GPNNGraphOptimiser(
-        initial_graph=initial_graph, requirements=None, graph_generation_params=graph_generation_params,
+        initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,
         log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
 
@@ -77,7 +80,6 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     save_path = os.path.join(root, 'test_graph')
     optimiser.save(save_folder=save_path, history=True, image=True)
-
     optimized_network.fit(input_data=dataset_to_compose, input_shape=(size, size, 3),
                           epochs=epochs, classes=num_of_classes, verbose=True)
 
@@ -90,9 +92,8 @@ def start_example_with_init_graph(file_path: str, epochs: int = 1, initial_graph
 
 
 if __name__ == '__main__':
-    file_path = os.path.join(PROJECT_ROOT, 'datasets', 'Generated_dataset')
+    set_tf_compat()
+    file_path = os.path.join(PROJECT_ROOT, 'datasets', 'Satellite-Image-Classification')
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
-    set_tf_compat()
-    start_example_with_init_graph(file_path=file_path, epochs=1, initial_graph_struct=initial_graph_nodes,
-                                  verbose='auto')
+    start_test_example(path=file_path, epochs=20, initial_graph_struct=initial_graph_nodes, verbose='auto')

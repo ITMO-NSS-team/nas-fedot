@@ -1,6 +1,6 @@
 from typing import Tuple
 from fedot.core.data.data import InputData
-from nas.composer.graph_gp_cnn_composer import NNGraph
+from nas.composer.cnn_graph import NNGraph
 
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
 

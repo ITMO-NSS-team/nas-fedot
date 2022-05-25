@@ -4,10 +4,13 @@ import datetime
 
 import numpy as np
 
-from nas.patches.utils import project_root, set_tf_compat
-from nas.var import VERBOSE_VAL
-from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
-from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode, CustomGraphAdapter
+from nas.utils.utils import project_root, set_tf_compat
+from nas.utils.var import VERBOSE_VAL
+from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
+from nas.composer.gp_cnn_composer import GPNNComposerRequirements
+from nas.composer.cnn_adapters import CustomGraphAdapter
+from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph import NNGraph
 from nas.cnn_data import from_json
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes

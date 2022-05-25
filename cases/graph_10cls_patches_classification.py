@@ -4,16 +4,19 @@ import datetime
 from typing import List, Union
 
 import numpy as np
-from nas.var import PROJECT_ROOT, VERBOSE_VAL
-from nas.patches.utils import set_root, set_tf_compat
+from nas.utils.var import PROJECT_ROOT, VERBOSE_VAL
+from nas.utils.utils import set_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from nas.composer.graph_gp_cnn_composer import NNGraph, NNNode, CustomGraphAdapter
-from nas.graph_cnn_gp_operators import generate_initial_graph
+from nas.composer.cnn_adapters import CustomGraphAdapter
+from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph import NNGraph
+from nas.composer.cnn_graph_operator import generate_initial_graph
 
 from fedot.core.log import default_log
-from nas.patches.load_images import from_images
-from nas.composer.graph_gp_cnn_composer import GPNNGraphOptimiser, GPNNComposerRequirements
+from nas.utils.load_images import from_images
+from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
+from nas.composer.gp_cnn_composer import GPNNComposerRequirements
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
 from fedot.core.optimisers.optimizer import GraphGenerationParams
