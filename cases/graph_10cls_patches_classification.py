@@ -14,7 +14,7 @@ from nas.composer.cnn_graph import NNGraph
 from nas.composer.cnn_graph_operator import generate_initial_graph
 
 from fedot.core.log import default_log
-from nas.utils.load_images import from_images
+from nas.data.load_images import from_images
 from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.gp_cnn_composer import GPNNComposerRequirements
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes

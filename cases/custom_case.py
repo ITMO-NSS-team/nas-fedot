@@ -16,7 +16,7 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 from nas.composer.cnn_graph_operator import generate_initial_graph
 from nas.composer.cnn_graph_node import NNNode
 from nas.composer.cnn_graph import NNGraph
-from nas.utils.load_images import DataLoader
+from nas.data.load_images import DataLoader
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
@@ -29,10 +29,10 @@ set_root(PROJECT_ROOT)
 
 
 def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path: str = None, image_size: int = None,
-             initial_graph_struct: List[str] = None, timeout: datetime.timedelta = None):
-    dataset = DataLoader.from_directory(dir_path=path, image_size=image_size)
+             initial_graph_struct: List[str] = None, timeout: datetime.timedelta = None, samples_limit: int = None):
+    dataset = DataLoader.from_directory(dir_path=path, image_size=image_size, samples_limit=samples_limit)
     image_size = dataset.features[0].shape[0] if image_size is None else image_size
-    train_data, test_data = train_test_data_setup(dataset, 0.8, False)
+    train_data, test_data = train_test_data_setup(dataset, 0.8, True)
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
              graph_has_wrong_structure]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,

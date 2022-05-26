@@ -7,7 +7,7 @@ from nas.utils.utils import set_tf_compat, set_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
-from nas.utils.load_images import from_images, from_directory
+from nas.data.load_images import from_directory
 from nas.composer.cnn_adapters import CustomGraphAdapter
 from nas.composer.cnn_graph_node import NNNode
 from nas.composer.cnn_graph import NNGraph

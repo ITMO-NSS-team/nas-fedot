@@ -21,6 +21,7 @@ root = project_root()
 @dataclass
 class DataLoader(InputData):
 
+    # TODO somehow handle the imbalanced classes problem
     @staticmethod
     def from_directory(task: Task = Task(TaskTypesEnum.classification), dir_path: str = None,
                        image_size: Union[int, float] = None, samples_limit: int = None):

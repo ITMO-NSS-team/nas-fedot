@@ -9,7 +9,7 @@ from nas.utils.utils import set_root, set_tf_compat
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
-from nas.utils.load_images import from_images
+from nas.data.load_images import from_images
 from nas.composer.cnn_graph_operator import generate_initial_graph
 from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.gp_cnn_composer import GPNNComposerRequirements
