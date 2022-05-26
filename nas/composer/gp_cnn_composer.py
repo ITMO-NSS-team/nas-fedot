@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from typing import List
 
@@ -26,15 +27,18 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     primary: List[str] = None
     secondary: List[str] = None
     train_epochs_num: int = 5
-    batch_size: int = 32  # 72
+    batch_size: int = 12  # 72
     num_of_classes: int = 10
     activation_types = activation_types
     max_num_of_conv_layers: int = 4
     min_num_of_conv_layers: int = 2
     max_nn_depth: int = 6
     init_graph_with_skip_connections: bool = False
+    timeout: datetime.timedelta = None
 
     def __post_init__(self):
+        if not self.timeout:
+            self.timeout = datetime.timedelta(hours=20)
         if not self.conv_kernel_size:
             self.conv_kernel_size = [3, 3]
         if not self.conv_strides:

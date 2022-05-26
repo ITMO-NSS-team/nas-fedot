@@ -1,20 +1,52 @@
 import json
 import os
 import pickle
+from dataclasses import dataclass
 from os.path import isfile, join
-from typing import List
+from typing import List, Union
 
 import cv2
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from fedot.core.data.data import Data
+from fedot.core.data.data import Data, InputData
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from nas.utils.utils import project_root
 from sklearn.preprocessing import LabelEncoder
-from tensorflow.keras.utils import to_categorical
+from fedot.core.repository.dataset_types import DataTypesEnum
 
 root = project_root()
+
+
+@dataclass
+class DataLoader(InputData):
+
+    @staticmethod
+    def from_directory(task: Task = Task(TaskTypesEnum.classification), dir_path: str = None,
+                       image_size: Union[int, float] = None, samples_limit: int = None):
+        images_array = []
+        labels_array = []
+        for label in os.listdir(dir_path):
+            path = os.path.join(dir_path, label)
+            cnt = 0
+            for image_name in os.listdir(path):
+                image = cv2.imread(os.path.join(path, image_name))
+                if image_size is None:
+                    image_size = image.shape[0]
+                elif image.shape[0] != image_size:
+                    image = cv2.resize(image, (image_size, image_size), interpolation=cv2.INTER_CUBIC)
+                    images_array.append(image)
+                    labels_array.append(label)
+                    if samples_limit:
+                        cnt += 1
+                        if cnt >= samples_limit:
+                            break
+        is_digit = labels_array[0].isdigit()
+        if not is_digit:
+            labels_array = LabelEncoder().fit_transform(labels_array)
+        images_array = np.array(images_array)
+        labels_array = np.array(labels_array)
+        return InputData.from_image(images=images_array, labels=labels_array, task=task)
 
 
 def str_to_digit(labels):
@@ -143,5 +175,6 @@ def from_directory(file_path, task_type: TaskTypesEnum = TaskTypesEnum.classific
 
 if __name__ == '__main__':
     print('Converting dataset to pickle...')
+    # TODO local path
     dataset_path = os.path.join('D:/work/datasets/Generated_dataset')
     data2pickle(dataset_path, 3, 15)
