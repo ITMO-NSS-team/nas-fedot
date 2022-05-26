@@ -48,7 +48,6 @@ class NNGraph(OptGraph):
         if not self.model:
             self.model = create_nn_model(self, input_shape, classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=batch_size, epochs=epochs)
-        # TODO mb need to add target in output
         return train_predicted
 
     def predict(self, input_data: InputData, output_mode: str = 'default', is_multiclass: bool = False) -> OutputData:

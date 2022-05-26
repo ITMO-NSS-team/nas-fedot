@@ -70,7 +70,6 @@ def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = '
     else:
         initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, None, True,
                                                 skip_connection_ids, skip_connections_len)]
-    # TODO define image_size before the requirements
     optimiser = GPNNGraphOptimiser(
         initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_params,

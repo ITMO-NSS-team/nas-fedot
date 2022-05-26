@@ -59,9 +59,8 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     def metric_for_nodes(self, metric_function, train_data: InputData,
                          test_data: InputData, input_shape, min_filters, max_filters, classes, batch_size, epochs,
                          graph) -> float:
-        # graph.fit(train_data, True, input_shape, train_data.num_classes, batch_size, epochs)
-        # return [metric_function(graph, test_data)]
-        return [1]
+        graph.fit(train_data, True, input_shape, train_data.num_classes, batch_size, epochs)
+        return [metric_function(graph, test_data)]
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)

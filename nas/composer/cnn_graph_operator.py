@@ -215,8 +215,6 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
 
         def _growth_conv_node(node_parent: Any = None, depth: int = None, img_size: List[float] = None):
             depth = 0 if depth is None else depth
-            # TODO add nodes from to node creation func;
-            #  also add skip connection creation which can be turned on and off
             nodes_from = None if node_parent is None else [node_parent]
             new_node = _create_conv2d_node(node_func=node_func, requirements=requirements)
             new_node.nodes_from = nodes_from
