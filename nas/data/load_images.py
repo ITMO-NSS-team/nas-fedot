@@ -21,10 +21,24 @@ root = project_root()
 @dataclass
 class DataLoader(InputData):
 
-    # TODO somehow handle the imbalanced classes problem
+    # TODO implement regression task support
     @staticmethod
     def from_directory(task: Task = Task(TaskTypesEnum.classification), dir_path: str = None,
-                       image_size: Union[int, float] = None, samples_limit: int = None):
+                       image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
+        """
+        Read images from directory. The following dataset format is required:
+        dataset-directory
+            |_class-1-name
+                |_images
+            ....
+            |_class-n-name
+                |_images
+        :param task: type of task to be solved
+        :param dir_path: path to dataset
+        :param image_size: image size. if not specified, the first image's size will be picked as image size
+        :param samples_limit: limit for samples per class
+        :return: dataset as InputData object
+        """
         images_array = []
         labels_array = []
         for label in os.listdir(dir_path):
@@ -49,7 +63,21 @@ class DataLoader(InputData):
         labels_array = np.array(labels_array)
         return InputData.from_image(images=images_array, labels=labels_array, task=task)
 
+    @staticmethod
+    def image_from_csv(task: TaskTypesEnum.classification):
+        raise NotImplementedError
 
+    @staticmethod
+    def images_from_pickle():
+        raise NotImplementedError
+
+
+# TODO
+def convert_data_to_pickle():
+    """function or class for convert InputData to pickle format fot further save"""
+    raise NotImplementedError
+
+# TODO delete these functions
 def str_to_digit(labels):
     if not labels[0].isdigit():
         encoder = LabelEncoder()

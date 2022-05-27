@@ -28,8 +28,25 @@ from nas.composer.metrics import calculate_validation_metric
 set_root(PROJECT_ROOT)
 
 
+# TODO extend initial approximation with desirable nodes params. Add ability to load graph as initial approximation
 def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path: str = None, image_size: int = None,
-             initial_graph_struct: List[str] = None, timeout: datetime.timedelta = None, samples_limit: int = None):
+             max_cnn_depth: int = None, max_nn_depth: int = None, batch_size: int = None,
+             initial_graph_struct: List[str] = None, samples_limit: int = None, timeout: datetime.timedelta = None):
+    """
+    Run example with custom dataset and params.
+    :param path: Path to dataset
+    :param verbose: verbose value: 'auto', 0, 1, or 2. Verbosity mode. 0 = silent,
+        1 = progress bar, 2 = one line per epoch.
+    :param epochs: number of train epochs
+    :param save_path: save path to optimized graph, history and graph struct
+    :param image_size: dataset's image size. if None then size of first image in dataset will be picked as image size
+    :param max_cnn_depth: max possible depth of convolutional part of the graph
+    :param max_nn_depth: max possible depth of dense part of the graph
+    :param batch_size: number of samples per gradient update. if None will be set to 16
+    :param initial_graph_struct: graph's initial approximation
+    :param samples_limit: sample limit per class
+    :param timeout: runtime restrictions
+    """
     dataset = DataLoader.from_directory(dir_path=path, image_size=image_size, samples_limit=samples_limit)
     image_size = dataset.features[0].shape[0] if image_size is None else image_size
     train_data, test_data = train_test_data_setup(dataset, 0.8, True)
@@ -39,7 +56,8 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
                  single_change_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     requirements = GPNNComposerRequirements(image_size=[image_size, image_size], pop_size=5, num_of_generations=5,
-                                            timeout=timeout)
+                                            max_num_of_conv_layers=max_cnn_depth, max_nn_depth=max_nn_depth,
+                                            batch_size=batch_size, timeout=timeout)
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                   mutation_types=mutations,
                                                   crossover_types=[CrossoverTypesEnum.subtree],
@@ -82,5 +100,5 @@ if __name__ == '__main__':
     save_path = os.path.join(PROJECT_ROOT, 'Satellite')
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
-    run_test(dir_root, verbose='auto', epochs=20, save_path=save_path, initial_graph_struct=None,
-             image_size=100)
+    run_test(dir_root, verbose=1, epochs=20, save_path=save_path, initial_graph_struct=None,
+             image_size=256, max_cnn_depth=7, max_nn_depth=3, batch_size=16)
