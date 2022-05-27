@@ -59,6 +59,12 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             self.secondary = ['serial_connection', 'dropout']
         if self.max_drop_size > 1:
             self.max_drop_size = 1
+        if not self.max_nn_depth:
+            self.max_nn_depth = 6
+        if not self.max_num_of_conv_layers:
+            self.max_num_of_conv_layers = 4
+        if not self.batch_size:
+            self.batch_size = 16
         if not all([side_size > 3 for side_size in self.image_size]):
             raise ValueError(f'Specified image size is unacceptable')
         self.conv_kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.image_size,
