@@ -101,4 +101,4 @@ if __name__ == '__main__':
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
     run_test(dir_root, verbose=1, epochs=20, save_path=save_path, initial_graph_struct=None,
-             image_size=256, max_cnn_depth=7, max_nn_depth=3, batch_size=16)
+             image_size=128, max_cnn_depth=7, max_nn_depth=3, batch_size=2)
