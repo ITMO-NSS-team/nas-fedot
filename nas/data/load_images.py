@@ -77,6 +77,7 @@ def convert_data_to_pickle():
     """function or class for convert InputData to pickle format fot further save"""
     raise NotImplementedError
 
+
 # TODO delete these functions
 def str_to_digit(labels):
     if not labels[0].isdigit():
