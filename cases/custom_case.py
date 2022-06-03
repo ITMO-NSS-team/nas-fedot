@@ -24,13 +24,14 @@ from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nod
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
 from nas.composer.metrics import calculate_validation_metric
+from nas.composer.cnn_graph_operator import random_conv_graph_generation
 
 set_root(PROJECT_ROOT)
 
 
 # TODO extend initial approximation with desirable nodes params. Add ability to load graph as initial approximation
 def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path: str = None, image_size: int = None,
-             max_cnn_depth: int = None, max_nn_depth: int = None, batch_size: int = None,
+             max_cnn_depth: int = None, max_nn_depth: int = None, batch_size: int = None, opt_epochs: int = 5,
              initial_graph_struct: List[str] = None, samples_limit: int = None, timeout: datetime.timedelta = None):
     """
     Run example with custom dataset and params.
@@ -43,6 +44,7 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     :param max_cnn_depth: max possible depth of convolutional part of the graph
     :param max_nn_depth: max possible depth of dense part of the graph
     :param batch_size: number of samples per gradient update. if None will be set to 16
+    :param opt_epochs:
     :param initial_graph_struct: graph's initial approximation
     :param samples_limit: sample limit per class
     :param timeout: runtime restrictions
@@ -55,11 +57,14 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     mutations = [cnn_simple_mutation, single_drop_mutation, single_edge_mutation, single_add_mutation,
                  single_change_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    requirements = GPNNComposerRequirements(image_size=[image_size, image_size], pop_size=5, num_of_generations=5,
+    # TODO add grayscale support
+    # TODO fix verbose for evolution
+    requirements = GPNNComposerRequirements(input_shape=[image_size, image_size, 3], pop_size=5, num_of_generations=10,
                                             max_num_of_conv_layers=max_cnn_depth, max_nn_depth=max_nn_depth,
-                                            batch_size=batch_size, timeout=timeout)
+                                            primary=None, secondary=None, batch_size=batch_size, timeout=timeout,
+                                            epochs=opt_epochs)
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-                                                  mutation_types=mutations,
+                                                  mutation_types=[cnn_simple_mutation, single_edge_mutation],
                                                   crossover_types=[CrossoverTypesEnum.subtree],
                                                   regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
@@ -69,6 +74,7 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     else:
         initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, requirements)]
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, graph_generation_params=graph_generation_params,
+                                   graph_generation_function=random_conv_graph_generation,
                                    metrics=metric_func, parameters=optimiser_params, requirements=requirements,
                                    log=default_log(logger_name='Custom-run', verbose_level=VERBOSE_VAL[verbose]))
     optimized_network = optimiser.compose(data=train_data)
@@ -76,8 +82,7 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
         print('save best graph structure...')
         optimiser.save(save_folder=save_path, history=True, image=True)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
-    optimized_network.fit(input_data=train_data, input_shape=(image_size, image_size, 3),
-                          epochs=epochs, classes=train_data.num_classes, verbose=verbose)
+    optimized_network.fit(input_data=train_data, requirements=requirements, epochs=epochs, verbose=verbose)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(optimized_network, test_data)
 
@@ -85,12 +90,12 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = '../models/custom_example_model.json'
+    json_file = './models/custom_example_model.json'
     model_json = optimized_network.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
-    optimized_network.model.save_weights('../models/custom_example_model.h5')
+    optimized_network.model.save_weights('./models/custom_example_model.h5')
 
     print("Done!")
 
@@ -101,4 +106,4 @@ if __name__ == '__main__':
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
     run_test(dir_root, verbose=1, epochs=20, save_path=save_path, initial_graph_struct=None,
-             image_size=128, max_cnn_depth=7, max_nn_depth=3, batch_size=2)
+             image_size=128, max_cnn_depth=8, max_nn_depth=3, batch_size=2, opt_epochs=10)

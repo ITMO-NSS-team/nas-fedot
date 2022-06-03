@@ -31,12 +31,12 @@ def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False)
 
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
-                    epochs: int = 10):
+                    epochs: int = 10, ind=None, gen=None):
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
-    tensorboard_callback = TensorBoard(log_dir=f'./logs/{time()}')
+    tensorboard_callback = TensorBoard(log_dir=f'./logs/{gen}/{ind}')
     is_multiclass = input_data.num_classes > 2
     if is_multiclass:
         encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes, dtype='int')
@@ -66,6 +66,9 @@ def keras_model_predict(model, input_data: InputData, output_mode: str = 'defaul
 
 
 def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
+    if len(graph.free_nodes) != len(graph.graph_struct):
+        print("Evaluating graph with skips")
+
     def _get_skip_connection_list(graph_structure):
         sc_layers = {}
         for node in graph_structure.nodes:

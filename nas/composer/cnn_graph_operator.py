@@ -22,11 +22,11 @@ def _get_conv2d_requirements(requirements):
     kernel_size = requirements.conv_kernel_size
     conv_strides = requirements.conv_strides
     num_of_filters = random.choice(requirements.filters)
-    image_size = requirements.image_size
+    image_size = requirements.input_shape
     pool_size = requirements.pool_size
     pool_strides = requirements.pool_strides
     pool_type = random.choice(requirements.pool_types)
-    requirements.image_size = image_size
+    requirements.input_shape = image_size
     return {'layer_type': conv_node_type, 'activation': activation, 'kernel_size': kernel_size,
             'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
             'pool_strides': pool_strides, 'pool_type': pool_type}
