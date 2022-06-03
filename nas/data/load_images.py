@@ -22,6 +22,7 @@ root = project_root()
 class DataLoader(InputData):
 
     # TODO implement regression task support
+    # TODO add read from pickle option
     @staticmethod
     def from_directory(task: Task = Task(TaskTypesEnum.classification), dir_path: str = None,
                        image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
@@ -42,6 +43,8 @@ class DataLoader(InputData):
         images_array = []
         labels_array = []
         for label in os.listdir(dir_path):
+            if label[-3:] == 'txt':
+                continue
             path = os.path.join(dir_path, label)
             cnt = 0
             for image_name in os.listdir(path):
@@ -73,9 +76,15 @@ class DataLoader(InputData):
 
 
 # TODO
-def convert_data_to_pickle():
+def convert_data_to_pickle(dataset: InputData, dataset_name: str):
     """function or class for convert InputData to pickle format fot further save"""
-    raise NotImplementedError
+    x_arr = dataset.features
+    y_arr = dataset.target
+    pickle_dataset = []
+    pickle_dataset.extend([x_arr, y_arr])
+    save_path = f'./datasets/{dataset_name}_pickled.pickle'
+    with open(save_path, 'wb') as pickle_data:
+        pickle.dump(pickle_dataset, pickle_data)
 
 
 # TODO delete these functions
@@ -149,22 +158,6 @@ def load_images(file_path, size=120, number_of_classes=10, per_class_limit=None)
     images_array = np.array(images_array)
     labels_array = np.array(labels_array)
     return images_array, labels_array
-
-
-def data2pickle(path, num_of_classes, per_class_limit=None, save=True):
-    """
-    Convert dataset to pickle format with given limit of samples per class
-    """
-    x_arr, y_arr = load_images(path, number_of_classes=num_of_classes, per_class_limit=per_class_limit)
-    dataset = []
-    dataset.extend([x_arr, y_arr])
-    if per_class_limit is not None:
-        output_path = os.path.join(root, 'datasets', f'{per_class_limit}_samples_per_class_{path[17:]}.pickle')
-    else:
-        os.path.join(root, 'datasets', f'{path[17:]}.pickle')
-    if save:
-        with open(output_path, 'wb') as pickle_data:
-            pickle.dump(dataset, pickle_data)
 
 
 def from_pickle(path):

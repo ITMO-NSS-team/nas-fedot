@@ -9,6 +9,10 @@ from nas.nn.graph_keras_eval import create_nn_model, keras_model_fit, keras_mode
 
 
 class NNGraph(OptGraph):
+    # Temporal fix
+    INDIVIDUAL = 1
+    GENERATION = 1
+
     def __init__(self, nodes=None, fitted_model=None):
         super().__init__(nodes)
         self.model = fitted_model
@@ -43,11 +47,16 @@ class NNGraph(OptGraph):
             if node.content['name'] == 'flatten':
                 return idx
 
-    def fit(self, input_data: InputData, verbose=False, input_shape: List = None,
-            classes: int = 3, batch_size=24, epochs=15):
+    def fit(self, input_data: InputData, verbose=False, requirements=None, train_epochs: int = None):
+        train_epochs = requirements.epochs if train_epochs is None else train_epochs
         if not self.model:
-            self.model = create_nn_model(self, input_shape, classes)
-        train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=batch_size, epochs=epochs)
+            self.model = create_nn_model(self, requirements.input_shape, input_data.num_classes)
+        train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=requirements.batch_size,
+                                          epochs=train_epochs, ind=NNGraph.INDIVIDUAL, gen=NNGraph.GENERATION)
+        NNGraph.INDIVIDUAL += 1
+        if NNGraph.INDIVIDUAL >= requirements.pop_size:
+            NNGraph.INDIVIDUAL = 1
+            NNGraph.GENERATION += 1
         return train_predicted
 
     def predict(self, input_data: InputData, output_mode: str = 'default', is_multiclass: bool = False) -> OutputData:

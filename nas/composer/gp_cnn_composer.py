@@ -20,21 +20,18 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     max_filters: int = 128
     channels_num: int = 3
     max_drop_size: int = 0.5
-    image_size: List[int] = None
+    input_shape: List[int] = None
     conv_types: List[str] = None
     cnn_secondary: List[str] = None
     pool_types: List[str] = None
-    primary: List[str] = None
-    secondary: List[str] = None
-    train_epochs_num: int = 5
+    epochs: int = 5
     batch_size: int = 12  # 72
     num_of_classes: int = 10
     activation_types = activation_types
-    max_num_of_conv_layers: int = 4
-    min_num_of_conv_layers: int = 2
+    max_num_of_conv_layers: int = 6
+    min_num_of_conv_layers: int = 4
     max_nn_depth: int = 6
     init_graph_with_skip_connections: bool = False
-    timeout: datetime.timedelta = None
 
     def __post_init__(self):
         if not self.timeout:
@@ -65,12 +62,14 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             self.max_num_of_conv_layers = 4
         if not self.batch_size:
             self.batch_size = 16
-        if not all([side_size > 3 for side_size in self.image_size]):
+        if self.epochs < 1:
+            raise ValueError('Epoch number must be at least 1 or greater')
+        if not all([side_size >= 3 for side_size in self.input_shape]):
             raise ValueError(f'Specified image size is unacceptable')
-        self.conv_kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.image_size,
+        self.conv_kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.input_shape,
                                                                                          self.conv_kernel_size,
                                                                                          self.conv_strides, False)
-        self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.image_size,
+        self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.input_shape,
                                                                                   self.pool_size,
                                                                                   self.pool_strides, True)
         self.max_depth = self.max_nn_depth + self.max_num_of_conv_layers + 1
@@ -83,7 +82,7 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             raise ValueError(f'max_drop_size value is unacceptable')
         if self.channels_num > 3 or self.channels_num < 1:
             raise ValueError(f'channels_num value must be anywhere from 1 to 3')
-        if self.train_epochs_num < 1:
+        if self.epochs < 1:
             raise ValueError(f'epochs number less than 1')
         if self.batch_size < 1:
             raise ValueError(f'batch size less than 1')
