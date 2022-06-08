@@ -43,7 +43,7 @@ class NNGraph(OptGraph):
 
     @property
     def cnn_depth(self):
-        for idx, node in enumerate(self.nodes):
+        for idx, node in enumerate(self.graph_struct):
             if node.content['name'] == 'flatten':
                 return idx
 

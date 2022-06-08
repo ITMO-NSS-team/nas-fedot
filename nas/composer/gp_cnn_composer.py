@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 
@@ -32,6 +32,8 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     min_num_of_conv_layers: int = 4
     max_nn_depth: int = 6
     init_graph_with_skip_connections: bool = False
+    skip_connections_id: Optional[List[int]] = None
+    shortcuts_len: Optional[int] = None
 
     def __post_init__(self):
         if not self.timeout:
@@ -62,6 +64,10 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             self.max_num_of_conv_layers = 4
         if not self.batch_size:
             self.batch_size = 16
+        if not self.skip_connections_id:
+            self.skip_connections_id = [0, 4, 8]
+        if not self.shortcuts_len:
+            self.shortcuts_len = 4
         if self.epochs < 1:
             raise ValueError('Epoch number must be at least 1 or greater')
         if not all([side_size >= 3 for side_size in self.input_shape]):
