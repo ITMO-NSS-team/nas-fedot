@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -9,6 +10,8 @@ from pathlib import Path
 def set_root(root: Path):
     os.chdir(root)
     sys.path.append(root)
+    # tf.get_logger().setLevel(logging.INFO)
+    # tf.autograph.set_verbosity(1)
 
 
 def project_root() -> Path:

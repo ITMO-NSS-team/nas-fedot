@@ -66,8 +66,10 @@ def keras_model_predict(model, input_data: InputData, output_mode: str = 'defaul
 
 
 def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
+    # TODO remove before PR!
     if len(graph.free_nodes) != len(graph.graph_struct):
-        print("Evaluating graph with skips")
+        print(f"Evaluating graph with skips, graph depth: {len(graph.graph_struct)}")
+    print(f"cnn depth: {graph.cnn_depth}")
 
     def _get_skip_connection_list(graph_structure):
         sc_layers = {}

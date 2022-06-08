@@ -53,12 +53,12 @@ class DataLoader(InputData):
                     image_size = image.shape[0]
                 elif image.shape[0] != image_size:
                     image = cv2.resize(image, (image_size, image_size), interpolation=cv2.INTER_CUBIC)
-                    images_array.append(image)
-                    labels_array.append(label)
-                    if samples_limit:
-                        cnt += 1
-                        if cnt >= samples_limit:
-                            break
+                images_array.append(image)
+                labels_array.append(label)
+                if samples_limit:
+                    cnt += 1
+                    if cnt >= samples_limit:
+                        break
         is_digit = labels_array[0].isdigit()
         if not is_digit:
             labels_array = LabelEncoder().fit_transform(labels_array)
@@ -67,11 +67,15 @@ class DataLoader(InputData):
         return InputData.from_image(images=images_array, labels=labels_array, task=task)
 
     @staticmethod
-    def image_from_csv(task: TaskTypesEnum.classification):
+    def image_from_csv(task: TaskTypesEnum.classification, dir_path: str = None,
+                       image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
+        images_array = []
+        labels_array = []
         raise NotImplementedError
 
     @staticmethod
-    def images_from_pickle():
+    def images_from_pickle(task: TaskTypesEnum.classification, dir_path: str = None,
+                           image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
         raise NotImplementedError
 
 

@@ -119,9 +119,7 @@ def conv_output_shape(node, image_size):
     return image_size
 
 
-def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list: List, requirements=None,
-                           has_skip_connections: bool = False, skip_connections_id: List[int] = None,
-                           shortcuts_len: int = None) -> NNGraph:
+def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list: List, requirements=None) -> NNGraph:
     """
     Method for initial graph generation from defined nodes list.
 
@@ -129,10 +127,6 @@ def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list
     :param node_func: Node class
     :param node_list: List of nodes to graph generation
     :param requirements: List of parameters with generation restrictions. If none then default params will be chosen
-    :param has_skip_connections: Is graph has skip connections. If True, skip connections will be
-    added to graph after generation
-    :param skip_connections_id: Indices of nodes where skip connection starts
-    :param shortcuts_len: Len of skip connection's shortcut
     :return: graph:
     """
 
@@ -156,8 +150,8 @@ def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list
     created_node = None
     for node in node_list:
         created_node = _add_node_to_graph(node_type=node, parent_node=created_node)
-    if has_skip_connections:
-        _add_skip_connections(nodes_id=skip_connections_id, shortcuts_length=shortcuts_len)
+    if requirements.init_graph_with_skip_connections:
+        _add_skip_connections(nodes_id=requirements.skip_connections_id, shortcuts_length=requirements.shortcuts_len)
 
     return graph
 
