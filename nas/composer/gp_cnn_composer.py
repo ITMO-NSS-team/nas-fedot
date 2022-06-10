@@ -46,6 +46,7 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             self.pool_size = [2, 2]
         if not self.pool_strides:
             self.pool_strides = [2, 2]
+        # TODO delete cnn_secondary
         if not self.cnn_secondary:
             self.cnn_secondary = ['serial_connection', 'dropout']
         if not self.conv_types:

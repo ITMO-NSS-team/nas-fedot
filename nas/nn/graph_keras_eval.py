@@ -1,4 +1,5 @@
 from time import time
+import datetime
 import numpy as np
 
 from typing import Any, List
@@ -36,7 +37,7 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
     mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
-    tensorboard_callback = TensorBoard(log_dir=f'./logs/{gen}/{ind}')
+    tensorboard_callback = TensorBoard(log_dir=f'./logs/{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}')
     is_multiclass = input_data.num_classes > 2
     if is_multiclass:
         encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes, dtype='int')

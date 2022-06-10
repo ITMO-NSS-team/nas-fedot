@@ -58,20 +58,17 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
 
     # TODO optimise
     def metric_for_nodes(self, metric_function, train_data: InputData, test_data: InputData, requirements,
-                         graph) -> float:
+                         graph) -> List[float]:
         graph.fit(train_data, True, requirements=requirements)
-        return [metric_function(graph, test_data)]
+        out = [metric_function(graph, test_data)]
+        print('!!!!!!!', *out)
+        return out
 
     def compose(self, data):
         train_data, test_data = train_test_data_setup(data, 0.8)
-        composer_requirements = self.requirements
-        input_shape = [size for size in composer_requirements.input_shape]
-        input_shape.append(composer_requirements.channels_num)
-        input_shape = tuple(input_shape)
         self.history.clean_results()
-
         metric_function_for_nodes = partial(self.metric_for_nodes,
                                             self.metrics, train_data, test_data,
-                                            composer_requirements)
+                                            self.requirements)
         self.optimise(metric_function_for_nodes)
         return self.best_individual.graph
