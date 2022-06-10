@@ -1,11 +1,11 @@
 from typing import Tuple
 from fedot.core.data.data import InputData
-from nas.composer.cnn_graph import NNGraph
+from nas.composer.cnn_graph import CNNGraph
 
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
 
 
-def calculate_validation_metric(graph: NNGraph, dataset_to_validate: InputData) -> Tuple[float, float, float]:
+def calculate_validation_metric(graph: CNNGraph, dataset_to_validate: InputData) -> Tuple[float, float, float]:
     # Labels and probabilities prediction for metrics calculation
     multiclass = dataset_to_validate.num_classes > 2
     predicted_labels = graph.predict(dataset_to_validate, output_mode='label', is_multiclass=multiclass)

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Tuple, List, Any
 
 from tensorflow.keras import layers
-from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph_node import CNNNode
 
 
 class ActivationTypesIdsEnum(Enum):
@@ -39,7 +39,7 @@ class LayerParams:
     epsilon: float = None
 
 
-def make_dense_layer(idx: int, input_layer: Any, current_node: NNNode):
+def make_dense_layer(idx: int, input_layer: Any, current_node: CNNNode):
     """
     This function generates dense layer from given node parameters
 
@@ -56,7 +56,7 @@ def make_dense_layer(idx: int, input_layer: Any, current_node: NNNode):
     return dense_layer
 
 
-def make_dropout_layer(idx: int, input_layer: Any, current_node: NNNode):
+def make_dropout_layer(idx: int, input_layer: Any, current_node: CNNNode):
     """
     This function generates dropout layer from given node parameters
 
@@ -70,7 +70,7 @@ def make_dropout_layer(idx: int, input_layer: Any, current_node: NNNode):
     return dropout_layer
 
 
-def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_free_node: bool = False):
+def make_conv_layer(idx: int, input_layer: Any, current_node: CNNNode = None, is_free_node: bool = False):
     """
     This function generates convolutional layer from given node and adds pooling layer if node doesn't belong to any of
     skip connection blocks

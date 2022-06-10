@@ -99,8 +99,6 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
         if layer_type == 'conv2d':
             in_layer = nas.nn.layer.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
                                                     is_free_node=is_free_node)
-        elif layer_type == 'dropout':
-            in_layer = nas.nn.layer.make_dropout_layer(idx=i, input_layer=in_layer, current_node=layer)
         elif layer_type == 'dense':
             in_layer = nas.nn.layer.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
         elif layer_type == 'flatten':

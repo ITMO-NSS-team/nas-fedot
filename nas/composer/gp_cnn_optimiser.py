@@ -9,36 +9,34 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 
-from nas.utils.tmp import log_to_history
-from nas.composer.cnn_graph import NNGraph
-from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph import CNNGraph
+from nas.composer.cnn_graph_node import CNNNode
+from nas.cnn_builder import NASDirector
 
 random.seed(1)
 np.random.seed(1)
 
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
-    def __init__(self, initial_graph: Optional[NNGraph], requirements, graph_generation_params,
-                 graph_generation_function: Callable, metrics, parameters, log):
-        self.metrics = metrics
-
+    def __init__(self, initial_graph: Optional[List[str]], requirements, graph_generation_params,
+                 graph_builder, metrics, parameters, log):
         super().__init__(initial_graph=initial_graph, requirements=requirements,
                          graph_generation_params=graph_generation_params,
                          metrics=metrics,
                          parameters=parameters,
                          log=log)
+        self.metrics = metrics
+        self.graph_builder = graph_builder
+        self.director = NASDirector()
+        self.initial_graph = [self._define_builder(initial_graph)] if initial_graph else None
+        self.population = self.initial_graph if initial_graph else self._make_population(self.requirements.pop_size)
 
-        self.graph_generation_function = partial(graph_generation_function,
-                                                 graph_class=NNGraph,
-                                                 requirements=self.requirements,
-                                                 node_func=NNNode)
-        self.population = initial_graph or self._make_population(self.requirements.pop_size)
-
+    # TODO paths
     def save(self, save_folder: str = None, history: bool = True, image: bool = True):
         print(f'Saving files into {os.path.abspath(save_folder)}')
         if not os.path.isdir(save_folder):
             os.mkdir(save_folder)
-        if not isinstance(self.best_individual.graph, NNGraph):
+        if not isinstance(self.best_individual.graph, CNNGraph):
             graph = self.graph_generation_params.adapter.restore(self.best_individual.graph)
         else:
             graph = self.best_individual.graph
@@ -48,8 +46,12 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         if image:
             graph.show(path=f'{save_folder}_optimized_graph.png')
 
+    def _define_builder(self, initial_graph=None):
+        self.director.set_builder(self.graph_builder(nodes_list=initial_graph, requirements=self.requirements))
+        return self.director.create_nas_graph()
+
     def _make_population(self, pop_size: int):
-        initial_graphs = [self.graph_generation_function() for _ in range(pop_size)]
+        initial_graphs = [self._define_builder() for _ in range(pop_size)]
         ind_graphs = []
         for g in initial_graphs:
             new_ind = Individual(deepcopy(self.graph_generation_params.adapter.adapt(g)))
@@ -61,7 +63,6 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          graph) -> List[float]:
         graph.fit(train_data, True, requirements=requirements)
         out = [metric_function(graph, test_data)]
-        print('!!!!!!!', *out)
         return out
 
     def compose(self, data):

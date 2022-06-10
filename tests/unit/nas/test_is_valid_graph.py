@@ -2,8 +2,8 @@ import datetime
 import os
 from nas.utils.var import TESTING_ROOT
 from nas.composer.cnn_graph_operator import random_conv_graph_generation, generate_initial_graph
-from nas.composer.cnn_graph_node import NNNode
-from nas.composer.cnn_graph import NNGraph
+from nas.composer.cnn_graph_node import CNNNode
+from nas.composer.cnn_graph import CNNGraph
 from nas.composer.gp_cnn_composer import GPNNComposerRequirements
 
 from nas.graph_cnn_mutations import has_no_flatten_skip, flatten_check, graph_has_several_starts
@@ -31,13 +31,13 @@ def get_requirements():
 
 
 def test_static_graph_params_and_generation():
-    loaded_static_graph = NNGraph.load(os.path.join(TESTING_ROOT, 'static_graph.json'))
-    generated_static_graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST, None, True, [0, 2, 6], 3)
+    loaded_static_graph = CNNGraph.load(os.path.join(TESTING_ROOT, 'static_graph.json'))
+    generated_static_graph = generate_initial_graph(CNNGraph, CNNNode, NODES_LIST, None, True, [0, 2, 6], 3)
     assert loaded_static_graph.operator.is_graph_equal(generated_static_graph)
 
 
 def test_static_graph_generation():
-    graph = generate_initial_graph(NNGraph, NNNode, NODES_LIST, None, False)
+    graph = generate_initial_graph(CNNGraph, CNNNode, NODES_LIST, None, False)
     successful_generation = False
     if not successful_generation:
         for val in [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
@@ -47,15 +47,15 @@ def test_static_graph_generation():
 
 def test_graph_has_right_dtype():
     for _ in range(10):
-        graph = random_conv_graph_generation(NNGraph, NNNode, GPNNComposerRequirements(image_size=[120, 120]))
-        assert type(graph) == NNGraph
+        graph = random_conv_graph_generation(CNNGraph, CNNNode, GPNNComposerRequirements(image_size=[120, 120]))
+        assert type(graph) == CNNGraph
 
 
 def test_validation():
     rules_list = [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
                   graph_has_several_starts, has_no_self_cycled_nodes]
     for _ in range(10):
-        graph = random_conv_graph_generation(NNGraph, NNNode, GPNNComposerRequirements(image_size=[120, 120]))
+        graph = random_conv_graph_generation(CNNGraph, CNNNode, GPNNComposerRequirements(image_size=[120, 120]))
         for rule in rules_list:
             try:
                 successful_generation = rule(graph)

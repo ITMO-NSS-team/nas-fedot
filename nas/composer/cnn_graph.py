@@ -4,11 +4,11 @@ from fedot.core.data.data import InputData, OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 
-from nas.composer.cnn_graph_node import NNNode
+from nas.composer.cnn_graph_node import CNNNode
 from nas.nn.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
 
 
-class NNGraph(OptGraph):
+class CNNGraph(OptGraph):
     # Temporal fix
     INDIVIDUAL = 1
     GENERATION = 1
@@ -52,11 +52,11 @@ class NNGraph(OptGraph):
         if not self.model:
             self.model = create_nn_model(self, requirements.input_shape, input_data.num_classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=requirements.batch_size,
-                                          epochs=train_epochs, ind=NNGraph.INDIVIDUAL, gen=NNGraph.GENERATION)
-        NNGraph.INDIVIDUAL += 1
-        if NNGraph.INDIVIDUAL >= requirements.pop_size:
-            NNGraph.INDIVIDUAL = 1
-            NNGraph.GENERATION += 1
+                                          epochs=train_epochs, ind=CNNGraph.INDIVIDUAL, gen=CNNGraph.GENERATION)
+        CNNGraph.INDIVIDUAL += 1
+        if CNNGraph.INDIVIDUAL >= requirements.pop_size:
+            CNNGraph.INDIVIDUAL = 1
+            CNNGraph.GENERATION += 1
         return train_predicted
 
     def predict(self, input_data: InputData, output_mode: str = 'default', is_multiclass: bool = False) -> OutputData:
@@ -89,7 +89,7 @@ class NNNodeOperatorAdapter:
         adaptee.__class__ = OptNode
         return adaptee
 
-    def restore(self, node) -> NNNode:
+    def restore(self, node) -> CNNNode:
         obj = node
-        obj.__class__ = NNNode
+        obj.__class__ = CNNNode
         return obj
