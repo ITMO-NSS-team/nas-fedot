@@ -9,8 +9,8 @@ from fedot.core.repository.quality_metrics_repository import MetricsRepository, 
 
 from nas.data.load_images import from_directory
 from nas.composer.cnn_adapters import CustomGraphAdapter
-from nas.composer.cnn_graph_node import NNNode
-from nas.composer.cnn_graph import NNGraph
+from nas.composer.cnn_graph_node import CNNNode
+from nas.composer.cnn_graph import CNNGraph
 from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.gp_cnn_composer import GPNNComposerRequirements
 from fedot.core.optimisers.optimizer import GraphGenerationParams
@@ -62,13 +62,13 @@ def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = '
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=mutations,
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
+        adapter=CustomGraphAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
         rules_for_constraint=rules
     )
     if not initial_graph_struct:
         initial_graph = None
     else:
-        initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, None, True,
+        initial_graph = [generate_initial_graph(CNNGraph, CNNNode, initial_graph_struct, None, True,
                                                 skip_connection_ids, skip_connections_len)]
     optimiser = GPNNGraphOptimiser(
         initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,

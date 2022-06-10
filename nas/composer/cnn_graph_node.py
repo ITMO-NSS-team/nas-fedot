@@ -3,7 +3,7 @@ from typing import Optional, List
 from fedot.core.optimisers.graph import OptNode
 
 
-class NNNode(OptNode):
+class CNNNode(OptNode):
     def __init__(self, content: dict, nodes_from: Optional[List] = None):
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from

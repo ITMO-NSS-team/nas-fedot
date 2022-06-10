@@ -1,6 +1,6 @@
 from nas.composer.gp_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn_graph_node import NNNode
-from nas.composer.cnn_graph import NNGraph
+from nas.composer.cnn_graph_node import CNNNode
+from nas.composer.cnn_graph import CNNGraph
 from nas.composer.cnn_graph_operator import random_conv_graph_generation
 from nas.nn.graph_keras_eval import create_nn_model
 from nas.utils.utils import project_root
@@ -14,7 +14,7 @@ NODES_LIST = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flat
 def generate_graphs():
     graphs = []
     for _ in range(10):
-        graphs.append(random_conv_graph_generation(NNGraph, NNNode, requirements))
+        graphs.append(random_conv_graph_generation(CNNGraph, CNNNode, requirements))
     return graphs
 
 

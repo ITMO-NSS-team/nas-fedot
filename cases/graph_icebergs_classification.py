@@ -9,8 +9,8 @@ from nas.utils.var import VERBOSE_VAL
 from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.gp_cnn_composer import GPNNComposerRequirements
 from nas.composer.cnn_adapters import CustomGraphAdapter
-from nas.composer.cnn_graph_node import NNNode
-from nas.composer.cnn_graph import NNGraph
+from nas.composer.cnn_graph_node import CNNNode
+from nas.composer.cnn_graph import CNNGraph
 from nas.cnn_data import from_json
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
@@ -54,7 +54,7 @@ def run_custom_example(filepath: str, epochs: int, verbose: int = 1, timeout: da
         crossover_types=[CrossoverTypesEnum.subtree],
         regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
+        adapter=CustomGraphAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=[3, 3], conv_strides=[1, 1], pool_size=[2, 2], min_num_of_neurons=20,

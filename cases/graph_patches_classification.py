@@ -28,8 +28,8 @@ from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutatio
 from nas.composer.metrics import calculate_validation_metric
 
 from nas.composer.cnn_adapters import CustomGraphAdapter
-from nas.composer.cnn_graph_node import NNNode
-from nas.composer.cnn_graph import NNGraph
+from nas.composer.cnn_graph_node import CNNNode
+from nas.composer.cnn_graph import CNNGraph
 
 root = PROJECT_ROOT
 set_root(root)
@@ -59,7 +59,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
         genetic_scheme_type=GeneticSchemeTypesEnum.steady_state, mutation_types=mutations,
         crossover_types=[CrossoverTypesEnum.subtree], regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
+        adapter=CustomGraphAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
         rules_for_constraint=rules)
     requirements = GPNNComposerRequirements(
         conv_kernel_size=[3, 3], conv_strides=[1, 1], pool_size=[2, 2], min_num_of_neurons=20,
@@ -71,7 +71,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
     if not initial_graph_struct:
         initial_graph = None
     else:
-        initial_graph = [generate_initial_graph(NNGraph, NNNode, initial_graph_struct, requirements, False)]
+        initial_graph = [generate_initial_graph(CNNGraph, CNNNode, initial_graph_struct, requirements, False)]
     optimiser = GPNNGraphOptimiser(
         initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
         metrics=metric_function, parameters=optimiser_parameters,
