@@ -69,9 +69,11 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
              graph_has_wrong_structure]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_add_mutation,
-                 single_change_mutation]
+                 single_change_mutation, single_edge_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     # TODO fix verbose for evolution
+    # TODO add an option to specify save dir and log dir manually
+    # TODO rewrite graph generation funcs as PiplineGenerator from FEDOT with pattern builder method
     requirements = GPNNComposerRequirements(input_shape=image_size, pop_size=pop_size,
                                             num_of_generations=num_of_generations, max_num_of_conv_layers=max_cnn_depth,
                                             max_nn_depth=max_nn_depth, primary=None, secondary=None,
@@ -118,11 +120,11 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
 
 
 if __name__ == '__main__':
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     dir_root = os.path.join(PROJECT_ROOT, 'datasets', 'Blood-Cell-Classification', 'images')
     save_path = os.path.join(PROJECT_ROOT, 'Satellite')
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
-    run_test(dir_root, verbose=1, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=12, max_nn_depth=3,
-             batch_size=4, opt_epochs=5, initial_graph_struct=None, has_skip_connections=False,
-             pop_size=5, num_of_generations=10)
+    run_test(dir_root, verbose=0, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=12, max_nn_depth=3,
+             batch_size=4, opt_epochs=5, initial_graph_struct=None, has_skip_connections=True,
+             pop_size=5, num_of_generations=1)
