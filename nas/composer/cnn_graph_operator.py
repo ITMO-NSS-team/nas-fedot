@@ -110,7 +110,7 @@ def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list
     created_node = None
     for node in node_list:
         created_node = _add_node_to_graph(node_type=node, parent_node=created_node)
-    if requirements.init_graph_with_skip_connections:
+    if requirements.has_skip_connection:
         _add_skip_connections(nodes_id=requirements.skip_connections_id, shortcuts_length=requirements.shortcuts_len)
 
     return graph
@@ -247,7 +247,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
     graph = graph_class()
     _random_cnn()
     _random_nn(root_node=graph.nodes[-1])
-    if requirements.init_graph_with_skip_connections:
+    if requirements.has_skip_connection:
         add_skip_connections(graph)
 
     if not hasattr(graph, 'parent_operators'):

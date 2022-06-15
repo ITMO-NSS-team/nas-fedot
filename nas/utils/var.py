@@ -11,7 +11,7 @@ DEFAULT_NODES_PARAMS = {
                'pool_strides': [2, 2], 'pool_type': 'max_pool2d'},
     'dropout': {'layer_type': 'dropout',
                 'drop': 0.2},
-    'batch_norm': {'layer_type': 'batch_normalization', 'epsilon': 0.001, 'momentum': 0.99},
+    'batch_normalization': {'layer_type': 'batch_normalization', 'epsilon': 0.001, 'momentum': 0.99},
     'dense': {'activation': 'relu', 'layer_type': 'dense', 'neurons': 121},
     'serial_connection': {'layer_type': 'serial_connection'},
     'flatten': None}

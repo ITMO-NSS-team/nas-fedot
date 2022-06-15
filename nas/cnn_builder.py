@@ -1,4 +1,5 @@
 import random
+import os
 from typing import List, Callable, Union, Optional
 
 from nas.composer.cnn_graph import CNNGraph, CNNNode
@@ -9,10 +10,10 @@ from nas.utils.var import DEFAULT_NODES_PARAMS
 
 
 def _get_layer_params(layer_type: str, requirements=None):
-    if requirements is not None:
-        layer_params = _get_random_layer_params(layer_type, requirements)
-    else:
+    if requirements.default_parameters:
         layer_params = DEFAULT_NODES_PARAMS[layer_type]
+    else:
+        layer_params = _get_random_layer_params(layer_type, requirements)
     return layer_params
 
 
@@ -53,6 +54,8 @@ def _get_random_layer_params(layer_type: str, requirements):
 
 
 def _generate_random_struct(requirements: GPNNComposerRequirements) -> List[str]:
+    """ function for generate random graph structure if initial structure isn't specified"""
+
     conv_depth = random.randint(requirements.min_num_of_conv_layers, requirements.max_num_of_conv_layers)
     nn_depth = random.randint(requirements.min_nn_depth, requirements.max_nn_depth)
     struct = ['conv2d']
@@ -63,6 +66,16 @@ def _generate_random_struct(requirements: GPNNComposerRequirements) -> List[str]
             node = random.choice(requirements.secondary)
         struct.append(node)
     return struct
+
+
+def _add_skip_connections(graph: CNNGraph, requirements, params):
+    for current_node in requirements.skip_connections_id:
+        is_first_conv = current_node <= graph.cnn_depth
+        is_second_conv = current_node + requirements.shortcuts_len < graph.cnn_depth
+        if is_first_conv == is_second_conv and (current_node + requirements.shortcuts_len) < len(graph.nodes):
+            graph.nodes[current_node + requirements.shortcuts_len].nodes_from.append(graph.nodes[current_node])
+        else:
+            print('Wrong connection. Connection dropped.')
 
 
 class NASDirector:
@@ -78,9 +91,19 @@ class NASDirector:
 class CNNBuilder:
 
     def __init__(self, nodes_list: Optional[List[str]] = None,
-                 requirements=None):
+                 requirements: GPNNComposerRequirements = None):
         self.nodes = list(nodes_list) if nodes_list else _generate_random_struct(requirements)
         self.requirements = requirements
+
+    @property
+    def _skip_connection_params(self):
+        if self.requirements.has_skip_connection:
+            lst = []
+            skips_len = random.randint(0, len(self.nodes)//2)
+            for _ in range(self.requirements.max_number_of_skips):
+                node_id = random.randint(0, len(self.nodes))
+                lst.append(node_id)
+            return lst.sort()
 
     def _add_node(self, node_type, nodes_from):
         node_params = _get_layer_params(node_type, self.requirements)
@@ -102,6 +125,8 @@ class CNNBuilder:
             node = self._add_node(node_name, parent_node)
             parent_node = [node]
             graph.add_node(node)
+        if self.requirements.has_skip_connection:
+            _add_skip_connections(graph, self.requirements, self._skip_connection_params)
         return graph
 
 

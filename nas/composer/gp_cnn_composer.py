@@ -1,6 +1,7 @@
 import datetime
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
+from nas.utils.var import DEFAULT_NODES_PARAMS
 
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 
@@ -39,18 +40,20 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     cnn_secondary: List[str] = None
     pool_types: List[str] = None
     epochs: int = 5
-    batch_size: int = 12  # 72
+    batch_size: int = 12
     num_of_classes: int = 10
     activation_types = activation_types
     max_num_of_conv_layers: int = 6
     min_num_of_conv_layers: int = 4
     max_nn_depth: int = 6
     min_nn_depth: int = 1
-    init_graph_with_skip_connections: bool = False
+    max_number_of_skips: int = None
+    has_skip_connection: bool = False
     skip_connections_id: Optional[List[int]] = None
     shortcuts_len: Optional[int] = None
     batch_norm_prob: Optional[float] = None
     dropout_prob: Optional[float] = None
+    default_parameters: Optional[dict] = None
 
     def __post_init__(self):
         if not self.timeout:
@@ -111,6 +114,8 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             raise ValueError(f'min_filters value is unacceptable')
         if self.max_filters < 2:
             raise ValueError(f'max_filters value is unacceptable')
+        if not self.max_number_of_skips and self.has_skip_connection:
+            self.max_number_of_skips = 3
 
     @property
     def filters(self):

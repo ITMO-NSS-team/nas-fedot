@@ -1,6 +1,7 @@
-import logging
 import os
+import random
 import sys
+import numpy as np
 
 import tensorflow as tf
 
@@ -10,8 +11,11 @@ from pathlib import Path
 def set_root(root: Path):
     os.chdir(root)
     sys.path.append(root)
-    # tf.get_logger().setLevel(logging.INFO)
-    # tf.autograph.set_verbosity(1)
+
+
+def seed_all(random_seed: int):
+    random.seed(random_seed)
+    np.random.seed(random_seed)
 
 
 def project_root() -> Path:

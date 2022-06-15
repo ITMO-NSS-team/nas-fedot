@@ -31,7 +31,6 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         self.initial_graph = [self._define_builder(initial_graph)] if initial_graph else None
         self.population = self.initial_graph if initial_graph else self._make_population(self.requirements.pop_size)
 
-    # TODO paths
     def save(self, save_folder: str = None, history: bool = True, image: bool = True):
         print(f'Saving files into {os.path.abspath(save_folder)}')
         if not os.path.isdir(save_folder):
@@ -58,7 +57,6 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
             ind_graphs.append(new_ind)
         return ind_graphs
 
-    # TODO optimise
     def metric_for_nodes(self, metric_function, train_data: InputData, test_data: InputData, requirements,
                          graph) -> List[float]:
         graph.fit(train_data, True, requirements=requirements)
