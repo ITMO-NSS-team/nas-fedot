@@ -1,39 +1,33 @@
 import os
 import datetime
-import random
-import numpy as np
 from typing import List, Union
 
-
 from fedot.core.log import default_log
-from nas.utils.utils import set_root
-from nas.utils.var import PROJECT_ROOT, VERBOSE_VAL
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
-from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn_adapters import CustomGraphAdapter
 from fedot.core.optimisers.optimizer import GraphGenerationParams
-from nas.composer.cnn_graph_operator import generate_initial_graph
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph import CNNGraph
-from nas.data.load_images import DataLoader
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
+
+from nas.utils.utils import set_root, seed_all
+from nas.utils.var import PROJECT_ROOT, VERBOSE_VAL, DEFAULT_NODES_PARAMS
+from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
+from nas.composer.gp_cnn_composer import GPNNComposerRequirements
+from nas.composer.cnn_adapters import CustomGraphAdapter
+from nas.composer.cnn_graph_node import CNNNode
+from nas.composer.cnn_graph import CNNGraph
+from nas.data.load_images import DataLoader
 from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, graph_has_several_starts, \
-    graph_has_wrong_structure
+    graph_has_wrong_structure, flatten_check
 from nas.composer.metrics import calculate_validation_metric
-from nas.composer.cnn_graph_operator import random_conv_graph_generation
 from nas.cnn_builder import CNNBuilder
 
 set_root(PROJECT_ROOT)
-# TODO add to utils function seed everything
-random.seed(177103)
-np.random.seed(177103)
+seed_all(942212)
 
 
 # TODO extend initial approximation with desirable nodes params. Add ability to load graph as initial approximation
@@ -68,18 +62,18 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     train_data, test_data = train_test_data_setup(dataset, split_ratio, True)
 
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
-             graph_has_wrong_structure]
+             graph_has_wrong_structure, flatten_check]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_add_mutation,
                  single_change_mutation, single_edge_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     # TODO fix verbose for evolution
     # TODO add an option to specify save dir and log dir manually
-    # TODO rewrite graph generation funcs as PiplineGenerator from FEDOT with pattern builder method
     requirements = GPNNComposerRequirements(input_shape=image_size, pop_size=pop_size,
                                             num_of_generations=num_of_generations, max_num_of_conv_layers=max_cnn_depth,
                                             max_nn_depth=max_nn_depth, primary=['conv2d'], secondary=['dense'],
                                             batch_size=batch_size, timeout=timeout, epochs=opt_epochs,
-                                            init_graph_with_skip_connections=has_skip_connections)
+                                            has_skip_connection=has_skip_connections,
+                                            default_parameters=None)
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                   mutation_types=mutations,
                                                   crossover_types=[CrossoverTypesEnum.subtree],
@@ -94,6 +88,7 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     print(f'================ Starting optimisation process with following params: population size: {pop_size}; '
           f'number of generations: {num_of_generations}; number of train epochs: {opt_epochs}; '
           f'image size: {image_size}; batch size: {batch_size} ================')
+
     optimized_network = optimiser.compose(data=train_data)
     if save_path:
         print('save best graph structure...')
@@ -107,20 +102,20 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = './models/custom_example_model.json'
+    json_file = os.path.join(PROJECT_ROOT, 'models', 'custom_example_model.json')
     model_json = optimized_network.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
-    optimized_network.model.save_weights('./models/custom_example_model.h5')
+    optimized_network.model.save_weights(os.path.join(PROJECT_ROOT, 'models', 'custom_example_model.h5'))
 
     print("Done!")
 
 
 if __name__ == '__main__':
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     dir_root = os.path.join(PROJECT_ROOT, 'datasets', 'Blood-Cell-Classification', 'images')
-    save_path = os.path.join(PROJECT_ROOT, 'Satellite')
+    save_path = os.path.join(PROJECT_ROOT, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     run_test(dir_root, verbose=0, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=12, max_nn_depth=3,
              batch_size=4, opt_epochs=5, initial_graph_struct=initial_graph_nodes, has_skip_connections=True,

@@ -21,12 +21,12 @@ def get_requirements():
     nn_primary = ['dense']
     requirements = GPNNComposerRequirements(
         conv_kernel_size=[3, 3], conv_strides=[1, 1], pool_size=[2, 2], min_num_of_neurons=20,
-        max_num_of_neurons=128, min_filters=16, max_filters=64, image_size=[75, 75],
-        conv_types=conv_types, pool_types=pool_types, cnn_secondary=secondary,
-        primary=nn_primary, secondary=secondary, min_arity=2, max_arity=3,
+        max_num_of_neurons=128, min_filters=16, max_filters=64, input_shape=[75, 75, 3],
+        pool_types=pool_types, cnn_secondary=secondary,
+        primary=conv_types, secondary=nn_primary, min_arity=2, max_arity=3,
         max_nn_depth=6, pop_size=20, num_of_generations=5,
         crossover_prob=0, mutation_prob=0,
-        train_epochs_num=5, num_of_classes=3, timeout=timeout)
+        epochs=5, num_of_classes=3, timeout=timeout)
     return requirements
 
 
@@ -47,7 +47,7 @@ def test_static_graph_generation():
 
 def test_graph_has_right_dtype():
     for _ in range(10):
-        graph = random_conv_graph_generation(CNNGraph, CNNNode, GPNNComposerRequirements(image_size=[120, 120]))
+        graph = random_conv_graph_generation(CNNGraph, CNNNode, GPNNComposerRequirements(input_shape=[120, 120, 3]))
         assert type(graph) == CNNGraph
 
 
@@ -55,7 +55,7 @@ def test_validation():
     rules_list = [has_no_flatten_skip, flatten_check, has_no_cycle, has_no_self_cycled_nodes,
                   graph_has_several_starts, has_no_self_cycled_nodes]
     for _ in range(10):
-        graph = random_conv_graph_generation(CNNGraph, CNNNode, GPNNComposerRequirements(image_size=[120, 120]))
+        graph = random_conv_graph_generation(CNNGraph, CNNNode, GPNNComposerRequirements(image_size=[120, 120, 3]))
         for rule in rules_list:
             try:
                 successful_generation = rule(graph)

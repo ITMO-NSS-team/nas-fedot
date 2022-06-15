@@ -1,3 +1,4 @@
+import os
 from time import time
 import datetime
 import numpy as np
@@ -13,6 +14,7 @@ from fedot.core.data.data import InputData, OutputData
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
 
 import nas.nn.layer
+import tensorflow as tf
 
 
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
