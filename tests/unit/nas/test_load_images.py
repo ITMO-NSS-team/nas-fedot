@@ -8,6 +8,7 @@ from nas.utils.utils import project_root
 root = project_root()
 
 
+# TODO remade all
 def test_from_pickle():
     dataset_path = os.path.join(root, 'datasets', '15_samples_per_class_10cls_Generated_dataset.pickle')
     train_data, val_data = from_images(dataset_path, 10)

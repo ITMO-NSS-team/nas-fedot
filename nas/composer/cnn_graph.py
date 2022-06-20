@@ -66,7 +66,7 @@ class CNNGraph(OptGraph):
     def save(self, path: str = None):
         path = 'unnamed_graph' if path is None else path
         res = json.dumps(self, indent=4, cls=Serializer)
-        with open(f'{path}_optimized_graph.json', 'w') as f:
+        with open(f'{path}.json', 'w') as f:
             f.write(res)
 
     @staticmethod

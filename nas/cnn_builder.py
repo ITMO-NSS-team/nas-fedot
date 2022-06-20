@@ -69,10 +69,12 @@ def _generate_random_struct(requirements: GPNNComposerRequirements) -> List[str]
 
 
 def _add_skip_connections(graph: CNNGraph, requirements, params):
-    for current_node in requirements.skip_connections_id:
+    skip_connections_id = params[0] if params else requirements.skip_connections_id
+    shortcut_len = params[1] if params else requirements.shortcuts_len
+    for current_node in skip_connections_id:
         is_first_conv = current_node <= graph.cnn_depth
-        is_second_conv = current_node + requirements.shortcuts_len < graph.cnn_depth
-        if is_first_conv == is_second_conv and (current_node + requirements.shortcuts_len) < len(graph.nodes):
+        is_second_conv = current_node + shortcut_len < graph.cnn_depth
+        if is_first_conv == is_second_conv and (current_node + shortcut_len) < len(graph.nodes):
             graph.nodes[current_node + requirements.shortcuts_len].nodes_from.append(graph.nodes[current_node])
         else:
             print('Wrong connection. Connection dropped.')
@@ -95,15 +97,21 @@ class CNNBuilder:
         self.nodes = list(nodes_list) if nodes_list else _generate_random_struct(requirements)
         self.requirements = requirements
 
+    # TODO fix
     @property
     def _skip_connection_params(self):
-        if self.requirements.has_skip_connection:
+        if self.requirements.shortcuts_len or self.requirements.skip_connections_id:
+            return self.requirements.skip_connections_id, self.requirements.shortcuts_len
+        elif self.requirements.has_skip_connection:
             lst = []
             skips_len = random.randint(0, len(self.nodes)//2)
             for _ in range(self.requirements.max_number_of_skips):
                 node_id = random.randint(0, len(self.nodes))
                 lst.append(node_id)
-            return lst.sort()
+            lst.sort()
+            return lst, skips_len
+        else:
+            return None
 
     def _add_node(self, node_type, nodes_from):
         node_params = _get_layer_params(node_type, self.requirements)
