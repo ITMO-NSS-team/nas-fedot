@@ -27,6 +27,7 @@ from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, fl
     graph_has_several_starts, graph_has_wrong_structure
 from nas.composer.metrics import calculate_validation_metric
 from nas.composer.cnn_graph_operator import generate_initial_graph
+from nas.cnn_builder import CNNBuilder
 
 root = PROJECT_ROOT
 set_root(root)
@@ -70,10 +71,10 @@ def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = '
     else:
         initial_graph = [generate_initial_graph(CNNGraph, CNNNode, initial_graph_struct, None, True,
                                                 skip_connection_ids, skip_connections_len)]
-    optimiser = GPNNGraphOptimiser(
-        initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
-        metrics=metric_function, parameters=optimiser_params,
-        log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
+    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=requirements,
+                                   graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
+                                   metrics=metric_function, parameters=optimiser_params,
+                                   log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)

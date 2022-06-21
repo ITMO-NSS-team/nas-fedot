@@ -1,6 +1,6 @@
 import os
 import datetime
-from typing import List, Union
+from typing import List, Union, Optional
 
 from fedot.core.log import default_log
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
@@ -31,14 +31,15 @@ seed_all(942212)
 
 
 # TODO extend initial approximation with desirable nodes params. Add ability to load graph as initial approximation
-def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path: str = None, image_size: int = None,
-             max_cnn_depth: int = None, max_nn_depth: int = None, batch_size: int = None, opt_epochs: int = 5,
-             initial_graph_struct: List[str] = None, samples_limit: int = None, timeout: datetime.timedelta = None,
-             has_skip_connections: bool = False, pop_size: int = 5, num_of_generations: int = 10,
-             split_ratio: float = 0.8):
+def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, int] = 'auto', epochs: int = 1,
+             save_path: str = None, image_size: int = None, max_cnn_depth: int = None, max_nn_depth: int = None,
+             batch_size: int = None, opt_epochs: int = 5, initial_graph_struct: List[str] = None, default_params=None,
+             samples_limit: int = None, timeout: datetime.timedelta = None, has_skip_connections: bool = False,
+             pop_size: int = 5, num_of_generations: int = 10, split_ratio: float = 0.8):
     """
     Run example with custom dataset and params
-    :param path: Path to dataset
+    :param train_path: Path to dataset
+    :param test_path: path to test dataset if data was split before
     :param verbose: verbose value: 'auto', 0, 1, or 2. Verbosity mode. 0 = silent,
         1 = progress bar, 2 = one line per epoch
     :param epochs: number of train epochs
@@ -49,6 +50,8 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     :param batch_size: number of samples per gradient update. if None will be set to 16
     :param opt_epochs: number epochs for fitness estimate
     :param initial_graph_struct: graph's initial approximation
+    :param default_params: default parameters for initial graph approximation for each node type.
+        If None, then parameters will be random generated based on requirements
     :param samples_limit: sample limit per class
     :param timeout: runtime restrictions
     :param has_skip_connections: parameter for initial graph. If True them graph with skip connections will be generated
@@ -56,10 +59,13 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
     :param num_of_generations: number of generations
     :param split_ratio: train/test data ratio
     """
-    dataset = DataLoader.from_directory(dir_path=path, image_size=image_size, samples_limit=samples_limit)
-    channel_num = dataset.features[0].shape[-1]
-    image_size = [image_size, image_size, channel_num] if image_size else dataset.features[0].shape
-    train_data, test_data = train_test_data_setup(dataset, split_ratio, True)
+    train_data = DataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit)
+    channel_num = train_data.features[0].shape[-1]
+    image_size = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
+    if not test_path:
+        train_data, test_data = train_test_data_setup(train_data, split_ratio, True)
+    else:
+        test_data = DataLoader.from_directory(dir_path=test_path, image_size=image_size, samples_limit=samples_limit)
 
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
              graph_has_wrong_structure, flatten_check]
@@ -67,23 +73,23 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
                  single_change_mutation, single_edge_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     # TODO fix verbose for evolution
-    # TODO add an option to specify save dir and log dir manually
+    # TODO unit tests + get results with ResNet34
     requirements = GPNNComposerRequirements(input_shape=image_size, pop_size=pop_size,
                                             num_of_generations=num_of_generations, max_num_of_conv_layers=max_cnn_depth,
                                             max_nn_depth=max_nn_depth, primary=['conv2d'], secondary=['dense'],
                                             batch_size=batch_size, timeout=timeout, epochs=opt_epochs,
                                             has_skip_connection=has_skip_connections,
-                                            default_parameters=None)
+                                            default_parameters=default_params)
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                   mutation_types=mutations,
                                                   crossover_types=[CrossoverTypesEnum.subtree],
                                                   regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode), rules_for_constraint=rules)
-    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph_struct, graph_generation_params=graph_generation_params,
-                                   graph_builder=CNNBuilder,
-                                   metrics=metric_func, parameters=optimiser_params, requirements=requirements,
-                                   log=default_log(logger_name='Custom-run', verbose_level=VERBOSE_VAL[verbose]))
+    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph_struct, requirements=requirements,
+                                   graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
+                                   metrics=metric_func, parameters=optimiser_params, verbose=verbose,
+                                   log=default_log(logger_name='Custom-run', verbose_level=4))
 
     print(f'================ Starting optimisation process with following params: population size: {pop_size}; '
           f'number of generations: {num_of_generations}; number of train epochs: {opt_epochs}; '
@@ -114,9 +120,11 @@ def run_test(path, verbose: Union[str, int] = 'auto', epochs: int = 1, save_path
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    dir_root = os.path.join(PROJECT_ROOT, 'datasets', 'Blood-Cell-Classification', 'images')
+    dir_root = os.path.join(PROJECT_ROOT, 'datasets', 'Blood-Cell-Classification', 'train')
+    test_root = os.path.join(PROJECT_ROOT, 'datasets', 'Blood-Cell-Classification', 'test')
     save_path = os.path.join(PROJECT_ROOT, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
-    run_test(dir_root, verbose=0, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=12, max_nn_depth=3,
-             batch_size=4, opt_epochs=5, initial_graph_struct=initial_graph_nodes, has_skip_connections=True,
-             pop_size=5, num_of_generations=5)
+    default_parameters = DEFAULT_NODES_PARAMS
+    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=4,
+             max_nn_depth=3, batch_size=4, opt_epochs=5, initial_graph_struct=initial_graph_nodes, default_params=None,
+             samples_limit=20, has_skip_connections=True, pop_size=5, num_of_generations=5)

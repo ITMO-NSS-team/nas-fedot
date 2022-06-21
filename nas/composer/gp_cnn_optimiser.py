@@ -18,13 +18,14 @@ np.random.seed(1)
 
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
-    def __init__(self, initial_graph: Optional[List[str]], requirements, graph_generation_params,
-                 graph_builder, metrics, parameters, log):
+    def __init__(self, initial_graph: Optional[List[str]], requirements, graph_generation_params, graph_builder,
+                 metrics, parameters, log, verbose=0):
         super().__init__(initial_graph=initial_graph, requirements=requirements,
                          graph_generation_params=graph_generation_params,
                          metrics=metrics,
                          parameters=parameters,
                          log=log)
+        self.verbose = verbose
         self.metrics = metrics
         self.graph_builder = graph_builder
         self.director = NASDirector()
@@ -58,8 +59,8 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         return ind_graphs
 
     def metric_for_nodes(self, metric_function, train_data: InputData, test_data: InputData, requirements,
-                         graph) -> List[float]:
-        graph.fit(train_data, True, requirements=requirements)
+                         verbose, graph) -> List[float]:
+        graph.fit(train_data, requirements=requirements, verbose=verbose)
         out = [metric_function(graph, test_data)]
         return out
 
@@ -68,6 +69,6 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         self.history.clean_results()
         metric_function_for_nodes = partial(self.metric_for_nodes,
                                             self.metrics, train_data, test_data,
-                                            self.requirements)
+                                            self.requirements, self.verbose)
         self.optimise(metric_function_for_nodes)
         return self.best_individual.graph

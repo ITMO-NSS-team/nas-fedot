@@ -71,10 +71,10 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
         initial_graph = None
     else:
         initial_graph = [generate_initial_graph(CNNGraph, CNNNode, initial_graph_struct, False)]
-    optimiser = GPNNGraphOptimiser(
-        initial_graph=initial_graph, requirements=requirements, graph_generation_params=graph_generation_params,
-        metrics=metric_function, parameters=optimiser_parameters,
-        log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
+    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=requirements,
+                                   graph_generation_params=graph_generation_params, graph_builder=,
+                                   metrics=metric_function, parameters=optimiser_parameters,
+                                   log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     print('Best model structure:')

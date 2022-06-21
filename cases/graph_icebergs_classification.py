@@ -64,13 +64,10 @@ def run_custom_example(filepath: str, epochs: int, verbose: int = 1, timeout: da
         max_nn_depth=6, pop_size=40, num_of_generations=10,
         crossover_prob=0, mutation_prob=0,
         train_epochs_num=5, num_of_classes=num_of_classes, timeout=timeout)
-    optimiser = GPNNGraphOptimiser(
-        initial_graph=None,
-        requirements=requirements,
-        graph_generation_params=graph_generation_params,
-        metrics=metric_function,
-        parameters=optimiser_parameters,
-        log=default_log(logger_name='NAS_Iceberg', verbose_level=VERBOSE_VAL[verbose]))
+    optimiser = GPNNGraphOptimiser(initial_graph=None, requirements=requirements,
+                                   graph_generation_params=graph_generation_params, graph_builder=,
+                                   metrics=metric_function, parameters=optimiser_parameters,
+                                   log=default_log(logger_name='NAS_Iceberg', verbose_level=VERBOSE_VAL[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
 
