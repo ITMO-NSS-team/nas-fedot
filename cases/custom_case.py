@@ -61,7 +61,8 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     """
     train_data = DataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit)
     channel_num = train_data.features[0].shape[-1]
-    image_size = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
+    image_size = train_data.features[0].shape[0] if not image_size else image_size
+    input_shape = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
     if not test_path:
         train_data, test_data = train_test_data_setup(train_data, split_ratio, True)
     else:
@@ -74,7 +75,7 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     # TODO fix verbose for evolution
     # TODO unit tests + get results with ResNet34
-    requirements = GPNNComposerRequirements(input_shape=image_size, pop_size=pop_size,
+    requirements = GPNNComposerRequirements(input_shape=input_shape, pop_size=pop_size,
                                             num_of_generations=num_of_generations, max_num_of_conv_layers=max_cnn_depth,
                                             max_nn_depth=max_nn_depth, primary=['conv2d'], secondary=['dense'],
                                             batch_size=batch_size, timeout=timeout, epochs=opt_epochs,
@@ -93,7 +94,7 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
 
     print(f'================ Starting optimisation process with following params: population size: {pop_size}; '
           f'number of generations: {num_of_generations}; number of train epochs: {opt_epochs}; '
-          f'image size: {image_size}; batch size: {batch_size} ================')
+          f'image size: {input_shape}; batch size: {batch_size} ================')
 
     optimized_network = optimiser.compose(data=train_data)
     if save_path:
@@ -125,6 +126,6 @@ if __name__ == '__main__':
     save_path = os.path.join(PROJECT_ROOT, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = DEFAULT_NODES_PARAMS
-    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=4,
+    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=save_path, image_size=128, max_cnn_depth=4,
              max_nn_depth=3, batch_size=4, opt_epochs=5, initial_graph_struct=initial_graph_nodes, default_params=None,
              samples_limit=20, has_skip_connections=True, pop_size=5, num_of_generations=5)
