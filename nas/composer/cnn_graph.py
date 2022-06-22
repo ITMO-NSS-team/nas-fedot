@@ -1,5 +1,5 @@
 import json
-from typing import List
+import os
 from fedot.core.data.data import InputData, OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
@@ -60,9 +60,8 @@ class CNNGraph(OptGraph):
         return evaluation_result
 
     def save(self, path: str = None):
-        path = 'unnamed_graph' if path is None else path
         res = json.dumps(self, indent=4, cls=Serializer)
-        with open(f'{path}.json', 'w') as f:
+        with open(os.path.join(path, 'graph.json', 'w')) as f:
             f.write(res)
 
     @staticmethod
