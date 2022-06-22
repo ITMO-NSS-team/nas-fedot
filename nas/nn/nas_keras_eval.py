@@ -12,6 +12,7 @@ from tensorflow.keras.utils import to_categorical
 
 from fedot.core.data.data import InputData, OutputData
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
+from nas.metrics.callbacks.custom_callbacks import BotCallback, Plotter
 
 import nas.nn.layers_keras
 import tensorflow as tf
@@ -39,6 +40,8 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
     mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
+    bot_callback = BotCallback()
+    plotter = Plotter()
     tensorboard_callback = TensorBoard(
         log_dir=f'./logs/{len(os.listdir("./"))}/{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}')
     is_multiclass = input_data.num_classes > 2
@@ -51,7 +54,7 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
               epochs=epochs,
               verbose=verbose,
               validation_split=0.2,
-              callbacks=[early_stopping, reduce_lr_loss, mcp_save, tensorboard_callback])
+              callbacks=[early_stopping, reduce_lr_loss, mcp_save, tensorboard_callback, bot_callback, plotter])
     return keras_model_predict(model, input_data, is_multiclass=is_multiclass)
 
 
@@ -97,13 +100,13 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
                 skip_connection_destination_dict[skip_connection_id] = [in_layer]
             else:
                 skip_connection_destination_dict[skip_connection_id].append(in_layer)
-        in_layer = nas.nn.layer.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
-                                                           layers_dict=skip_connection_destination_dict)
+        in_layer = nas.nn.layers_keras.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
+                                                                  layers_dict=skip_connection_destination_dict)
         if layer_type == 'conv2d':
-            in_layer = nas.nn.layer.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
-                                                    is_free_node=is_free_node)
+            in_layer = nas.nn.layers_keras.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
+                                                           is_free_node=is_free_node)
         elif layer_type == 'dense':
-            in_layer = nas.nn.layer.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
+            in_layer = nas.nn.layers_keras.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
         elif layer_type == 'flatten':
             flatten = layers.Flatten()
             in_layer = flatten(in_layer)
