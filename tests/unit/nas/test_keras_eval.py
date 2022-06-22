@@ -1,11 +1,8 @@
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph import CNNGraph
-from nas.composer.cnn_graph_operator import random_conv_graph_generation
-from nas.nn.graph_keras_eval import create_nn_model
+from nas.composer.nas_cnn_composer import GPNNComposerRequirements
+from nas.nn.nas_keras_eval import create_nn_model
 from nas.utils.utils import project_root
-from nas.utils.var import DEFAULT_NODES_PARAMS
-from nas.cnn_builder import NASDirector, CNNBuilder
+from nas.utils.var import default_nodes_params
+from nas.composer.cnn.cnn_builder import NASDirector, CNNBuilder
 
 root = project_root()
 requirements = GPNNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
@@ -14,7 +11,7 @@ requirements = GPNNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
                                         batch_size=4, epochs=1,
                                         has_skip_connection=True, skip_connections_id=[0, 2, 5], shortcuts_len=2,
                                         batch_norm_prob=-1, dropout_prob=-1,
-                                        default_parameters=DEFAULT_NODES_PARAMS)
+                                        default_parameters=default_nodes_params)
 NODES_LIST = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
 
 

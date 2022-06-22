@@ -2,9 +2,9 @@ import random
 from math import floor
 from typing import (List, Any, Callable)
 
-from nas.cnn_builder import _get_layer_params
-from nas.utils.var import BATCH_NORM_PROB
-from nas.composer.cnn_graph import CNNGraph
+from nas.composer.cnn.cnn_builder import get_layer_params
+from nas.utils.var import batch_norm_probability
+from nas.composer.cnn.cnn_graph import CNNGraph
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
@@ -14,42 +14,42 @@ def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
 
 
 def _add_batch_norm2node(node, requirements=None):
-    batch_norm_params = _get_layer_params('batch_normalization', requirements)
+    batch_norm_params = get_layer_params('batch_normalization', requirements)
     node.content['params'] = node.content['params'] | batch_norm_params
 
 
 def _create_conv2d_node(node_func: Callable, requirements=None):
-    layer_params = _get_layer_params('conv2d', requirements)
+    layer_params = get_layer_params('conv2d', requirements)
     new_node = node_func(content={'name': f'{layer_params["layer_type"]}',
                                   'params': layer_params}, nodes_from=None)
-    if random.uniform(0, 1) > BATCH_NORM_PROB:
+    if random.uniform(0, 1) > batch_norm_probability:
         _add_batch_norm2node(new_node, requirements)
     return new_node
 
 
 def _create_secondary_node(node_func: Callable, requirements=None):
     new_node = random.choice(requirements.cnn_secondary)
-    layer_params = _get_layer_params(new_node, requirements)
+    layer_params = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
                          nodes_from=None)
-    if random.uniform(0, 1) > BATCH_NORM_PROB:
+    if random.uniform(0, 1) > batch_norm_probability:
         _add_batch_norm2node(new_node, requirements)
     return new_node
 
 
 def _create_primary_nn_node(node_func: Callable, requirements=None):
     new_node = random.choice(requirements.primary)
-    layer_params = _get_layer_params(new_node, requirements)
+    layer_params = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'], 'params': layer_params},
                          nodes_from=None)
-    if random.uniform(0, 1) > BATCH_NORM_PROB:
+    if random.uniform(0, 1) > batch_norm_probability:
         _add_batch_norm2node(new_node, requirements)
     return new_node
 
 
 def _create_dropout_node(node_func: Callable, requirements=None):
     new_node = 'dropout'
-    layer_params = _get_layer_params(new_node, requirements)
+    layer_params = get_layer_params(new_node, requirements)
     new_node = node_func(content={'name': layer_params['layer_type'],
                                   'params': layer_params}, nodes_from=None)
     return new_node
@@ -92,7 +92,7 @@ def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list
 
     def _add_node_to_graph(node_type: str, parent_node=None):
         parent = None if not parent_node else [parent_node]
-        layer_params = _get_layer_params(node_type, requirements)
+        layer_params = get_layer_params(node_type, requirements)
         new_node = node_func(nodes_from=parent, content={'name': node_type,
                                                          'params': layer_params})
         graph._add_node(new_node)

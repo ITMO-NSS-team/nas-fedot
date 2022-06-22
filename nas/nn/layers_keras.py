@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Tuple, List, Any
 
 from tensorflow.keras import layers
-from nas.composer.cnn_graph_node import CNNNode
+from nas.composer.cnn.cnn_graph_node import CNNNode
 
 
 class ActivationTypesIdsEnum(Enum):

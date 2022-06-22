@@ -1,6 +1,6 @@
 from typing import Tuple
 from fedot.core.data.data import InputData
-from nas.composer.cnn_graph import CNNGraph
+from nas.composer.cnn.cnn_graph import CNNGraph
 
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
 
@@ -15,3 +15,8 @@ def calculate_validation_metric(graph: CNNGraph, dataset_to_validate: InputData)
     log_loss_score = Logloss.metric(reference=dataset_to_validate, predicted=predicted_probabilities)
     accuracy = -Accuracy.metric(reference=dataset_to_validate, predicted=predicted_labels)
     return roc_auc_score, log_loss_score, accuracy
+
+
+def plot_confusion_matrix():
+    raise NotImplementedError
+

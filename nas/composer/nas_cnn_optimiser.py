@@ -1,6 +1,6 @@
 import random
 import os
-from typing import Callable, Union, List, Optional
+from typing import List, Optional
 from functools import partial
 from copy import deepcopy
 import numpy as np
@@ -9,9 +9,8 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 
-from nas.composer.cnn_graph import CNNGraph
-from nas.composer.cnn_graph_node import CNNNode
-from nas.cnn_builder import NASDirector
+from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.composer.cnn.cnn_builder import NASDirector
 
 random.seed(1)
 np.random.seed(1)

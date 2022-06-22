@@ -1,11 +1,10 @@
 import datetime
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
-from nas.utils.var import DEFAULT_NODES_PARAMS
 
 from fedot.core.composer.gp_composer.gp_composer import PipelineComposerRequirements
 
-from nas.nn.layer import activation_types
+from nas.nn.layers_keras import activation_types
 
 
 def permissible_kernel_parameters_correct(image_size: List[float], kernel_size: List[int],

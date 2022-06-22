@@ -5,12 +5,12 @@ import datetime
 import numpy as np
 
 from nas.utils.utils import project_root, set_tf_compat
-from nas.utils.var import VERBOSE_VAL
-from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn_adapters import CustomGraphAdapter
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph import CNNGraph
+from nas.utils.var import verbose_values
+from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
+from nas.composer.nas_cnn_composer import GPNNComposerRequirements
+from nas.composer.cnn.cnn_adapters import CustomGraphAdapter
+from nas.composer.cnn.cnn_graph_node import CNNNode
+from nas.composer.cnn.cnn_graph import CNNGraph
 from nas.cnn_data import from_json
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
@@ -23,9 +23,10 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, graph_has_several_starts, \
+from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.composer.metrics import calculate_validation_metric
+from nas.metrics.metrics import calculate_validation_metric
 
 root = project_root()
 random.seed(17)
@@ -67,7 +68,7 @@ def run_custom_example(filepath: str, epochs: int, verbose: int = 1, timeout: da
     optimiser = GPNNGraphOptimiser(initial_graph=None, requirements=requirements,
                                    graph_generation_params=graph_generation_params, graph_builder=,
                                    metrics=metric_function, parameters=optimiser_parameters,
-                                   log=default_log(logger_name='NAS_Iceberg', verbose_level=VERBOSE_VAL[verbose]))
+                                   log=default_log(logger_name='NAS_Iceberg', verbose_level=verbose_values[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
 

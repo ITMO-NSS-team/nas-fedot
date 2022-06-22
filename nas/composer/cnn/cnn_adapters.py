@@ -5,7 +5,7 @@ from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 
-from nas.utils.var import DEFAULT_NODES_PARAMS
+from nas.utils.var import default_nodes_params
 
 
 class CustomGraphAdapter(DirectAdapter):
@@ -27,5 +27,5 @@ class CustomGraphAdapter(DirectAdapter):
         for node in obj.nodes:
             node.__class__ = self.base_node_class
             if node.content['params'] == DEFAULT_PARAMS_STUB:
-                node.content['params'] = DEFAULT_NODES_PARAMS[node.content['name']]
+                node.content['params'] = default_nodes_params[node.content['name']]
         return obj

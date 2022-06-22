@@ -1,17 +1,16 @@
 import random
-import os
-from typing import List, Callable, Union, Optional
+from typing import List, Optional
 
-from nas.composer.cnn_graph import CNNGraph, CNNNode
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
+from nas.composer.cnn.cnn_graph import CNNGraph, CNNNode
+from nas.composer.nas_cnn_composer import GPNNComposerRequirements
 
 # TODO mb need to move add dense layers from keras_eval and increase the number of nn layers in requirements
-from nas.utils.var import DEFAULT_NODES_PARAMS
+from nas.utils.var import default_nodes_params
 
 
-def _get_layer_params(layer_type: str, requirements=None):
+def get_layer_params(layer_type: str, requirements=None):
     if requirements.default_parameters:
-        layer_params = DEFAULT_NODES_PARAMS[layer_type]
+        layer_params = default_nodes_params[layer_type]
     else:
         layer_params = _get_random_layer_params(layer_type, requirements)
     return layer_params
@@ -114,15 +113,15 @@ class CNNBuilder:
             return None
 
     def _add_node(self, node_type, nodes_from):
-        node_params = _get_layer_params(node_type, self.requirements)
+        node_params = get_layer_params(node_type, self.requirements)
         node = CNNNode(content={'name': node_type, 'params': node_params}, nodes_from=nodes_from)
         if node_type == 'flatten':
             return node
         if random.random() > self.requirements.batch_norm_prob:
-            batch_norm_params = _get_layer_params('batch_normalization', self.requirements)
+            batch_norm_params = get_layer_params('batch_normalization', self.requirements)
             node.content['params'] = node.content['params'] | batch_norm_params
         if random.random() > self.requirements.dropout_prob:
-            dropout_params = _get_layer_params('dropout', self.requirements)
+            dropout_params = get_layer_params('dropout', self.requirements)
             node.content['params'] = node.content['params'] | dropout_params
         return node
 

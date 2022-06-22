@@ -2,13 +2,11 @@ import os
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 
-from nas.cnn_builder import CNNBuilder, NASDirector
-from nas.composer.cnn_graph import CNNGraph
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph_operator import random_conv_graph_generation
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
-from nas.graph_cnn_mutations import has_no_flatten_skip, flatten_check, graph_has_several_starts
-from nas.utils.var import TESTING_ROOT, DEFAULT_NODES_PARAMS
+from nas.composer.cnn.cnn_builder import CNNBuilder, NASDirector
+from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.composer.nas_cnn_composer import GPNNComposerRequirements
+from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts
+from nas.utils.var import tests_root, default_nodes_params
 
 NODES_LIST = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
 REQUIREMENTS = GPNNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
@@ -17,13 +15,13 @@ REQUIREMENTS = GPNNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
                                         batch_size=4, epochs=1,
                                         has_skip_connection=True, skip_connections_id=[0, 2, 5], shortcuts_len=2,
                                         batch_norm_prob=-1, dropout_prob=-1,
-                                        default_parameters=DEFAULT_NODES_PARAMS)
+                                        default_parameters=default_nodes_params)
 
 
 def test_is_cnn_builder_correct():
     director = NASDirector()
     director.set_builder(CNNBuilder(NODES_LIST, requirements=REQUIREMENTS))
-    loaded_static_graph = CNNGraph.load(os.path.join(TESTING_ROOT, 'static_graph.json'))
+    loaded_static_graph = CNNGraph.load(os.path.join(tests_root, 'static_graph.json'))
     generated_static_graph = director.create_nas_graph()
     assert loaded_static_graph.operator.is_graph_equal(generated_static_graph)
 

@@ -1,13 +1,11 @@
 import os
 
-from nas.graph_cnn_mutations import has_no_flatten_skip, graph_has_several_starts, flatten_check, \
+from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph import CNNGraph
-from nas.composer.cnn_graph_operator import generate_initial_graph
-from nas.utils.var import TESTING_ROOT
-from nas.cnn_builder import NASDirector, CNNBuilder
+from nas.composer.nas_cnn_composer import GPNNComposerRequirements
+from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.utils.var import tests_root
+from nas.composer.cnn.cnn_builder import NASDirector, CNNBuilder
 
 requirements = GPNNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
                                         num_of_generations=1, max_num_of_conv_layers=4,
@@ -24,7 +22,7 @@ def generate_graph():
 
 
 def test_has_no_flatten_skip():
-    graph = CNNGraph.load(os.path.join(TESTING_ROOT, 'graph_with_flatten_skip.json'))
+    graph = CNNGraph.load(os.path.join(tests_root, 'graph_with_flatten_skip.json'))
     successful_check = False
     try:
         has_no_flatten_skip(graph)
@@ -34,7 +32,7 @@ def test_has_no_flatten_skip():
 
 
 def test_graph_has_several_starts():
-    graph = CNNGraph.load(os.path.join(TESTING_ROOT, 'several_starts_graph.json'))
+    graph = CNNGraph.load(os.path.join(tests_root, 'several_starts_graph.json'))
     successful_check = False
     try:
         graph_has_several_starts(graph)
@@ -44,7 +42,7 @@ def test_graph_has_several_starts():
 
 
 def test_graph_has_wrong_structure():
-    graph = CNNGraph.load(os.path.join(TESTING_ROOT, 'no_conv_graph.json'))
+    graph = CNNGraph.load(os.path.join(tests_root, 'no_conv_graph.json'))
     successful_check = False
     try:
         graph_has_wrong_structure(graph)
@@ -54,7 +52,7 @@ def test_graph_has_wrong_structure():
 
 
 def test_flatten_check():
-    graph = CNNGraph.load(os.path.join(TESTING_ROOT, 'graph_few_flatten.json'))
+    graph = CNNGraph.load(os.path.join(tests_root, 'graph_few_flatten.json'))
     successful_check = False
     try:
         flatten_check(graph)
