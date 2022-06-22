@@ -65,7 +65,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         return out
 
     def compose(self, data):
-        train_data, test_data = train_test_data_setup(data, 0.8)
+        train_data, test_data = train_test_data_setup(data, 0.8, True)
         self.history.clean_results()
         metric_function_for_nodes = partial(self.metric_for_nodes,
                                             self.metrics, train_data, test_data,
