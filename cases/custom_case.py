@@ -127,6 +127,6 @@ if __name__ == '__main__':
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
-    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=save_path, image_size=128, max_cnn_depth=34,
-             max_nn_depth=3, batch_size=16, opt_epochs=5, initial_graph_struct=None, default_params=None,
-             has_skip_connections=True, pop_size=10, num_of_generations=10)
+    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=4,
+             max_nn_depth=3, batch_size=16, opt_epochs=5, initial_graph_struct=None, default_params=None, samples_limit=20,
+             has_skip_connections=True, pop_size=1, num_of_generations=1)

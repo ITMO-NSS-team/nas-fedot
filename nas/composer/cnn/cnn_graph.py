@@ -61,7 +61,7 @@ class CNNGraph(OptGraph):
 
     def save(self, path: str = None):
         res = json.dumps(self, indent=4, cls=Serializer)
-        with open(os.path.join(path, 'graph.json', 'w')) as f:
+        with open(os.path.join(path, 'graph.json'), 'w') as f:
             f.write(res)
 
     @staticmethod

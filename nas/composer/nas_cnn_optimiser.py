@@ -41,7 +41,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
             graph = self.best_individual.graph
         graph.save(path=save_folder)
         if history:
-            self.history.save(json_file_path=os.path.join(save_folder,'opt_history.json'))
+            self.history.save(json_file_path=os.path.join(save_folder, 'opt_history.json'))
         if image:
             graph.show(path=os.path.join(save_folder, 'optimized_graph.png'))
 
