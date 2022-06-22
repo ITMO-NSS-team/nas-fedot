@@ -14,19 +14,20 @@ from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutatio
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 
 from nas.utils.utils import set_root, seed_all
-from nas.utils.var import PROJECT_ROOT, VERBOSE_VAL, DEFAULT_NODES_PARAMS
-from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn_adapters import CustomGraphAdapter
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph import CNNGraph
+from nas.utils.var import project_root, default_nodes_params
+from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
+from nas.composer.nas_cnn_composer import GPNNComposerRequirements
+from nas.composer.cnn.cnn_adapters import CustomGraphAdapter
+from nas.composer.cnn.cnn_graph_node import CNNNode
+from nas.composer.cnn.cnn_graph import CNNGraph
 from nas.data.load_images import DataLoader
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, graph_has_several_starts, \
-    graph_has_wrong_structure, flatten_check
-from nas.composer.metrics import calculate_validation_metric
-from nas.cnn_builder import CNNBuilder
+from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
+    graph_has_wrong_structure
+from nas.metrics.metrics import calculate_validation_metric
+from nas.composer.cnn.cnn_builder import CNNBuilder
 
-set_root(PROJECT_ROOT)
+set_root(project_root)
 seed_all(942212)
 
 
@@ -109,23 +110,23 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    json_file = os.path.join(PROJECT_ROOT, 'models', 'custom_example_model.json')
+    json_file = os.path.join(project_root, 'models', 'custom_example_model.json')
     model_json = optimized_network.model.to_json()
 
     with open(json_file, 'w') as f:
         f.write(model_json)
-    optimized_network.model.save_weights(os.path.join(PROJECT_ROOT, 'models', 'custom_example_model.h5'))
+    optimized_network.model.save_weights(os.path.join(project_root, 'models', 'custom_example_model.h5'))
 
     print("Done!")
 
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    dir_root = os.path.join(PROJECT_ROOT, 'datasets', 'Blood-Cell-Classification', 'train')
-    test_root = os.path.join(PROJECT_ROOT, 'datasets', 'Blood-Cell-Classification', 'test')
-    save_path = os.path.join(PROJECT_ROOT, 'Blood-Cell-Cls')
+    dir_root = os.path.join(project_root, 'datasets', 'Blood-Cell-Classification', 'train')
+    test_root = os.path.join(project_root, 'datasets', 'Blood-Cell-Classification', 'test')
+    save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
-    default_parameters = DEFAULT_NODES_PARAMS
+    default_parameters = default_nodes_params
     run_test(dir_root, test_root, verbose=1, epochs=20, save_path=save_path, image_size=128, max_cnn_depth=34,
              max_nn_depth=3, batch_size=16, opt_epochs=5, initial_graph_struct=None, default_params=None,
              has_skip_connections=True, pop_size=10, num_of_generations=10)

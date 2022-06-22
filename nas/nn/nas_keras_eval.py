@@ -13,7 +13,7 @@ from tensorflow.keras.utils import to_categorical
 from fedot.core.data.data import InputData, OutputData
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
 
-import nas.nn.layer
+import nas.nn.layers_keras
 import tensorflow as tf
 
 

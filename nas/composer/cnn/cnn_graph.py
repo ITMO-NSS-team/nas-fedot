@@ -4,8 +4,8 @@ from fedot.core.data.data import InputData, OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 
-from nas.composer.cnn_graph_node import CNNNode
-from nas.nn.graph_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
+from nas.composer.cnn.cnn_graph_node import CNNNode
+from nas.nn.nas_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
 
 
 class CNNGraph(OptGraph):

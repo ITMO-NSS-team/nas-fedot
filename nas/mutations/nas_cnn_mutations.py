@@ -1,45 +1,9 @@
-import copy
 from random import random, choice
 from typing import Any
 
-from fedot.core.dag.validation_rules import ERROR_PREFIX
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from nas.cnn_builder import _get_layer_params
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph import CNNGraph
-
-
-def flatten_check(graph: CNNGraph):
-    cnt = 0
-    for node in graph.nodes:
-        if node.content['name'] == 'flatten':
-            cnt += 1
-            if cnt > 1:
-                raise ValueError(f'{ERROR_PREFIX} Graph should have only one flatten layer')
-    return True
-
-
-def has_no_flatten_skip(graph: CNNGraph):
-    for node in graph.free_nodes:
-        if node.content['name'] == 'flatten':
-            return True
-    raise ValueError(f'{ERROR_PREFIX} Graph has wrong skip connections')
-
-
-def graph_has_several_starts(graph: CNNGraph):
-    cnt = 0
-    for node in graph.graph_struct:
-        if not node.nodes_from:
-            cnt += 1
-        if cnt > 1:
-            raise ValueError(f'{ERROR_PREFIX} Graph has more than one start node')
-    return True
-
-
-def graph_has_wrong_structure(graph: CNNGraph):
-    if graph.graph_struct[0].content['name'] != 'conv2d':
-        raise ValueError(f'{ERROR_PREFIX} Graph has no conv layers in conv part')
-    return True
+from nas.composer.cnn.cnn_builder import get_layer_params
+from nas.composer.cnn.cnn_graph_node import CNNNode
 
 
 def cnn_simple_mutation(graph: Any, requirements, **kwargs) -> Any:
@@ -60,7 +24,7 @@ def cnn_simple_mutation(graph: Any, requirements, **kwargs) -> Any:
                                     'num_of_filters': choice(requirements.filters)}
             else:
                 node_type = choice(requirements.secondary)
-                new_layer_params = _get_layer_params(node_type, requirements)
+                new_layer_params = get_layer_params(node_type, requirements)
             new_nodes_from = None if not node.nodes_from else [node.nodes_from[0]]
             new_node = CNNNode(nodes_from=new_nodes_from,
                                content={'name': new_layer_params["layer_type"],

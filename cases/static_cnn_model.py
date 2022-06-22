@@ -2,17 +2,17 @@ import os
 import datetime
 from typing import List, Union
 
-from nas.utils.var import PROJECT_ROOT, VERBOSE_VAL
+from nas.utils.var import project_root, verbose_values
 from nas.utils.utils import set_tf_compat, set_root
 
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 
 from nas.data.load_images import from_directory
-from nas.composer.cnn_adapters import CustomGraphAdapter
-from nas.composer.cnn_graph_node import CNNNode
-from nas.composer.cnn_graph import CNNGraph
-from nas.composer.gp_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.gp_cnn_composer import GPNNComposerRequirements
+from nas.composer.cnn.cnn_adapters import CustomGraphAdapter
+from nas.composer.cnn.cnn_graph_node import CNNNode
+from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
+from nas.composer.nas_cnn_composer import GPNNComposerRequirements
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
@@ -23,13 +23,14 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_change_mutation, \
     single_drop_mutation, single_add_mutation
-from nas.graph_cnn_mutations import cnn_simple_mutation, has_no_flatten_skip, flatten_check, \
-    graph_has_several_starts, graph_has_wrong_structure
-from nas.composer.metrics import calculate_validation_metric
-from nas.composer.cnn_graph_operator import generate_initial_graph
-from nas.cnn_builder import CNNBuilder
+from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
+    graph_has_wrong_structure
+from nas.metrics.metrics import calculate_validation_metric
+from nas.composer.cnn.cnn_graph_operator import generate_initial_graph
+from nas.composer.cnn.cnn_builder import CNNBuilder
 
-root = PROJECT_ROOT
+root = project_root
 set_root(root)
 
 
@@ -74,7 +75,7 @@ def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = '
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=requirements,
                                    graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
                                    metrics=metric_function, parameters=optimiser_params,
-                                   log=default_log(logger_name='Bayesian', verbose_level=VERBOSE_VAL[verbose]))
+                                   log=default_log(logger_name='Bayesian', verbose_level=verbose_values[verbose]))
 
     optimized_network = optimiser.compose(data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
@@ -93,7 +94,7 @@ def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = '
 
 if __name__ == '__main__':
     set_tf_compat()
-    file_path = os.path.join(PROJECT_ROOT, 'datasets', 'Satellite-Image-Classification')
+    file_path = os.path.join(project_root, 'datasets', 'Satellite-Image-Classification')
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
     start_test_example(path=file_path, epochs=20, initial_graph_struct=initial_graph_nodes, verbose='auto')
