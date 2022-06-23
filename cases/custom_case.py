@@ -24,7 +24,7 @@ from nas.data.load_images import DataLoader
 from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.metrics.metrics import calculate_validation_metric
+from nas.metrics.metrics import calculate_validation_metric, get_predictions, plot_confusion_matrix
 from nas.composer.cnn.cnn_builder import CNNBuilder
 
 set_root(project_root)
@@ -40,7 +40,7 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     """
     Run example with custom dataset and params
     :param train_path: Path to dataset
-    :param test_path: path to test dataset if data was split before
+    :param test_path: path to test dataset if train_data was split before
     :param verbose: verbose value: 'auto', 0, 1, or 2. Verbosity mode. 0 = silent,
         1 = progress bar, 2 = one line per epoch
     :param epochs: number of train epochs
@@ -58,16 +58,18 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     :param has_skip_connections: parameter for initial graph. If True them graph with skip connections will be generated
     :param pop_size: population size for evolution
     :param num_of_generations: number of generations
-    :param split_ratio: train/test data ratio
+    :param split_ratio: train/test train_data ratio
     """
-    train_data = DataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit)
+    train_data = DataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit,
+                                           shuffle=True)
     channel_num = train_data.features[0].shape[-1]
     image_size = train_data.features[0].shape[0] if not image_size else image_size
     input_shape = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
     if not test_path:
         train_data, test_data = train_test_data_setup(train_data, split_ratio, True)
     else:
-        test_data = DataLoader.from_directory(dir_path=test_path, image_size=image_size, samples_limit=samples_limit)
+        test_data = DataLoader.from_directory(dir_path=test_path, image_size=image_size, samples_limit=samples_limit,
+                                              shuffle=True)
 
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
              graph_has_wrong_structure, flatten_check]
@@ -75,7 +77,6 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
                  single_change_mutation, single_edge_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     # TODO fix verbose for evolution
-    # TODO unit tests + get results with ResNet34
     requirements = GPNNComposerRequirements(input_shape=input_shape, pop_size=pop_size,
                                             num_of_generations=num_of_generations, max_num_of_conv_layers=max_cnn_depth,
                                             max_nn_depth=max_nn_depth, primary=['conv2d'], secondary=['dense'],
@@ -97,18 +98,21 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
           f'number of generations: {num_of_generations}; number of train epochs: {opt_epochs}; '
           f'image size: {input_shape}; batch size: {batch_size} ================')
 
-    optimized_network = optimiser.compose(data=train_data)
+    optimized_network = optimiser.compose(train_data=train_data, _test_data=test_data)
     if save_path:
         print('save best graph structure...')
         optimiser.save(save_folder=save_path, history=True, image=True)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=train_data, requirements=requirements, train_epochs=epochs, verbose=verbose)
+    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-        calculate_validation_metric(optimized_network, test_data)
+        calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
 
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
+
+    plot_confusion_matrix(test_data, predicted_labels)
 
     json_file = os.path.join(project_root, 'models', 'custom_example_model.json')
     model_json = optimized_network.model.to_json()
@@ -122,11 +126,11 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    dir_root = os.path.join(project_root, 'datasets', 'Blood-Cell-Classification', 'train')
-    test_root = os.path.join(project_root, 'datasets', 'Blood-Cell-Classification', 'test')
+    dir_root = '/home/staeros/datasets/Blood-Cell-Classification/train'
+    test_root = '/home/staeros/datasets/Blood-Cell-Classification/test'
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
-    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=save_path, image_size=90, max_cnn_depth=4,
-             max_nn_depth=3, batch_size=16, opt_epochs=5, initial_graph_struct=None, default_params=None, samples_limit=20,
+    run_test(dir_root, test_root, verbose=1, epochs=1, save_path=None, image_size=40, max_cnn_depth=4,
+             max_nn_depth=5, batch_size=16, opt_epochs=1, initial_graph_struct=None, default_params=None,
              has_skip_connections=True, pop_size=1, num_of_generations=1)

@@ -78,7 +78,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
                                    metrics=metric_function, parameters=optimiser_parameters,
                                    log=default_log(logger_name='NAS_patches', verbose_level=verbose_values[verbose]))
 
-    optimized_network = optimiser.compose(data=dataset_to_compose)
+    optimized_network = optimiser.compose(train_data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     print('save best graph_class structure...')
     save_path = os.path.join(root, 'graph_patches')

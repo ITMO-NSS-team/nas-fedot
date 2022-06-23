@@ -29,29 +29,21 @@ class BotCallback(tf.keras.callbacks.Callback):
         pass
 
     def on_train_batch_end(self, batch, logs=None):
-        message = ' Iteration/Batch {}\n Training Accuracy : {:7.2f}\n Training Loss : {:7.2f}\n'.format(batch, logs[
-            'accuracy'], logs['loss'])
-        message += ' Validation Accuracy : {:7.2f}\n Validation Loss : {:7.2f}\n'.format(logs['val_accuracy'],
-                                                                                         logs['val_loss'])
-        self.send_message(message)
+        pass
 
     def on_test_batch_begin(self, batch, logs=None):
         pass
 
     def on_test_batch_end(self, batch, logs=None):
-        message = ' Iteration/Batch {}\n Training Accuracy : {:7.2f}\n Training Loss : {:7.2f}\n'.format(batch, logs[
-            'accuracy'], logs['loss'])
-        message += ' Validation Accuracy : {:7.2f}\n Validation Loss : {:7.2f}\n'.format(logs['val_accuracy'],
-                                                                                         logs['val_loss'])
-        self.send_message(message)
+        pass
 
     def on_epoch_begin(self, epoch, logs=None):
         pass
 
     def on_epoch_end(self, epoch, logs=None):
-        message = ' Epoch {}\n Training Accuracy : {:7.2f}\n Training Loss : {:7.2f}\n'.format(epoch, logs['accuracy'],
+        message = ' Epoch {}\n Training Accuracy : {:7.2f}\n Training Loss : {:7.2f}\n'.format(epoch, logs['acc'],
                                                                                                logs['loss'])
-        message += ' Validation Accuracy : {:7.2f}\n Validation Loss : {:7.2f}\n'.format(logs['val_accuracy'],
+        message += ' Validation Accuracy : {:7.2f}\n Validation Loss : {:7.2f}\n'.format(logs['val_acc'],
                                                                                          logs['val_loss'])
         self.send_message(message)
 
@@ -83,9 +75,10 @@ class Plotter(BotCallback):
         self.epoch.append(epoch)
         self.train_loss.append(logs['loss'])
         self.val_loss.append(logs['val_loss'])
-        self.train_acc.append(logs['accuracy'])
-        self.val_acc.append(logs['val_accuracy'])
+        self.train_acc.append(logs['acc'])
+        self.val_acc.append(logs['val_acc'])
 
+    def on_train_end(self, logs=None):
         f, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
 
         ax1.plot(self.epoch, self.train_loss, label='Training Loss')
@@ -97,4 +90,5 @@ class Plotter(BotCallback):
         ax2.legend()
 
         plt.savefig('Accuracy and Loss plot.jpg')
-        self.send_photo('/content/Accuracy and Loss plot.jpg')
+        plt.close()
+        self.send_photo('./Accuracy and Loss plot.jpg')

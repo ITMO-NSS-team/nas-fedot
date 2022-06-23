@@ -77,7 +77,7 @@ def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = '
                                    metrics=metric_function, parameters=optimiser_params,
                                    log=default_log(logger_name='Bayesian', verbose_level=verbose_values[verbose]))
 
-    optimized_network = optimiser.compose(data=dataset_to_compose)
+    optimized_network = optimiser.compose(train_data=dataset_to_compose)
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     save_path = os.path.join(root, 'test_graph')
     optimiser.save(save_folder=save_path, history=True, image=True)
