@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 
 from typing import Any, List
-
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import optimizers
@@ -12,10 +12,9 @@ from tensorflow.keras.utils import to_categorical
 
 from fedot.core.data.data import InputData, OutputData
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
-from nas.metrics.callbacks.custom_callbacks import BotCallback, Plotter
+from nas.metrics.callbacks.bot_callback import BotCallback, Plotter
 
 import nas.nn.layers_keras
-import tensorflow as tf
 
 
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
@@ -35,15 +34,17 @@ def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False)
 
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
-                    epochs: int = 10, ind=None, gen=None):
+                    epochs: int = 10, pref=None):
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
-    bot_callback = BotCallback()
-    plotter = Plotter()
+    logdir = f'./logs/{len(os.listdir("./"))}/{pref}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}'
+    # TODO move callback creation in separate func outside
     tensorboard_callback = TensorBoard(
-        log_dir=f'./logs/{len(os.listdir("./"))}/{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}')
+        log_dir=logdir,
+        histogram_freq=1)
+    file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
     is_multiclass = input_data.num_classes > 2
     if is_multiclass:
         encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes, dtype='int')
@@ -54,7 +55,8 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
               epochs=epochs,
               verbose=verbose,
               validation_split=0.2,
-              callbacks=[early_stopping, reduce_lr_loss, mcp_save, tensorboard_callback, bot_callback, plotter])
+              shuffle=True,
+              callbacks=[early_stopping, reduce_lr_loss, mcp_save, tensorboard_callback])
     return keras_model_predict(model, input_data, is_multiclass=is_multiclass)
 
 

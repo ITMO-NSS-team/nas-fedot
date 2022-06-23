@@ -77,7 +77,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
                                    metrics=metric_function, parameters=optimiser_parameters,
                                    log=default_log(logger_name='Bayesian', verbose_level=verbose_values[verbose]))
 
-    optimized_network = optimiser.compose(data=dataset_to_compose)
+    optimized_network = optimiser.compose(train_data=dataset_to_compose)
     print('Best model structure:')
     for node in optimized_network.nodes:
         print(node)

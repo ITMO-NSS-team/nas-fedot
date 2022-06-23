@@ -70,7 +70,7 @@ def run_custom_example(filepath: str, epochs: int, verbose: int = 1, timeout: da
                                    metrics=metric_function, parameters=optimiser_parameters,
                                    log=default_log(logger_name='NAS_Iceberg', verbose_level=verbose_values[verbose]))
 
-    optimized_network = optimiser.compose(data=dataset_to_compose)
+    optimized_network = optimiser.compose(train_data=dataset_to_compose)
 
     optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     print('save best graph_class structure...')

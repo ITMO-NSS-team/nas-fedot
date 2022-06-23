@@ -25,7 +25,8 @@ class DataLoader(InputData):
     # TODO add read from pickle option
     @staticmethod
     def from_directory(task: Task = Task(TaskTypesEnum.classification), dir_path: str = None,
-                       image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
+                       image_size: Union[int, float] = None, samples_limit: int = None,
+                       shuffle: bool = False) -> InputData:
         """
         Read images from directory. The following dataset format is required:
         dataset-directory
