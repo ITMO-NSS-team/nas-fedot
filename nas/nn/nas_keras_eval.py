@@ -1,5 +1,4 @@
 import os
-from time import time
 import datetime
 import numpy as np
 
@@ -12,9 +11,9 @@ from tensorflow.keras.utils import to_categorical
 
 from fedot.core.data.data import InputData, OutputData
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
-from nas.metrics.callbacks.bot_callback import BotCallback, Plotter
 
 import nas.nn.layers_keras
+from nas.callbacks.confussion_matrix_callback import ConfusionMatrixPlotter
 
 
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
@@ -40,11 +39,11 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
     logdir = f'./logs/{len(os.listdir("./"))}/{pref}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}'
+    cf = ConfusionMatrixPlotter(input_data, dir=logdir)
     # TODO move callback creation in separate func outside
     tensorboard_callback = TensorBoard(
         log_dir=logdir,
         histogram_freq=1)
-    file_writer_cm = tf.summary.create_file_writer(logdir + '/cm')
     is_multiclass = input_data.num_classes > 2
     if is_multiclass:
         encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes, dtype='int')
@@ -56,7 +55,7 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
               verbose=verbose,
               validation_split=0.2,
               shuffle=True,
-              callbacks=[early_stopping, reduce_lr_loss, mcp_save, tensorboard_callback])
+              callbacks=[early_stopping, reduce_lr_loss, mcp_save, tensorboard_callback, cf])
     return keras_model_predict(model, input_data, is_multiclass=is_multiclass)
 
 

@@ -31,6 +31,7 @@ def graph_has_several_starts(graph: CNNGraph):
 
 
 def graph_has_wrong_structure(graph: CNNGraph):
-    if graph.graph_struct[0].content['name'] != 'conv2d':
-        raise ValueError(f'{ERROR_PREFIX} Graph has no conv layers in conv part')
+    for node in graph.graph_struct[graph.cnn_depth:]:
+        if node.content['name'] == 'conv2d':
+            raise ValueError(f'{ERROR_PREFIX} Graph has wrong structure')
     return True
