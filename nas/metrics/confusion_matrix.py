@@ -1,9 +1,7 @@
-import io
 from typing import List
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
-import tensorflow as tf
 
 
 def log_confusion_matrix(epoch, logs):
@@ -30,15 +28,4 @@ def plot_confusion_matrix(cm, class_names: List, normalize: bool = False):
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-
-
-def plot2image(figure):
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format='png')
-    plt.close(figure)
-    buffer.seek(0)
-
-    img = tf.image.decode_png(buffer.getvalue(), channels=4)
-    img = tf.expand_dims(img, 0)
-
-    return img
+    return figure

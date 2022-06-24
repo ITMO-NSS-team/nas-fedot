@@ -1,6 +1,8 @@
 import os
 import datetime
 from typing import List, Union, Optional
+from sklearn.metrics import ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
 from fedot.core.log import default_log
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
@@ -24,7 +26,7 @@ from nas.data.load_images import DataLoader
 from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.metrics.metrics import calculate_validation_metric, get_predictions, plot_confusion_matrix
+from nas.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.composer.cnn.cnn_builder import CNNBuilder
 
 set_root(project_root)
@@ -60,16 +62,14 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     :param num_of_generations: number of generations
     :param split_ratio: train/test train_data ratio
     """
-    train_data = DataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit,
-                                           shuffle=True)
+    train_data = DataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit)
     channel_num = train_data.features[0].shape[-1]
     image_size = train_data.features[0].shape[0] if not image_size else image_size
     input_shape = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
     if not test_path:
         train_data, test_data = train_test_data_setup(train_data, split_ratio, True)
     else:
-        test_data = DataLoader.from_directory(dir_path=test_path, image_size=image_size, samples_limit=samples_limit,
-                                              shuffle=True)
+        test_data = DataLoader.from_directory(dir_path=test_path, image_size=image_size, samples_limit=samples_limit)
 
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
              graph_has_wrong_structure, flatten_check]
@@ -112,8 +112,6 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    plot_confusion_matrix(test_data, predicted_labels)
-
     json_file = os.path.join(project_root, 'models', 'custom_example_model.json')
     model_json = optimized_network.model.to_json()
 
@@ -131,6 +129,6 @@ if __name__ == '__main__':
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
-    run_test(dir_root, test_root, verbose=1, epochs=1, save_path=None, image_size=40, max_cnn_depth=4,
-             max_nn_depth=5, batch_size=16, opt_epochs=1, initial_graph_struct=None, default_params=None,
-             has_skip_connections=True, pop_size=1, num_of_generations=1)
+    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=None, image_size=40, max_cnn_depth=4,
+             max_nn_depth=5, batch_size=4, opt_epochs=5, initial_graph_struct=None, default_params=None,
+             has_skip_connections=True, pop_size=10, num_of_generations=10, samples_limit=4)
