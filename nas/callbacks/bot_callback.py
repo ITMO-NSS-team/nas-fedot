@@ -25,21 +25,6 @@ class BotCallback(tf.keras.callbacks.Callback):
         self.response = requests.post(self.ping_url, files=file_dict)
         file_.close()
 
-    def on_train_batch_begin(self, batch, logs=None):
-        pass
-
-    def on_train_batch_end(self, batch, logs=None):
-        pass
-
-    def on_test_batch_begin(self, batch, logs=None):
-        pass
-
-    def on_test_batch_end(self, batch, logs=None):
-        pass
-
-    def on_epoch_begin(self, epoch, logs=None):
-        pass
-
     def on_epoch_end(self, epoch, logs=None):
         message = ' Epoch {}\n Training Accuracy : {:7.2f}\n Training Loss : {:7.2f}\n'.format(epoch, logs['acc'],
                                                                                                logs['loss'])
@@ -79,8 +64,7 @@ class Plotter(BotCallback):
         self.val_acc.append(logs['val_acc'])
 
     def on_train_end(self, logs=None):
-        f, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
-
+        f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
         ax1.plot(self.epoch, self.train_loss, label='Training Loss')
         ax1.plot(self.epoch, self.val_loss, label='Validation Loss')
         ax1.legend()
@@ -90,5 +74,6 @@ class Plotter(BotCallback):
         ax2.legend()
 
         plt.savefig('Accuracy and Loss plot.jpg')
-        plt.close()
+        plt.close(f)
         self.send_photo('./Accuracy and Loss plot.jpg')
+        plt.clf()

@@ -31,6 +31,7 @@ from nas.metrics.metrics import calculate_validation_metric
 from nas.composer.cnn.cnn_adapters import CustomGraphAdapter
 from nas.composer.cnn.cnn_graph_node import CNNNode
 from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.composer.cnn.cnn_builder import CNNBuilder
 
 root = project_root
 set_root(root)
@@ -74,7 +75,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
     else:
         initial_graph = [generate_initial_graph(CNNGraph, CNNNode, initial_graph_struct, requirements, False)]
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=requirements,
-                                   graph_generation_params=graph_generation_params, graph_builder=,
+                                   graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
                                    metrics=metric_function, parameters=optimiser_parameters,
                                    log=default_log(logger_name='NAS_patches', verbose_level=verbose_values[verbose]))
 

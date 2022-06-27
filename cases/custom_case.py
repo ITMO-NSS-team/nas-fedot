@@ -1,8 +1,7 @@
 import os
 import datetime
 from typing import List, Union, Optional
-from sklearn.metrics import ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 from fedot.core.log import default_log
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
@@ -22,11 +21,12 @@ from nas.composer.nas_cnn_composer import GPNNComposerRequirements
 from nas.composer.cnn.cnn_adapters import CustomGraphAdapter
 from nas.composer.cnn.cnn_graph_node import CNNNode
 from nas.composer.cnn.cnn_graph import CNNGraph
-from nas.data.load_images import DataLoader
+from nas.data.load_images import ImageDataLoader
 from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
 from nas.metrics.metrics import calculate_validation_metric, get_predictions
+from nas.metrics.confusion_matrix import plot_confusion_matrix
 from nas.composer.cnn.cnn_builder import CNNBuilder
 
 set_root(project_root)
@@ -62,21 +62,21 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     :param num_of_generations: number of generations
     :param split_ratio: train/test train_data ratio
     """
-    train_data = DataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit)
+    train_data = ImageDataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit)
     channel_num = train_data.features[0].shape[-1]
     image_size = train_data.features[0].shape[0] if not image_size else image_size
     input_shape = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
     if not test_path:
         train_data, test_data = train_test_data_setup(train_data, split_ratio, True)
     else:
-        test_data = DataLoader.from_directory(dir_path=test_path, image_size=image_size, samples_limit=samples_limit)
+        test_data = ImageDataLoader.from_directory(dir_path=test_path, image_size=image_size,
+                                                   samples_limit=samples_limit)
 
     rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
              graph_has_wrong_structure, flatten_check]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_add_mutation,
                  single_change_mutation, single_edge_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    # TODO fix verbose for evolution
     requirements = GPNNComposerRequirements(input_shape=input_shape, pop_size=pop_size,
                                             num_of_generations=num_of_generations, max_num_of_conv_layers=max_cnn_depth,
                                             max_nn_depth=max_nn_depth, primary=['conv2d'], secondary=['dense'],
@@ -94,9 +94,9 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
                                    metrics=metric_func, parameters=optimiser_params, verbose=verbose,
                                    log=default_log(logger_name='Custom-run', verbose_level=4))
 
-    print(f'================ Starting optimisation process with following params: population size: {pop_size}; '
+    print(f'\n================ Starting optimisation process with following params: population size: {pop_size}; '
           f'number of generations: {num_of_generations}; number of train epochs: {opt_epochs}; '
-          f'image size: {input_shape}; batch size: {batch_size} ================')
+          f'image size: {input_shape}; batch size: {batch_size} ================\n')
 
     optimized_network = optimiser.compose(train_data=train_data, _test_data=test_data)
     if save_path:
@@ -111,6 +111,8 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
+    conf_matr = confusion_matrix(test_data.target, predicted_labels.predict)
+    plot_confusion_matrix(conf_matr, test_data.supplementary_data, save=save_path)
 
     json_file = os.path.join(project_root, 'models', 'custom_example_model.json')
     model_json = optimized_network.model.to_json()
@@ -119,16 +121,14 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
         f.write(model_json)
     optimized_network.model.save_weights(os.path.join(project_root, 'models', 'custom_example_model.h5'))
 
-    print("Done!")
-
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    dir_root = '/home/staeros/datasets/Blood-Cell-Classification/train'
-    test_root = '/home/staeros/datasets/Blood-Cell-Classification/test'
+    dir_root = '/home/hdd/datasets/Blood-Cell-Classification/train'
+    test_root = '/home/hdd/datasets/Blood-Cell-Classification/test'
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
-    run_test(dir_root, test_root, verbose=1, epochs=20, save_path=None, image_size=40, max_cnn_depth=4,
-             max_nn_depth=5, batch_size=4, opt_epochs=5, initial_graph_struct=None, default_params=None,
-             has_skip_connections=True, pop_size=10, num_of_generations=10, samples_limit=4)
+    run_test(dir_root, test_root, verbose=1, epochs=50, save_path=save_path, image_size=40, max_cnn_depth=40,
+             max_nn_depth=5, batch_size=16, opt_epochs=6, initial_graph_struct=None, default_params=None,
+             has_skip_connections=True, pop_size=10, num_of_generations=20)

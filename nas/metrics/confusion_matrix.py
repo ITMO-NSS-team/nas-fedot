@@ -1,31 +1,32 @@
+from pathlib import Path
 from typing import List
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-def log_confusion_matrix(epoch, logs):
-    raise NotImplementedError
-
-
-def plot_confusion_matrix(cm, class_names: List, normalize: bool = False):
+def plot_confusion_matrix(confusion_matrix, class_names: List, normalize: bool = False, save=None, cmap=plt.cm.YlGn):
     figure = plt.figure(figsize=(8, 8))
-    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.imshow(confusion_matrix, interpolation='nearest', cmap=cmap)
     plt.title('Confusion matrix')
-    plt.colorbar()
     tick_marks = np.arange(len(class_names))
     plt.xticks(tick_marks, class_names, rotation=45)
     plt.yticks(tick_marks, class_names)
 
     if normalize:
-        raise NotImplementedError
+        confusion_matrix = np.around(confusion_matrix.astype('float') / confusion_matrix.sum(axis=1)[:, np.newaxis],
+                                     decimals=2)
 
-    threshold = cm.max() / 2.
+    threshold = confusion_matrix.max() / 2.
 
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        color = 'white' if cm[i, j] > threshold else 'black'
-        plt.text(j, i, cm[i, j], horizontalalignment='center', color=color)
+    for i, j in itertools.product(range(confusion_matrix.shape[0]), range(confusion_matrix.shape[1])):
+        color = 'white' if confusion_matrix[i, j] > threshold else 'black'
+        plt.text(j, i, confusion_matrix[i, j], horizontalalignment='center', color=color)
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
+    if save:
+        save_path = str(Path(save) / 'confusion_matrix.png')
+        plt.savefig(save_path)
+        plt.close()
     return figure
