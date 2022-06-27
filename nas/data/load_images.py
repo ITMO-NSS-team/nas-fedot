@@ -1,7 +1,9 @@
 import copy
+from tqdm import tqdm
 import json
 import os
 import pickle
+from pathlib import Path
 from dataclasses import dataclass
 from os.path import isfile, join
 from typing import List, Union
@@ -14,19 +16,29 @@ from fedot.core.data.data import Data, InputData
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from nas.utils.utils import project_root
 from sklearn.preprocessing import LabelEncoder
-from fedot.core.repository.dataset_types import DataTypesEnum
 
 root = project_root()
 
 
 @dataclass
-class DataLoader(InputData):
+class ImageDataLoader(InputData):
 
     # TODO implement regression task support
     # TODO add read from pickle option
     @staticmethod
-    def from_directory(task: Task = Task(TaskTypesEnum.classification), dir_path: str = None,
-                       image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
+    def apply_transforms(image, transformations: List, **kwargs):
+        img_size = kwargs.get('image_size', None)
+        if img_size:
+            image = cv2.resize(image, (img_size, img_size))
+        if transformations:
+            for t in transformations:
+                image = t(image)
+        return image
+
+    @staticmethod
+    def from_directory(task: Task = Task(TaskTypesEnum.classification), transformations=None, dir_path: str = None,
+                       color_mode: str = 'rgb', image_size: Union[int, float] = None,
+                       samples_limit: int = None) -> InputData:
         """
         Read images from directory. The following dataset format is required:
         dataset-directory
@@ -37,35 +49,38 @@ class DataLoader(InputData):
                 |_images
         :param task: type of task to be solved
         :param dir_path: path to dataset
+        :param color_mode: image color mode
         :param image_size: image size. if not specified, the first image's size will be picked as image size
         :param samples_limit: limit for samples per class
         :return: dataset as InputData object
         """
         images_array = []
         labels_array = []
-        for label in os.listdir(dir_path):
-            if label[-3:] == 'txt':
+        print('\nReading data from directory...\n')
+        for dir_path, folders, files in tqdm(os.walk(dir_path, topdown=True)):
+            dir_path = Path(dir_path)
+            if folders:
+                str_labels = copy.deepcopy(folders)
                 continue
-            path = os.path.join(dir_path, label)
+            label = dir_path.name
             cnt = 0
-            for image_name in os.listdir(path):
-                image = cv2.imread(os.path.join(path, image_name))
-                if image_size is None:
-                    image_size = image.shape[0]
-                elif image.shape[0] != image_size:
-                    image = cv2.resize(image, (image_size, image_size), interpolation=cv2.INTER_CUBIC)
+            for image in files:
+                image_path = dir_path.parent / label / image
+                image = cv2.imread(str(image_path))
+                image_size = image_size if image_size else image.shape[0]
+                image = ImageDataLoader.apply_transforms(image, transformations, image_size=image_size)
                 images_array.append(image)
                 labels_array.append(label)
                 if samples_limit:
                     cnt += 1
                     if cnt >= samples_limit:
                         break
-        is_digit = labels_array[0].isdigit()
-        if not is_digit:
-            labels_array = LabelEncoder().fit_transform(labels_array)
+        labels_array = LabelEncoder().fit_transform(labels_array)
         images_array = np.array(images_array)
         labels_array = np.array(labels_array)
-        return InputData.from_image(images=images_array, labels=labels_array, task=task)
+        data = InputData.from_image(images=images_array, labels=labels_array, task=task)
+        data.supplementary_data = str_labels
+        return data
 
     @staticmethod
     def image_from_csv(task: TaskTypesEnum.classification, dir_path: str = None,
@@ -77,6 +92,11 @@ class DataLoader(InputData):
     @staticmethod
     def images_from_pickle(task: TaskTypesEnum.classification, dir_path: str = None,
                            image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
+        raise NotImplementedError
+
+    @staticmethod
+    def images_from_json(task: TaskTypesEnum.classification, dir_path: str = None,
+                         image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
         raise NotImplementedError
 
 

@@ -21,29 +21,24 @@ def plot2image(figure):
 
 
 class ConfusionMatrixPlotter(tf.keras.callbacks.Callback):
-    def __init__(self, data: InputData, normalize: bool = False, cmap=plt.cm.Blues, title=None, dir = None):
+    def __init__(self, data: InputData, normalize: bool = False, color_map=plt.cm.YlGn, title=None, save_dir=None):
         self.val = data.features
         self.target = data.target
         self.title = title
         self.normalize = normalize
-        self.cmap = cmap
-        self.classes_num = data.num_classes
-        self.classes = np.unique(data.target)
+        self.color_map = color_map
+        self.data = data
         self.figure = plt.figure(figsize=(8, 8))
-        self.dir = dir
+        self.save_dir = save_dir
         plt.title(self.title)
-
-    def on_train_begin(self, logs=None):
-        pass
 
     def on_epoch_end(self, epoch, logs=None):
         predicted = self.model.predict(self.val)
-        labels = np.argmax(predicted, axis=1)
-        conf_matrix = confusion_matrix(self.target, labels)
-        conf_matrix = plot_confusion_matrix(conf_matrix, self.classes, False)
+        predicted = np.argmax(predicted, axis=1)
+        conf_matrix = confusion_matrix(self.target, predicted)
+        conf_matrix = plot_confusion_matrix(conf_matrix, self.data.supplementary_data, False, cmap=self.color_map)
         conf_matrix = plot2image(conf_matrix)
 
-        file_writer = tf.summary.create_file_writer(self.dir + '/cm')
+        file_writer = tf.summary.create_file_writer(self.save_dir + '/confusion_matrix')
         with file_writer.as_default():
             tf.summary.image('Conf_Matrix', conf_matrix, step=epoch)
-

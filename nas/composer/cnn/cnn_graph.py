@@ -56,7 +56,11 @@ class CNNGraph(OptGraph):
         if not self.model:
             self.model = create_nn_model(self, requirements.input_shape, input_data.num_classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=requirements.batch_size,
-                                          epochs=train_epochs, pref=self.has_skips)
+                                          epochs=train_epochs, pref=self.has_skips, ind=CNNGraph.INDIVIDUAL,
+                                          gen=CNNGraph.GENERATION)
+        CNNGraph.INDIVIDUAL += 1
+        if CNNGraph.INDIVIDUAL > requirements.pop_size:
+            CNNGraph.GENERATION += 1
         return train_predicted
 
     def predict(self, input_data: InputData, output_mode: str = 'default', is_multiclass: bool = False) -> OutputData:

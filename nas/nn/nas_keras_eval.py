@@ -3,7 +3,6 @@ import datetime
 import numpy as np
 
 from typing import Any, List
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import optimizers
@@ -14,6 +13,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLRO
 
 import nas.nn.layers_keras
 from nas.callbacks.confussion_matrix_callback import ConfusionMatrixPlotter
+from nas.callbacks.bot_callback import BotCallback, Plotter
 
 
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
@@ -33,13 +33,14 @@ def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False)
 
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
-                    epochs: int = 10, pref=None):
+                    epochs: int = 10, pref=None, ind=None, gen=None):
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
-    logdir = f'./logs/{len(os.listdir("./"))}/{pref}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}'
-    cf = ConfusionMatrixPlotter(input_data, dir=logdir)
+    logdir = f'./logs/{len(os.listdir("./"))}/{gen}/{ind}'
+    # tmp
+    cf = ConfusionMatrixPlotter(input_data, save_dir=logdir)
     # TODO move callback creation in separate func outside
     tensorboard_callback = TensorBoard(
         log_dir=logdir,
@@ -74,11 +75,6 @@ def keras_model_predict(model, input_data: InputData, output_mode: str = 'defaul
 
 
 def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
-    # TODO remove before PR!
-    if len(graph.free_nodes) != len(graph.graph_struct):
-        print(f"Evaluating graph with skips, graph depth: {len(graph.graph_struct)}")
-    print(f"cnn depth: {graph.cnn_depth}")
-
     def _get_skip_connection_list(graph_structure):
         sc_layers = {}
         for node in graph_structure.nodes:

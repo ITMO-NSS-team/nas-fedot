@@ -33,19 +33,19 @@ def calculate_validation_metric(data,
 #     _plot_matrix(confusion_matrix, classes=np.unique(data.target))
 #
 #
-# def _plot_matrix(cm, classes, title='Confusion matrix'):
-#     plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+# def _plot_matrix(confusion_matrix, classes, title='Confusion matrix'):
+#     plt.imshow(confusion_matrix, interpolation='nearest', color_map=plt.confusion_matrix.Blues)
 #     plt.title(title)
 #     plt.colorbar()
 #     tick_marks = np.arange(len(classes))
 #     plt.xticks(tick_marks, classes, rotation=45)
 #     plt.yticks(tick_marks, classes)
 #
-#     thresh = cm.max() / 2.
-#     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-#         plt.text(j, i, cm[i, j],
+#     thresh = confusion_matrix.max() / 2.
+#     for i, j in itertools.product(range(confusion_matrix.shape[0]), range(confusion_matrix.shape[1])):
+#         plt.text(j, i, confusion_matrix[i, j],
 #                  ha='center',
-#                  color='white' if cm[i, j] > thresh else 'black')
+#                  color='white' if confusion_matrix[i, j] > thresh else 'black')
 #     plt.tight_layout()
 #     plt.ylabel('True label')
 #     plt.xlabel('Predicted label')
