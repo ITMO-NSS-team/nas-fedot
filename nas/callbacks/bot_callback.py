@@ -3,6 +3,7 @@ import requests
 import matplotlib.pyplot as plt
 
 
+# TODO upgrade
 class BotCallback(tf.keras.callbacks.Callback):
     def __init__(self, access_token):
         self.access_token = access_token

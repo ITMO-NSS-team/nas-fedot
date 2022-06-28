@@ -13,7 +13,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLRO
 
 import nas.nn.layers_keras
 from nas.callbacks.confussion_matrix_callback import ConfusionMatrixPlotter
-from nas.callbacks.bot_callback import BotCallback, Plotter
+import nas.callbacks.tb_metrics as nas_callbacks
 
 
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
@@ -33,18 +33,25 @@ def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False)
 
 
 def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
-                    epochs: int = 10, pref=None, ind=None, gen=None):
+                    epochs: int = 10, **kwargs):
+    gen = kwargs.get('gen', datetime.date.day)
+    ind = kwargs.get('ind', datetime.datetime.hour)
+    graph = kwargs.get('graph', None)
+    logdir = f'./logs/{len(os.listdir("./"))}/{gen}/{ind}'
+
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
-    logdir = f'./logs/{len(os.listdir("./"))}/{gen}/{ind}'
-    # tmp
     cf = ConfusionMatrixPlotter(input_data, save_dir=logdir)
-    # TODO move callback creation in separate func outside
+    custom_callback_handler = nas_callbacks.NASCallbackTF(input_data, [nas_callbacks.F1ScoreCallback], log_path=logdir)
     tensorboard_callback = TensorBoard(
         log_dir=logdir,
         histogram_freq=1)
+    callbacks = [early_stopping, mcp_save, reduce_lr_loss, cf, custom_callback_handler, tensorboard_callback]
+    if graph:
+        graph_plotter = nas_callbacks.GraphPlotter(graph, log_path=logdir)
+        callbacks.append(graph_plotter)
     is_multiclass = input_data.num_classes > 2
     if is_multiclass:
         encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes, dtype='int')
@@ -56,7 +63,7 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
               verbose=verbose,
               validation_split=0.2,
               shuffle=True,
-              callbacks=[early_stopping, reduce_lr_loss, mcp_save, tensorboard_callback, cf])
+              callbacks=callbacks)
     return keras_model_predict(model, input_data, is_multiclass=is_multiclass)
 
 
