@@ -28,14 +28,15 @@ from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, grap
 from nas.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.metrics.confusion_matrix import plot_confusion_matrix
 from nas.composer.cnn.cnn_builder import CNNBuilder
+import nas.callbacks.tb_metrics as nas_callbacks
 
 set_root(project_root)
-seed_all(942212)
+seed_all(14322)
 
 
 # TODO extend initial approximation with desirable nodes params. Add ability to load graph as initial approximation
 def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, int] = 'auto', epochs: int = 1,
-             save_path: str = None, image_size: int = None, max_cnn_depth: int = None, max_nn_depth: int = None,
+             save_directory: str = None, image_size: int = None, max_cnn_depth: int = None, max_nn_depth: int = None,
              batch_size: int = None, opt_epochs: int = 5, initial_graph_struct: List[str] = None, default_params=None,
              samples_limit: int = None, timeout: datetime.timedelta = None, has_skip_connections: bool = False,
              pop_size: int = 5, num_of_generations: int = 10, split_ratio: float = 0.8):
@@ -46,7 +47,7 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     :param verbose: verbose value: 'auto', 0, 1, or 2. Verbosity mode. 0 = silent,
         1 = progress bar, 2 = one line per epoch
     :param epochs: number of train epochs
-    :param save_path: save path to optimized graph, history and graph struct
+    :param save_directory: save path to optimized graph, history and graph struct
     :param image_size: dataset's image size. if None then size of first image in dataset will be picked as image size
     :param max_cnn_depth: max possible depth of convolutional part of the graph
     :param max_nn_depth: max possible depth of dense part of the graph
@@ -66,14 +67,15 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     channel_num = train_data.features[0].shape[-1]
     image_size = train_data.features[0].shape[0] if not image_size else image_size
     input_shape = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
+
     if not test_path:
         train_data, test_data = train_test_data_setup(train_data, split_ratio, True)
     else:
         test_data = ImageDataLoader.from_directory(dir_path=test_path, image_size=image_size,
                                                    samples_limit=samples_limit)
 
-    rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
-             graph_has_wrong_structure, flatten_check]
+    validation_rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
+                        graph_has_wrong_structure, flatten_check]
     mutations = [cnn_simple_mutation, single_drop_mutation, single_add_mutation,
                  single_change_mutation, single_edge_mutation]
     metric_func = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
@@ -88,7 +90,12 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
                                                   crossover_types=[CrossoverTypesEnum.subtree],
                                                   regularization_type=RegularizationTypesEnum.none)
     graph_generation_params = GraphGenerationParams(
-        adapter=CustomGraphAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode), rules_for_constraint=rules)
+        adapter=CustomGraphAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
+        rules_for_constraint=validation_rules)
+
+    custom_callbacks = [nas_callbacks.F1ScoreCallback, nas_callbacks.GraphPlotter]
+    callbacks = []
+
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph_struct, requirements=requirements,
                                    graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
                                    metrics=metric_func, parameters=optimiser_params, verbose=verbose,
@@ -99,11 +106,8 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
           f'image size: {input_shape}; batch size: {batch_size} ================\n')
 
     optimized_network = optimiser.compose(train_data=train_data, _test_data=test_data)
-    if save_path:
-        print('save best graph structure...')
-        optimiser.save(save_folder=save_path, history=True, image=True)
-    optimized_network = optimiser.graph_generation_params.adapter.restore(optimized_network)
     optimized_network.fit(input_data=train_data, requirements=requirements, train_epochs=epochs, verbose=verbose)
+
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
@@ -111,9 +115,12 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
-    conf_matr = confusion_matrix(test_data.target, predicted_labels.predict)
-    plot_confusion_matrix(conf_matr, test_data.supplementary_data, save=save_path)
+    conf_matrix = confusion_matrix(test_data.target, predicted_labels.predict)
+    plot_confusion_matrix(conf_matrix, test_data.supplementary_data, save=save_directory)
 
+    if save_directory:
+        print('save best graph structure...')
+        optimiser.save(save_folder=save_directory, history=True, image=True)
     json_file = os.path.join(project_root, 'models', 'custom_example_model.json')
     model_json = optimized_network.model.to_json()
 
@@ -129,6 +136,6 @@ if __name__ == '__main__':
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
-    run_test(dir_root, test_root, verbose=1, epochs=50, save_path=save_path, image_size=40, max_cnn_depth=40,
-             max_nn_depth=5, batch_size=16, opt_epochs=6, initial_graph_struct=None, default_params=None,
-             has_skip_connections=True, pop_size=10, num_of_generations=20)
+    run_test(dir_root, test_root, verbose=1, epochs=30, save_directory=save_path, image_size=128, max_cnn_depth=40,
+             max_nn_depth=5, batch_size=16, opt_epochs=5, initial_graph_struct=None, default_params=None,
+             has_skip_connections=True, pop_size=10, num_of_generations=15)

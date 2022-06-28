@@ -1,23 +1,12 @@
-import io
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import numpy as np
 
 from fedot.core.data.data import InputData
+
+from nas.callbacks.utils import plot2image
 from nas.metrics.confusion_matrix import plot_confusion_matrix
-
-
-def plot2image(figure):
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format='png')
-    plt.close(figure)
-    buffer.seek(0)
-
-    img = tf.image.decode_png(buffer.getvalue(), channels=4)
-    img = tf.expand_dims(img, 0)
-
-    return img
 
 
 class ConfusionMatrixPlotter(tf.keras.callbacks.Callback):

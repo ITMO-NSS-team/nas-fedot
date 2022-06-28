@@ -70,4 +70,5 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                                             self.metrics, train_data, _test_data,
                                             self.requirements, self.verbose)
         self.optimise(metric_function_for_nodes)
-        return self.best_individual.graph
+        # TODO
+        return self.graph_generation_params.adapter.restore(self.best_individual.graph)
