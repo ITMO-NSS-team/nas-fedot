@@ -104,5 +104,5 @@ if __name__ == '__main__':
     # the dataset was obtained from https://www.kaggle.com/competitions/statoil-iceberg-classifier-challenge
     # a dataset that will be used as a train and test set during composition
     set_tf_compat()
-    file_path = os.path.join(root, 'datasets', 'IcebergsDataset', 'train.json')
+    file_path = os.path.join(root, 'example_datasets', 'IcebergsDataset', 'train.json')
     run_custom_example(file_path, epochs=20, verbose=1)

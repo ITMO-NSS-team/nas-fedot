@@ -66,13 +66,17 @@ def run_test(verbose: Union[str, int] = 'auto', epochs: int = 1, save_directory:
     initial_graph_struct = kwargs.get('initial_graph_struct', None)
     default_params = kwargs.get('default_params', None)
     samples_limit = kwargs.get('samples_limit', None)
+    json_path = kwargs.get('json_path', None)
 
     if csv_path and images_path:
-        train_data = ImageDataLoader.image_from_csv(img_path=images_path, labels_path=csv_path, img_id=img_id,
-                                                    target=labels_id, image_size=image_size)
+        train_data = ImageDataLoader.images_from_csv(img_path=images_path, labels_path=csv_path, img_id=img_id,
+                                                     target=labels_id, image_size=image_size)
     elif train_path:
-        train_data = ImageDataLoader.from_directory(dir_path=train_path, image_size=image_size,
-                                                    samples_limit=samples_limit)
+        train_data = ImageDataLoader.images_from_directory(dir_path=train_path, image_size=image_size,
+                                                           samples_limit=samples_limit)
+    elif json_path and images_path:
+        train_data = ImageDataLoader.images_from_json(img_path=images_path, labels_path=json_path, image_size=image_size,
+                                                      samples_limit=samples_limit)
     else:
         raise ValueError('Wrong dataset type')
 
@@ -83,8 +87,8 @@ def run_test(verbose: Union[str, int] = 'auto', epochs: int = 1, save_directory:
     if not test_path:
         train_data, test_data = train_test_data_setup(train_data, split_ratio, True)
     else:
-        test_data = ImageDataLoader.from_directory(dir_path=test_path, image_size=image_size,
-                                                   samples_limit=samples_limit)
+        test_data = ImageDataLoader.images_from_directory(dir_path=test_path, image_size=image_size,
+                                                          samples_limit=samples_limit)
 
     validation_rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
                         graph_has_wrong_structure, flatten_check]
@@ -141,11 +145,12 @@ def run_test(verbose: Union[str, int] = 'auto', epochs: int = 1, save_directory:
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     dir_root = '/home/staeros/datasets/Blood-Cell-Classification/train'
-    img_path = '/home/staeros/datasets/Traffic-Sign/'
-    test_root = '/home/staeros/datasets/Blood-Cell-Classification/test'
+    test_root = '/home/staeros/example_datasets/Blood-Cell-Classification/test'
+    img_path = '/home/staeros/datasets/10cls_Generated_dataset/'
+    label_path = '/home/staeros/nas-fedot/dataset_files/labels_10.json'
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
     run_test(verbose=1, epochs=1, save_directory=save_path, image_size=24, max_cnn_depth=4,
              max_nn_depth=5, batch_size=16, opt_epochs=1, initial_graph_struct=None, default_params=None,
-             has_skip_connections=True, pop_size=1, num_of_generations=1, train_path=dir_root, test_path=test_root)
+             has_skip_connections=True, pop_size=1, num_of_generations=1, images_path=img_path, json_path=label_path)

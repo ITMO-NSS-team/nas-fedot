@@ -94,7 +94,7 @@ def start_test_example(path: str, epochs:  int = 1, verbose: Union[int, str] = '
 
 if __name__ == '__main__':
     set_tf_compat()
-    file_path = os.path.join(project_root, 'datasets', 'Satellite-Image-Classification')
+    file_path = os.path.join(project_root, 'example_datasets', 'Satellite-Image-Classification')
     initial_graph_nodes = ['conv2d', 'conv2d', 'dropout', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dropout',
                            'dense', 'dense']
     start_test_example(path=file_path, epochs=20, initial_graph_struct=initial_graph_nodes, verbose='auto')

@@ -41,9 +41,9 @@ class ImageDataLoader(InputData):
         return image
 
     @staticmethod
-    def from_directory(task: Task = Task(TaskTypesEnum.classification), transformations: List = [],
-                       dir_path: str = None, color_mode: str = 'rgb', image_size: Union[int, float] = None,
-                       samples_limit: int = None) -> InputData:
+    def images_from_directory(task: Task = Task(TaskTypesEnum.classification), transformations: List = [],
+                              dir_path: str = None, color_mode: str = 'rgb', image_size: Union[int, float] = None,
+                              samples_limit: int = None) -> InputData:
         """
         Read images from directory. The following dataset format is required:
         dataset-directory
@@ -88,13 +88,13 @@ class ImageDataLoader(InputData):
         return data
 
     @staticmethod
-    def image_from_csv(task: Task = Task(TaskTypesEnum.classification), img_path: str = None, labels_path: str = None,
-                       img_id: Optional[str] = 'id', target: Optional[str] = 'target', labels: Optional[List] = None,
-                       transformations: List = [], image_size: Union[int, float] = None,
-                       samples_limit: int = None) -> InputData:
+    def images_from_csv(task: Task = Task(TaskTypesEnum.classification), img_path: str = None, labels_path: str = None,
+                        img_id: Optional[str] = 'id', target: Optional[str] = 'target', labels: Optional[List] = None,
+                        transformations: List = None, image_size: Union[int, float] = None,
+                        samples_limit: int = None) -> InputData:
         """
         Load images from dataset.
-        Images needed in one folder and class names with corresponding image have to be in csv file with following
+        Images should be in one folder and class names with corresponding image have to be in csv file with following
         format:
             | image_name | class_name |
         """
@@ -103,13 +103,14 @@ class ImageDataLoader(InputData):
         image_path = Path(img_path)
         df = pd.read_csv(labels_path).reset_index()
         df = df.filter([img_id, target])
+        transformations = [] if not transformations else transformations
         if image_size:
             transformations.append(partial(cv2.resize, dsize=(image_size, image_size)))
 
         for idx in df.index:
             image = df[img_id][idx]
             label = df[target][idx]
-            image = ImageDataLoader.load_and_transform(str(image_path / image), transformations)
+            image = ImageDataLoader.load_and_transform(image_path / image, transformations)
             images_array.append(image)
             labels_array.append(label)
         labels = copy.deepcopy(labels_array) if not labels else labels
@@ -125,9 +126,35 @@ class ImageDataLoader(InputData):
         raise NotImplementedError
 
     @staticmethod
-    def images_from_json(task: TaskTypesEnum.classification, dir_path: str = None,
+    def images_from_json(task: Task = Task(TaskTypesEnum.classification), img_path: str = None, labels_path: str = None,
+                         labels: Optional[List] = None, transformations: List = None,
                          image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
-        raise NotImplementedError
+        """
+        Load images from dataset.
+        Images should be in one folder and class names of corresponding images required
+        in following format of json file:
+            {image_name: 'class_name'}
+        """
+        images_array = []
+        labels_array = []
+        images_path = img_path if isinstance(img_path, Path) else Path(img_path)
+        transformations = [] if not transformations else transformations
+        if image_size:
+            transformations.append(partial(cv2.resize, dsize=(image_size, image_size)))
+        with open(labels_path, 'r') as json_data:
+            json_data = json.load(json_data)
+        for dir_root, folders, files in os.walk(images_path):
+            for image in files:
+                label = json_data[image[:-4]]
+                image = ImageDataLoader.load_and_transform(images_path / image, transformations)
+                images_array.append(image)
+                labels_array.append(label)
+        labels = copy.deepcopy(labels_array) if not labels else labels
+        images_array = np.array(images_array)
+        labels_array = LabelEncoder().fit_transform(labels_array)
+        data = InputData.from_image(images=images_array, labels=labels_array, task=task)
+        data.supplementary_data = labels
+        return data
 
 
 # TODO
