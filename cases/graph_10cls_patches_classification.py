@@ -107,7 +107,7 @@ def run_patches_classification(file_path, epochs: int = 1, verbose: Union[int, s
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    file_path = os.path.join(root, 'datasets', '10cls_Generated_dataset')
+    file_path = os.path.join(root, 'example_datasets', '10cls_Generated_dataset')
     # A dataset that will be used as a train and test set during composition
     set_tf_compat()
     run_patches_classification(file_path=file_path, epochs=1, per_class_limit=150, verbose='auto')
