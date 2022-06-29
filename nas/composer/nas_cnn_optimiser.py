@@ -11,9 +11,9 @@ from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 
 from nas.composer.cnn.cnn_graph import CNNGraph
 from nas.composer.cnn.cnn_builder import NASDirector
+from nas.utils.utils import seed_all
 
-random.seed(1)
-np.random.seed(1)
+seed_all(1)
 
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
