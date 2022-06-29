@@ -1,6 +1,6 @@
 import os
 import datetime
-from typing import List, Union, Optional
+from typing import Union
 from sklearn.metrics import confusion_matrix
 
 from fedot.core.log import default_log
@@ -35,15 +35,12 @@ seed_all(14322)
 
 
 # TODO extend initial approximation with desirable nodes params. Add ability to load graph as initial approximation
-def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, int] = 'auto', epochs: int = 1,
-             save_directory: str = None, image_size: int = None, max_cnn_depth: int = None, max_nn_depth: int = None,
-             batch_size: int = None, opt_epochs: int = 5, initial_graph_struct: List[str] = None, default_params=None,
-             samples_limit: int = None, timeout: datetime.timedelta = None, has_skip_connections: bool = False,
-             pop_size: int = 5, num_of_generations: int = 10, split_ratio: float = 0.8):
+def run_test(verbose: Union[str, int] = 'auto', epochs: int = 1, save_directory: str = None, image_size: int = None,
+             max_cnn_depth: int = None, max_nn_depth: int = None, batch_size: int = None, opt_epochs: int = 5,
+             timeout: datetime.timedelta = None, has_skip_connections: bool = False, pop_size: int = 5,
+             num_of_generations: int = 10, split_ratio: float = 0.8, **kwargs):
     """
     Run example with custom dataset and params
-    :param train_path: Path to dataset
-    :param test_path: path to test dataset if train_data was split before
     :param verbose: verbose value: 'auto', 0, 1, or 2. Verbosity mode. 0 = silent,
         1 = progress bar, 2 = one line per epoch
     :param epochs: number of train epochs
@@ -53,17 +50,32 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     :param max_nn_depth: max possible depth of dense part of the graph
     :param batch_size: number of samples per gradient update. if None will be set to 16
     :param opt_epochs: number epochs for fitness estimate
-    :param initial_graph_struct: graph's initial approximation
-    :param default_params: default parameters for initial graph approximation for each node type.
-        If None, then parameters will be random generated based on requirements
-    :param samples_limit: sample limit per class
     :param timeout: runtime restrictions
     :param has_skip_connections: parameter for initial graph. If True them graph with skip connections will be generated
     :param pop_size: population size for evolution
     :param num_of_generations: number of generations
     :param split_ratio: train/test train_data ratio
     """
-    train_data = ImageDataLoader.from_directory(dir_path=train_path, image_size=image_size, samples_limit=samples_limit)
+
+    train_path = kwargs.get('train_path', None)
+    test_path = kwargs.get('test_path', None)
+    images_path = kwargs.get('images_path', None)
+    csv_path = kwargs.get('csv_path', None)
+    img_id = kwargs.get('img_id', 'id')
+    labels_id = kwargs.get('target', 'target')
+    initial_graph_struct = kwargs.get('initial_graph_struct', None)
+    default_params = kwargs.get('default_params', None)
+    samples_limit = kwargs.get('samples_limit', None)
+
+    if csv_path and images_path:
+        train_data = ImageDataLoader.image_from_csv(img_path=images_path, labels_path=csv_path, img_id=img_id,
+                                                    target=labels_id, image_size=image_size)
+    elif train_path:
+        train_data = ImageDataLoader.from_directory(dir_path=train_path, image_size=image_size,
+                                                    samples_limit=samples_limit)
+    else:
+        raise ValueError('Wrong dataset type')
+
     channel_num = train_data.features[0].shape[-1]
     image_size = train_data.features[0].shape[0] if not image_size else image_size
     input_shape = [image_size, image_size, channel_num] if image_size else train_data.features[0].shape
@@ -92,9 +104,6 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
     graph_generation_params = GraphGenerationParams(
         adapter=CustomGraphAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
         rules_for_constraint=validation_rules)
-
-    custom_callbacks = [nas_callbacks.F1ScoreCallback, nas_callbacks.GraphPlotter]
-    callbacks = []
 
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph_struct, requirements=requirements,
                                    graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
@@ -131,11 +140,12 @@ def run_test(train_path, test_path: Optional[str] = None, verbose: Union[str, in
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    dir_root = '/home/hdd/datasets/Blood-Cell-Classification/train'
-    test_root = '/home/hdd/datasets/Blood-Cell-Classification/test'
+    dir_root = '/home/staeros/datasets/Blood-Cell-Classification/train'
+    img_path = '/home/staeros/datasets/Traffic-Sign/'
+    test_root = '/home/staeros/datasets/Blood-Cell-Classification/test'
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
-    run_test(dir_root, test_root, verbose=1, epochs=30, save_directory=save_path, image_size=128, max_cnn_depth=40,
-             max_nn_depth=5, batch_size=16, opt_epochs=5, initial_graph_struct=None, default_params=None,
-             has_skip_connections=True, pop_size=10, num_of_generations=15)
+    run_test(verbose=1, epochs=1, save_directory=save_path, image_size=24, max_cnn_depth=4,
+             max_nn_depth=5, batch_size=16, opt_epochs=1, initial_graph_struct=None, default_params=None,
+             has_skip_connections=True, pop_size=1, num_of_generations=1, train_path=dir_root, test_path=test_root)

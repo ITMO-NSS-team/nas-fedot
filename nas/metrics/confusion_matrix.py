@@ -3,7 +3,6 @@ from typing import List
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
 
 
 def plot_confusion_matrix(confusion_matrix, class_names: List, normalize: bool = False, save=None, cmap=plt.cm.YlGn):

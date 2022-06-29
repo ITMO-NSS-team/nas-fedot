@@ -6,10 +6,12 @@ import pickle
 from pathlib import Path
 from dataclasses import dataclass
 from os.path import isfile, join
-from typing import List, Union
+from typing import List, Union, Optional
+from functools import partial
 
 import cv2
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from fedot.core.data.data import Data, InputData
@@ -26,18 +28,21 @@ class ImageDataLoader(InputData):
     # TODO implement regression task support
     # TODO add read from pickle option
     @staticmethod
-    def apply_transforms(image, transformations: List, **kwargs):
-        img_size = kwargs.get('image_size', None)
-        if img_size:
-            image = cv2.resize(image, (img_size, img_size))
-        if transformations:
-            for t in transformations:
-                image = t(image)
+    def _apply_transforms(image, transformations: List, **kwargs):
+        for t in transformations:
+            image = t(image)
         return image
 
     @staticmethod
-    def from_directory(task: Task = Task(TaskTypesEnum.classification), transformations=None, dir_path: str = None,
-                       color_mode: str = 'rgb', image_size: Union[int, float] = None,
+    def load_and_transform(image_path: Path, transformations: List, **kwargs):
+        image = cv2.imread(str(image_path))
+        if transformations:
+            image = ImageDataLoader._apply_transforms(image, transformations)
+        return image
+
+    @staticmethod
+    def from_directory(task: Task = Task(TaskTypesEnum.classification), transformations: List = [],
+                       dir_path: str = None, color_mode: str = 'rgb', image_size: Union[int, float] = None,
                        samples_limit: int = None) -> InputData:
         """
         Read images from directory. The following dataset format is required:
@@ -48,6 +53,7 @@ class ImageDataLoader(InputData):
             |_class-n-name
                 |_images
         :param task: type of task to be solved
+        :param transformations: list of transformations applied to each image
         :param dir_path: path to dataset
         :param color_mode: image color mode
         :param image_size: image size. if not specified, the first image's size will be picked as image size
@@ -56,8 +62,10 @@ class ImageDataLoader(InputData):
         """
         images_array = []
         labels_array = []
+        if image_size:
+            transformations.append(partial(cv2.resize, dsize=(image_size, image_size)))
         print('\nReading data from directory...\n')
-        for dir_path, folders, files in tqdm(os.walk(dir_path, topdown=True)):
+        for dir_path, folders, files in os.walk(dir_path, topdown=True):
             dir_path = Path(dir_path)
             if folders:
                 str_labels = copy.deepcopy(folders)
@@ -66,9 +74,7 @@ class ImageDataLoader(InputData):
             cnt = 0
             for image in files:
                 image_path = dir_path.parent / label / image
-                image = cv2.imread(str(image_path))
-                image_size = image_size if image_size else image.shape[0]
-                image = ImageDataLoader.apply_transforms(image, transformations, image_size=image_size)
+                image = ImageDataLoader.load_and_transform(image_path, transformations)
                 images_array.append(image)
                 labels_array.append(label)
                 if samples_limit:
@@ -77,17 +83,41 @@ class ImageDataLoader(InputData):
                         break
         labels_array = LabelEncoder().fit_transform(labels_array)
         images_array = np.array(images_array)
-        labels_array = np.array(labels_array)
         data = InputData.from_image(images=images_array, labels=labels_array, task=task)
         data.supplementary_data = str_labels
         return data
 
     @staticmethod
-    def image_from_csv(task: TaskTypesEnum.classification, dir_path: str = None,
-                       image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
+    def image_from_csv(task: Task = Task(TaskTypesEnum.classification), img_path: str = None, labels_path: str = None,
+                       img_id: Optional[str] = 'id', target: Optional[str] = 'target', labels: Optional[List] = None,
+                       transformations: List = [], image_size: Union[int, float] = None,
+                       samples_limit: int = None) -> InputData:
+        """
+        Load images from dataset.
+        Images needed in one folder and class names with corresponding image have to be in csv file with following
+        format:
+            | image_name | class_name |
+        """
         images_array = []
         labels_array = []
-        raise NotImplementedError
+        image_path = Path(img_path)
+        df = pd.read_csv(labels_path).reset_index()
+        df = df.filter([img_id, target])
+        if image_size:
+            transformations.append(partial(cv2.resize, dsize=(image_size, image_size)))
+
+        for idx in df.index:
+            image = df[img_id][idx]
+            label = df[target][idx]
+            image = ImageDataLoader.load_and_transform(str(image_path / image), transformations)
+            images_array.append(image)
+            labels_array.append(label)
+        labels = copy.deepcopy(labels_array) if not labels else labels
+        labels_array = LabelEncoder().fit_transform(labels_array)
+        images_array = np.array(images_array)
+        data = InputData.from_image(images=images_array, labels=labels_array, task=task)
+        data.supplementary_data = labels
+        return data
 
     @staticmethod
     def images_from_pickle(task: TaskTypesEnum.classification, dir_path: str = None,
@@ -112,117 +142,5 @@ def convert_data_to_pickle(dataset: InputData, dataset_name: str):
         pickle.dump(pickle_dataset, pickle_data)
 
 
-# TODO delete these functions
-def str_to_digit(labels):
-    if not labels[0].isdigit():
-        encoder = LabelEncoder()
-        labels = encoder.fit_transform(labels)
-    return labels
-
-
-def load_from_folder(dir_path, image_size: int = None, per_class_limit: int = None):
-    images_array = []
-    labels_array = []
-    for label in os.listdir(dir_path):
-        label_path = os.path.join(dir_path, label)
-        cnt = 0
-        for image_name in os.listdir(label_path):
-
-            if per_class_limit:
-                if cnt >= per_class_limit:
-                    break
-            image_name = os.path.join(label_path, image_name)
-            image = cv2.imread(image_name)
-            image_size = image.shape[0] if image_size is None else image_size
-            if image_size is not None:
-                if image.shape[0] != image_size:
-                    image = cv2.resize(image, (image_size, image_size), interpolation=cv2.INTER_CUBIC)
-            images_array.append(image)
-            labels_array.append(label)
-            cnt += 1
-    labels_array = str_to_digit(labels_array)
-    images_array = np.array(images_array)
-    labels_array = np.array(labels_array)
-    return images_array, labels_array, image_size, len(np.unique(labels_array))
-
-
-def load_images(file_path, size=120, number_of_classes=10, per_class_limit=None):
-    if number_of_classes == 10:
-        with open(os.path.join(root, 'dataset_files', 'labels_10.json'), 'r') as fp:
-            labels_dict = json.load(fp)
-        with open(os.path.join(root, 'dataset_files', 'encoded_labels_10.json'), 'r') as fp:
-            encoded_labels = json.load(fp)
-    elif number_of_classes == 3:
-        with open(os.path.join(root, 'dataset_files', 'labels.json'), 'r') as fp:
-            labels_dict = json.load(fp)
-        with open(os.path.join(root, 'dataset_files', 'encoded_labels.json'), 'r') as fp:
-            encoded_labels = json.load(fp)
-    else:
-        print('specify the number of classes correctly')
-    images_array = []
-    labels_array = []
-
-    files = [f for f in os.listdir(file_path) if isfile(join(file_path, f))]
-    files.sort()
-    encountered_targets_count = {} if per_class_limit is not None else None
-    for filename in files:
-        image = cv2.imread(join(file_path, filename))
-        image = cv2.resize(image, (size, size))
-        label_names = labels_dict[filename[:-4]]
-        for name in label_names:
-            num_label = encoded_labels[name]
-            if encountered_targets_count is not None:
-                if name not in encountered_targets_count:
-                    encountered_targets_count[name] = 1
-                elif encountered_targets_count[name] >= per_class_limit:
-                    continue
-                else:
-                    encountered_targets_count[name] += 1
-            images_array.append(image)
-            labels_array.append(num_label)
-    images_array = np.array(images_array)
-    labels_array = np.array(labels_array)
-    return images_array, labels_array
-
-
-def from_pickle(path):
-    with open(path, 'rb') as dataset:
-        images_array, labels_array = pickle.load(dataset)
-    return images_array, labels_array
-
-
-def from_images(file_path, num_classes, task_type: TaskTypesEnum = TaskTypesEnum.classification, per_class_limit=None):
-    _, extension = os.path.splitext(file_path)
-    if not extension:
-        images, labels = load_images(file_path, size=120, number_of_classes=num_classes,
-                                     per_class_limit=per_class_limit)
-    elif extension == '.pickle':
-        images, labels = from_pickle(file_path)
-    else:
-        raise ValueError('Wrong file path')
-    images_train, images_val, labels_train, labels_val = train_test_split(images, labels,
-                                                                          random_state=1, train_size=0.8)
-    task = Task(task_type=task_type, task_params=None)
-    train_input_data = Data.from_image(images=images_train, labels=labels_train, task=task)
-    validation_input_data = Data.from_image(images=images_val, labels=labels_val, task=task)
-
-    return train_input_data, validation_input_data
-
-
-def from_directory(file_path, task_type: TaskTypesEnum = TaskTypesEnum.classification,
-                   per_class_limit=None):
-    images, labels, image_size, _ = load_from_folder(file_path, per_class_limit=per_class_limit)
-    images_train, images_val, labels_train, labels_val = train_test_split(images, labels,
-                                                                          random_state=1, train_size=0.8)
-    task = Task(task_type=task_type, task_params=None)
-    train_input_data = Data.from_image(images=images_train, labels=labels_train, task=task)
-    validation_input_data = Data.from_image(images=images_val, labels=labels_val, task=task)
-
-    return train_input_data, validation_input_data, image_size
-
-
 if __name__ == '__main__':
     print('Converting dataset to pickle...')
-    # TODO local path
-    dataset_path = os.path.join('D:/work/datasets/Generated_dataset')
-    data2pickle(dataset_path, 3, 15)
