@@ -22,7 +22,7 @@ from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.nas_cnn_composer import GPNNComposerRequirements
 from nas.composer.cnn.cnn_graph_node import CNNNode
 from nas.composer.cnn.cnn_graph import CNNGraph
-from nas.data.load_images import ImageDataLoader
+from nas.data.custom_loader import CustomLoader
 from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
@@ -54,7 +54,7 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
                                    graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
                                    metrics=objective_func, parameters=optimiser_params, verbose=verbose,
-                                   log=default_log(logger_name='10cls-run', verbose_level=4))
+                                   log=default_log(logger_name='Custom-run', verbose_level=4))
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
           f'number of generations: {nn_requirements.num_of_generations}; number of train epochs: {nn_requirements.epochs}; '
@@ -84,13 +84,12 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
 
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
-    data_root = '../datasets/10cls_Generated_dataset'
-    labels_root = '../datasets/10cls_Generated_dataset/labels_10.json'
-    save_path = './results/10-cls'
+    data_root = '../datasets/CXR8'
+    save_path = f'../results/{datetime.datetime.now().date()}/x-ray'
     task = Task(TaskTypesEnum.classification)
-    train_data = ImageDataLoader.images_from_json(task, data_root, labels_root, None, None, 128, None)
+    data_loader = CustomLoader(task, None, 128)
+    train_data = data_loader.load(data_root, os.path.join(data_root, 'train_val_list.txt'), 24)
+    test_data = data_loader.load(data_root, os.path.join(data_root, 'test_list.txt'), 24)
 
     val_rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
                  graph_has_wrong_structure, flatten_check]
@@ -99,11 +98,11 @@ if __name__ == '__main__':
     metric = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
-    requirements = {'pop_size': 5, 'num_of_generations': 10, 'max_num_of_conv_layers': 5,
+    requirements = {'pop_size': 5, 'num_of_generations': 10, 'max_num_of_conv_layers': 50,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': 24, 'epochs': 5, 'has_skip_connection': True,
                     'default_parameters': default_nodes_params}
 
-    run_nas(train_data=train_data, test_data=None, val_split=.7, nn_requirements=requirements, epochs=1, batch_size=10,
-            save=save_path, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
+    run_nas(train_data=train_data, test_data=test_data, save=save_path, val_split=.7, nn_requirements=requirements,
+            epochs=30, batch_size=24, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
             initial_graph=None, verbose=1)

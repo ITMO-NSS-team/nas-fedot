@@ -25,7 +25,8 @@ class ConfusionMatrixPlotter(tf.keras.callbacks.Callback):
         predicted = self.model.predict(self.val)
         predicted = np.argmax(predicted, axis=1)
         conf_matrix = confusion_matrix(self.target, predicted)
-        conf_matrix = plot_confusion_matrix(conf_matrix, self.data.supplementary_data, False, cmap=self.color_map)
+        conf_matrix = plot_confusion_matrix(conf_matrix, self.data.supplementary_data['labels'], False,
+                                            cmap=self.color_map)
         conf_matrix = plot2image(conf_matrix)
 
         file_writer = tf.summary.create_file_writer(self.save_dir + '/confusion_matrix')

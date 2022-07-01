@@ -4,6 +4,7 @@ from typing import Union
 from sklearn.metrics import confusion_matrix
 
 from fedot.core.log import default_log
+from fedot.core.repository.tasks import Task, TaskTypesEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
@@ -144,13 +145,11 @@ def run_test(verbose: Union[str, int] = 'auto', epochs: int = 1, save_directory:
 
 if __name__ == '__main__':
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    dir_root = '/home/staeros/datasets/Blood-Cell-Classification/train'
-    test_root = '/home/staeros/example_datasets/Blood-Cell-Classification/test'
-    img_path = '/home/staeros/datasets/10cls_Generated_dataset/'
-    label_path = '/home/staeros/nas-fedot/dataset_files/labels_10.json'
+    dir_root = '../datasets/Blood-Cell-Classification/train'
+    test_root = '../datasets/Blood-Cell-Classification/test'
     save_path = os.path.join(project_root, 'Blood-Cell-Cls')
     initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
     default_parameters = default_nodes_params
     run_test(verbose=1, epochs=1, save_directory=save_path, image_size=24, max_cnn_depth=4,
              max_nn_depth=5, batch_size=16, opt_epochs=1, initial_graph_struct=None, default_params=None,
-             has_skip_connections=True, pop_size=1, num_of_generations=1, images_path=img_path, json_path=label_path)
+             has_skip_connections=True, pop_size=1, num_of_generations=1, train_path=dir_root, test_path=test_root)

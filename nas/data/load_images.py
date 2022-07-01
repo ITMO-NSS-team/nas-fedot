@@ -1,25 +1,41 @@
 import copy
-from tqdm import tqdm
 import json
 import os
 import pickle
 from pathlib import Path
 from dataclasses import dataclass
-from os.path import isfile, join
 from typing import List, Union, Optional
 from functools import partial
+from abc import abstractmethod
 
 import cv2
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
-from fedot.core.data.data import Data, InputData
+from fedot.core.data.data import InputData
 from fedot.core.repository.tasks import Task, TaskTypesEnum
-from nas.utils.utils import project_root
+from nas.utils.utils import project_root, is_image
 from sklearn.preprocessing import LabelEncoder
 
 root = project_root()
+
+
+class NASDataLoader(InputData):
+    @abstractmethod
+    def __init__(self, task, transformations, image_size, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _apply_transforms(self, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _load_and_transform(self, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def load(self, **kwargs):
+        raise NotImplementedError
 
 
 @dataclass
@@ -28,21 +44,21 @@ class ImageDataLoader(InputData):
     # TODO implement regression task support
     # TODO add read from pickle option
     @staticmethod
-    def _apply_transforms(image, transformations: List, **kwargs):
+    def _apply_transforms(image, transformations: List):
         for t in transformations:
             image = t(image)
         return image
 
     @staticmethod
-    def load_and_transform(image_path: Path, transformations: List, **kwargs):
+    def _load_and_transform(image_path: Path, transformations: List):
         image = cv2.imread(str(image_path))
         if transformations:
             image = ImageDataLoader._apply_transforms(image, transformations)
         return image
 
     @staticmethod
-    def images_from_directory(task: Task = Task(TaskTypesEnum.classification), transformations: List = [],
-                              dir_path: str = None, color_mode: str = 'rgb', image_size: Union[int, float] = None,
+    def images_from_directory(task: Task = Task(TaskTypesEnum.classification), transformations: Optional[List] = None,
+                              dir_path: str = None, image_size: Union[int, float] = None, color_mode: str = 'rgb',
                               samples_limit: int = None) -> InputData:
         """
         Read images from directory. The following dataset format is required:
@@ -62,29 +78,31 @@ class ImageDataLoader(InputData):
         """
         images_array = []
         labels_array = []
+        transformations = transformations if transformations else []
         if image_size:
             transformations.append(partial(cv2.resize, dsize=(image_size, image_size)))
-        print('\nReading data from directory...\n')
         for dir_path, folders, files in os.walk(dir_path, topdown=True):
             dir_path = Path(dir_path)
             if folders:
-                str_labels = copy.deepcopy(folders)
+                labels = copy.deepcopy(folders)
                 continue
             label = dir_path.name
             cnt = 0
             for image in files:
-                image_path = dir_path.parent / label / image
-                image = ImageDataLoader.load_and_transform(image_path, transformations)
-                images_array.append(image)
-                labels_array.append(label)
-                if samples_limit:
-                    cnt += 1
-                    if cnt >= samples_limit:
-                        break
+                if is_image(image):
+                    image_path = dir_path.parent / label / image
+                    image = ImageDataLoader._load_and_transform(image_path, transformations)
+                    images_array.append(image)
+                    labels_array.append(label)
+                    if samples_limit:
+                        cnt += 1
+                        if cnt >= samples_limit:
+                            break
         labels_array = LabelEncoder().fit_transform(labels_array)
         images_array = np.array(images_array)
         data = InputData.from_image(images=images_array, labels=labels_array, task=task)
-        data.supplementary_data = str_labels
+        data.supplementary_data = {'labels': labels,
+                                   'image_size': [image_size, image_size, 3]}
         return data
 
     @staticmethod
@@ -110,20 +128,16 @@ class ImageDataLoader(InputData):
         for idx in df.index:
             image = df[img_id][idx]
             label = df[target][idx]
-            image = ImageDataLoader.load_and_transform(image_path / image, transformations)
+            image = ImageDataLoader._load_and_transform(image_path / image, transformations)
             images_array.append(image)
             labels_array.append(label)
         labels = copy.deepcopy(labels_array) if not labels else labels
         labels_array = LabelEncoder().fit_transform(labels_array)
         images_array = np.array(images_array)
         data = InputData.from_image(images=images_array, labels=labels_array, task=task)
-        data.supplementary_data = labels
+        data.supplementary_data = {'labels': labels,
+                                   'image_size': [image_size, image_size, 3]}
         return data
-
-    @staticmethod
-    def images_from_pickle(task: TaskTypesEnum.classification, dir_path: str = None,
-                           image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
-        raise NotImplementedError
 
     @staticmethod
     def images_from_json(task: Task = Task(TaskTypesEnum.classification), img_path: str = None, labels_path: str = None,
@@ -145,15 +159,17 @@ class ImageDataLoader(InputData):
             json_data = json.load(json_data)
         for dir_root, folders, files in os.walk(images_path):
             for image in files:
-                label = json_data[image[:-4]]
-                image = ImageDataLoader.load_and_transform(images_path / image, transformations)
-                images_array.append(image)
-                labels_array.append(label)
+                if image.endswith('.png'):
+                    label = json_data[image[:-4]]
+                    image = ImageDataLoader._load_and_transform(images_path / image, transformations)
+                    images_array.append(image)
+                    labels_array.append(label)
         labels = copy.deepcopy(labels_array) if not labels else labels
         images_array = np.array(images_array)
         labels_array = LabelEncoder().fit_transform(labels_array)
         data = InputData.from_image(images=images_array, labels=labels_array, task=task)
-        data.supplementary_data = labels
+        data.supplementary_data = {'labels': labels,
+                                   'image_size': [image_size, image_size, 3]}
         return data
 
 
