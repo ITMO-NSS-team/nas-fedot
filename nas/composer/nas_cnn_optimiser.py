@@ -67,11 +67,10 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         out = [metric_function(graph, test_data)]
         return out
 
-    def compose(self, train_data, _test_data):
-        train_data, test_data = train_test_data_setup(train_data, 0.8, True)
+    def compose(self, train_data, test_data):
         self.history.clean_results()
         metric_function_for_nodes = partial(self.metric_for_nodes,
-                                            self.metrics, train_data, _test_data,
+                                            self.metrics, train_data, test_data,
                                             self.requirements, self.verbose)
         self.optimise(metric_function_for_nodes)
         # TODO

@@ -1,6 +1,5 @@
 import os
 
-import datetime
 from sklearn.metrics import confusion_matrix
 
 from fedot.core.log import default_log
@@ -60,7 +59,7 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
           f'number of generations: {nn_requirements.num_of_generations}; number of train epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape}; batch size: {batch_size} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train_data, _test_data=test_data)
+    optimized_network = optimiser.compose(train_data=train_data, test_data=test_data)
     optimized_network.fit(input_data=train_data, requirements=nn_requirements, train_epochs=epochs, verbose=verbose)
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data)
