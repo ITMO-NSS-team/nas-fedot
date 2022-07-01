@@ -30,7 +30,7 @@ def set_tf_compat():
 
 
 def is_image(file_name: str):
-    img_extensions = ['.png', '.jpg']
+    img_extensions = ['.png', '.jpeg']
     for extension in img_extensions:
         if file_name.endswith(extension):
             return True
