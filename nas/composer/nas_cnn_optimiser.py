@@ -15,6 +15,10 @@ from nas.utils.utils import seed_all
 
 seed_all(1)
 
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
     def __init__(self, initial_graph: Optional[List[str]], requirements, graph_generation_params, graph_builder,

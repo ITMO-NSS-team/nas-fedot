@@ -37,7 +37,7 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
     gen = kwargs.get('gen', datetime.date.day)
     ind = kwargs.get('ind', datetime.datetime.hour)
     graph = kwargs.get('graph', None)
-    logdir = f'./logs/{len(os.listdir("./"))}/{gen}/{ind}'
+    logdir = f'./logs/{len(os.listdir("./logs/"))}/{gen}/{ind}'
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')

@@ -27,3 +27,10 @@ def set_tf_compat():
     setattr(tf.compat.v1.nn.rnn_cell.GRUCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
     setattr(tf.compat.v1.nn.rnn_cell.MultiRNNCell, '__deepcopy__', lambda self, _: self)
+
+
+def is_image(file_name: str):
+    img_extensions = ['.png', '.jpg']
+    for extension in img_extensions:
+        if file_name.endswith(extension):
+            return True
