@@ -7,6 +7,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 
 import cv2
+import tqdm
 from sklearn.model_selection import train_test_split
 
 from fedot.core.data.data import InputData
@@ -90,16 +91,16 @@ class DataLoader:
     def __getitem__(self, item):
         images_array = []
         labels_array = []
-        for i in range((item + 1) * self.batch_size):
+        for i in range(item * self.batch_size, (item + 1) * self.batch_size):
             img, label = self.loader.load(item, self._mode)
             images_array.append(img)
-            labels_array.append(labels_array)
+            labels_array.append(label)
         return images_array, labels_array
 
     def __len__(self):
         if self.batch_size == 1:
             return len(self.loader)
-        elif self.batch_size < 1:
+        elif self.batch_size > 1:
             return len(self.loader) // self.batch_size
 
     @property
@@ -120,10 +121,9 @@ if __name__ == '__main__':
     train_dataset, val_dataset = split_data(train_dataset, 0.6, True)
     val_dataset, test_dataset = split_data(val_dataset, 0.6, True)
     d = ImageLoader
-    t_loader = DataLoader(None, d, 16, 'train', train_dataset, None, True)
+    t_loader = DataLoader(None, d, 128, 'train', train_dataset, None, True)
     v_loader = DataLoader(None, d, 16, 'val', val_dataset, None, True)
     test_loader = DataLoader(None, d, 16, 'test', test_dataset, None, True)
-    t_sample = t_loader[0]
-    v_sample = v_loader[0]
-    test_sample = test_loader[0]
+    for i in tqdm.tqdm(range(len(t_loader))):
+        t_sample = t_loader[i]
     print('Done!')
