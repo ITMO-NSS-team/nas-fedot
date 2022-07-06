@@ -65,7 +65,7 @@ def plot_confusion_matrix(confusion_matrix, class_names: List, normalize: bool =
 #         return figure
 #
 #     @staticmethod
-#     def _save(path):
-#         full_path = str(Path(path, 'confusion_matrix.png'))
+#     def _save(dataset_path):
+#         full_path = str(Path(dataset_path, 'confusion_matrix.png'))
 #         plt.savefig(full_path)
 #         plt.close()

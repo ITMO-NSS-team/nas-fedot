@@ -2,7 +2,7 @@ import os
 from nas.utils.utils import project_root
 
 project_root = project_root()
-tests_root = os.path.join(project_root, 'tests', 'unit', 'test_data')
+tests_root = os.path.join(project_root, 'tests', 'unit', 'test')
 verbose_values = {0: -1, 'auto': 1, 1: 1, 2: 1}
 batch_norm_probability = 0.4
 default_nodes_params = {

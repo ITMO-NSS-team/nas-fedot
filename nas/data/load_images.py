@@ -70,7 +70,7 @@ class ImageDataLoader(InputData):
                 |_images
         :param task: type of task to be solved
         :param transformations: list of transformations applied to each image
-        :param dir_path: path to dataset
+        :param dir_path: dataset_path to dataset
         :param color_mode: image color mode
         :param image_size: image size. if not specified, the first image's size will be picked as image size
         :param samples_limit: limit for samples per class
@@ -81,7 +81,7 @@ class ImageDataLoader(InputData):
         transformations = transformations if transformations else []
         if image_size:
             transformations.append(partial(cv2.resize, dsize=(image_size, image_size)))
-        for dir_path, folders, files in os.walk(dir_path, topdown=True):
+        for dir_path, folders, files in os.walk(dir_path, topdown=False):
             dir_path = Path(dir_path)
             if folders:
                 labels = copy.deepcopy(folders)

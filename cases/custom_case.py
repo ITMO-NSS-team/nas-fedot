@@ -31,15 +31,15 @@ from nas.metrics.confusion_matrix import plot_confusion_matrix
 from nas.composer.cnn.cnn_builder import CNNBuilder
 
 set_root(project_root)
-seed_all(14322)
+seed_all(942212)
 
 
-def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, batch_size,
+def run_nas(train, test, val_split, save, nn_requirements, epochs, batch_size,
             validation_rules, mutations, objective_func, initial_graph, verbose):
-    if not test_data:
-        train_data, test_data = train_test_data_setup(train_data, val_split, True)
+    if not test:
+        train, test = train_test_data_setup(train, val_split, True)
 
-    input_shape = train_data.supplementary_data['image_size']
+    input_shape = train.supplementary_data['image_size']
     nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
 
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
@@ -57,23 +57,23 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
                                    log=default_log(logger_name='Custom-run', verbose_level=4))
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
-          f'number of generations: {nn_requirements.num_of_generations}; number of train epochs: {nn_requirements.epochs}; '
+          f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape}; batch size: {batch_size} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train_data, test_data=test_data)
-    optimized_network.fit(input_data=train_data, requirements=nn_requirements, train_epochs=epochs, verbose=verbose)
+    optimized_network = optimiser.compose(train_data=train, test_data=test)
+    optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose)
 
-    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data)
+    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-        calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
+        calculate_validation_metric(test, predicted_probabilities, predicted_labels)
 
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
     if save:
-        conf_matrix = confusion_matrix(test_data.target, predicted_labels.predict)
-        plot_confusion_matrix(conf_matrix, test_data.supplementary_data['labels'], save=save)
+        conf_matrix = confusion_matrix(test.target, predicted_labels.predict)
+        plot_confusion_matrix(conf_matrix, test.supplementary_data['labels'], save=save)
         print('save best graph structure...')
         optimiser.save(save_folder=save, history=True, image=True)
         json_file = os.path.join(project_root, save, 'model.json')
@@ -84,7 +84,7 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
 
 
 if __name__ == '__main__':
-    data_root = '../datasets/Blood-Cell-Classification'
+    data_root = '../datasets/Blood-Cell-Classification_aug'
     save_path = f'../results/{datetime.datetime.now().date()}/Blood-cls'
     task = Task(TaskTypesEnum.classification)
     train_data = ImageDataLoader.images_from_directory(task, None, os.path.join(data_root, 'train'),
@@ -103,6 +103,6 @@ if __name__ == '__main__':
                     'batch_size': 24, 'epochs': 5, 'has_skip_connection': True,
                     'default_parameters': default_nodes_params}
 
-    run_nas(train_data=train_data, test_data=test_data, save=save_path, val_split=.7, nn_requirements=requirements,
+    run_nas(train=train_data, test=test_data, save=save_path, val_split=.7, nn_requirements=requirements,
             epochs=30, batch_size=24, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
             initial_graph=None, verbose=1)
