@@ -34,9 +34,9 @@ def plot_confusion_matrix(confusion_matrix, class_names: List, normalize: bool =
 
 # class ConfusionMatrix:
 #     @staticmethod
-#     def get_matrix(data, labels):
+#     def get_matrix(path, labels):
 #         y_true = labels
-#         y_pred = data.predict
+#         y_pred = path.predict
 #         return confusion_matrix(y_true=y_true, y_pred=y_pred)
 #
 #     @staticmethod
