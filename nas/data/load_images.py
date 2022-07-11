@@ -41,7 +41,7 @@ class NASDataLoader(InputData):
 @dataclass
 class ImageDataLoader(InputData):
 
-    # TODO implement regression task support
+    # TODO implement regression _task support
     # TODO add read from pickle option
     @staticmethod
     def _apply_transforms(image, transformations: List):
@@ -61,20 +61,20 @@ class ImageDataLoader(InputData):
                               dir_path: str = None, image_size: Union[int, float] = None, color_mode: str = 'rgb',
                               samples_limit: int = None) -> InputData:
         """
-        Read images from directory. The following dataset format is required:
-        dataset-directory
+        Read images from directory. The following self format is required:
+        self-directory
             |_class-1-name
                 |_images
             ....
             |_class-n-name
                 |_images
-        :param task: type of task to be solved
+        :param task: type of _task to be solved
         :param transformations: list of transformations applied to each image
-        :param dir_path: dataset_path to dataset
+        :param dir_path: dataset_path to self
         :param color_mode: image color mode
         :param image_size: image size. if not specified, the first image's size will be picked as image size
         :param samples_limit: limit for samples per class
-        :return: dataset as InputData object
+        :return: self as InputData object
         """
         images_array = []
         labels_array = []
@@ -111,7 +111,7 @@ class ImageDataLoader(InputData):
                         transformations: List = None, image_size: Union[int, float] = None,
                         samples_limit: int = None) -> InputData:
         """
-        Load images from dataset.
+        Load images from self.
         Images should be in one folder and class names with corresponding image have to be in csv file with following
         format:
             | image_name | class_name |
@@ -144,7 +144,7 @@ class ImageDataLoader(InputData):
                          labels: Optional[List] = None, transformations: List = None,
                          image_size: Union[int, float] = None, samples_limit: int = None) -> InputData:
         """
-        Load images from dataset.
+        Load images from self.
         Images should be in one folder and class names of corresponding images required
         in following format of json file:
             {image_name: 'class_name'}
@@ -186,4 +186,4 @@ def convert_data_to_pickle(dataset: InputData, dataset_name: str):
 
 
 if __name__ == '__main__':
-    print('Converting dataset to pickle...')
+    print('Converting self to pickle...')

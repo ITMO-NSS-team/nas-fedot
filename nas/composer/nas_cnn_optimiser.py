@@ -5,10 +5,10 @@ from functools import partial
 from copy import deepcopy
 import numpy as np
 from fedot.core.data.data import InputData
-from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 
+from nas.data.split_data import generator_train_test_split
 from nas.composer.cnn.cnn_graph import CNNGraph
 from nas.composer.cnn.cnn_builder import NASDirector
 from nas.utils.utils import seed_all
@@ -67,8 +67,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         out = [metric_function(graph, test_data)]
         return out
 
-    def compose(self, train_data, test_data):
+    def compose(self, train_data):
         self.history.clean_results()
+        train_data, test_data = generator_train_test_split(train_data, .7, True)
         metric_function_for_nodes = partial(self.metric_for_nodes,
                                             self.metrics, train_data, test_data,
                                             self.requirements, self.verbose)

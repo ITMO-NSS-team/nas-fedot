@@ -1,6 +1,8 @@
-import os
+from typing import Optional, Union
 import datetime
 import numpy as np
+
+from sklearn.preprocessing import LabelEncoder
 
 from typing import Any, List
 from tensorflow import keras
@@ -11,9 +13,14 @@ from tensorflow.keras.utils import to_categorical
 from fedot.core.data.data import InputData, OutputData
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
 
+from nas.utils import utils, var
 import nas.nn.layers_keras
 from nas.callbacks.confussion_matrix_callback import ConfusionMatrixPlotter
 import nas.callbacks.tb_metrics as nas_callbacks
+from nas.data.dataloader import DataLoaderInputData
+from nas.data.split_data import generator_train_test_split
+
+utils.set_root(var.project_root)
 
 
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
@@ -32,15 +39,16 @@ def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False)
     return output
 
 
-def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_size: int = 24,
+def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInputData]], verbose: bool = True,
+                    batch_size: int = 16,
                     epochs: int = 10, **kwargs):
     gen = kwargs.get('gen', datetime.date.day)
     ind = kwargs.get('ind', datetime.datetime.hour)
     graph = kwargs.get('graph', None)
-    logdir = f'./logs/{len(os.listdir("./logs/"))}/{gen}/{ind}'
+    logdir = f'../_results/logs/{datetime.datetime.now().date()}/{gen}/{ind}'
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-    mcp_save = ModelCheckpoint('./models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
+    mcp_save = ModelCheckpoint('../_results/models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
     cf = ConfusionMatrixPlotter(input_data, save_dir=logdir)
@@ -53,15 +61,21 @@ def keras_model_fit(model, input_data: InputData, verbose: bool = True, batch_si
         graph_plotter = nas_callbacks.GraphPlotter(graph, log_path=logdir)
         callbacks.append(graph_plotter)
     is_multiclass = input_data.num_classes > 2
+
+    train_data, val_data = generator_train_test_split(input_data, .8, True)
+
+    train_generator = train_data.data_generator
+    val_generator = val_data.data_generator
     if is_multiclass:
-        encoded_targets = to_categorical(input_data.target, num_classes=input_data.num_classes, dtype='int')
-    else:
-        encoded_targets = input_data.target
-    model.fit(input_data.features, encoded_targets,
+        train_generator.data_generator.targets = to_categorical(train_generator.data_generator.targets,
+                                                                num_classes=train_generator.num_classes, dtype='int')
+        val_generator.data_generator.targets = to_categorical(val_generator.data_generator.targets,
+                                                              num_classes=val_generator.num_classes, dtype='int')
+    model.fit(train_generator,
               batch_size=batch_size,
               epochs=epochs,
               verbose=verbose,
-              validation_split=0.2,
+              validation_data=val_generator,
               shuffle=True,
               callbacks=callbacks)
     return keras_model_predict(model, input_data, is_multiclass=is_multiclass)

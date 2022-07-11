@@ -2,7 +2,11 @@ import os
 
 import datetime
 from sklearn.metrics import confusion_matrix
+from functools import partial
+import tensorflow as tf
 
+from fedot.core.data.supplementary_data import SupplementaryData
+from fedot.core.data.data import DataTypesEnum
 from fedot.core.log import default_log
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
@@ -10,19 +14,19 @@ from fedot.core.optimisers.gp_comp.operators.regularization import Regularizatio
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
 from fedot.core.optimisers.optimizer import GraphGenerationParams
-from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.optimisers.adapters import DirectAdapter
 
+from nas.data.dataloader import ImageDataset, DataLoaderInputData, DataLoader
+from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
 from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.nas_cnn_composer import GPNNComposerRequirements
 from nas.composer.cnn.cnn_graph_node import CNNNode
 from nas.composer.cnn.cnn_graph import CNNGraph
-from nas.data.load_images import ImageDataLoader
 from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
@@ -34,12 +38,9 @@ set_root(project_root)
 seed_all(942212)
 
 
-def run_nas(train, test, val_split, save, nn_requirements, epochs, batch_size,
+def run_nas(train, test, save, nn_requirements, epochs, batch_size,
             validation_rules, mutations, objective_func, initial_graph, verbose):
-    if not test:
-        train, test = train_test_data_setup(train, val_split, True)
-
-    input_shape = train.supplementary_data['image_size']
+    input_shape = train.supplementary_data.column_types['image_size']
     nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
 
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
@@ -60,7 +61,7 @@ def run_nas(train, test, val_split, save, nn_requirements, epochs, batch_size,
           f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape}; batch size: {batch_size} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train, test_data=test)
+    optimized_network = optimiser.compose(train_data=train)
     optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose)
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test)
@@ -84,12 +85,23 @@ def run_nas(train, test, val_split, save, nn_requirements, epochs, batch_size,
 
 
 if __name__ == '__main__':
-    data_root = '../datasets/Blood-Cell-Classification_aug'
-    save_path = f'../results/{datetime.datetime.now().date()}/Blood-cls'
+    data_root = '../datasets/Blood-Cell-Classification_aug/train'
+    save_path = f'../_results/{datetime.datetime.now().date()}/CXR8'
     task = Task(TaskTypesEnum.classification)
-    train_data = ImageDataLoader.images_from_directory(task, None, os.path.join(data_root, 'train'),
-                                                       128)
-    test_data = ImageDataLoader.images_from_directory(task, None, os.path.join(data_root, 'test'), 128)
+
+    img_size = 24
+    batch_size = 32
+
+    flip = partial(tf.image.random_flip_left_right, seed=1)
+    saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
+    brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
+    contrast = partial(tf.image.random_contrast, lower=5, upper=10, seed=1)
+    crop = partial(tf.image.random_crop, size=(40, 40, 3), seed=1)
+    resize = partial(tf.image.resize, size=(img_size, img_size))
+    sup_data = SupplementaryData()
+    sup_data.column_types = {'image_size': [img_size, img_size, 3]}
+
+    transformations = [flip, saturation, brightness, contrast, crop]
 
     val_rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
                  graph_has_wrong_structure, flatten_check]
@@ -97,12 +109,17 @@ if __name__ == '__main__':
                       single_change_mutation, single_edge_mutation]
     metric = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
-    initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
+    dataset = ImageDataset(data_root, batch_size, transformations)
+    data_loader = DataLoader(dataset, True)
+    data = DataLoaderInputData.input_data_from_generator(data_loader, task, data_type=DataTypesEnum.image,
+                                                         image_size=[img_size, img_size, 3])
+    train_data, test_data = generator_train_test_split(data, .8, True)
+
     requirements = {'pop_size': 5, 'num_of_generations': 10, 'max_num_of_conv_layers': 50,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
-                    'batch_size': 24, 'epochs': 5, 'has_skip_connection': True,
+                    'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
                     'default_parameters': default_nodes_params}
 
-    run_nas(train=train_data, test=test_data, save=save_path, val_split=.7, nn_requirements=requirements,
+    run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
             epochs=30, batch_size=24, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
             initial_graph=None, verbose=1)
