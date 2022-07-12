@@ -47,11 +47,24 @@ def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInput
     graph = kwargs.get('graph', None)
     logdir = f'../_results/logs/{datetime.datetime.now().date()}/{gen}/{ind}'
 
+    train_data, val_data = generator_train_test_split(input_data, .8, True)
+
+    train_generator = train_data.data_generator
+    val_generator = val_data.data_generator
+
+    is_multiclass = input_data.num_classes > 2
+
+    if is_multiclass:
+        train_generator.data_generator.targets = to_categorical(train_generator.data_generator.targets,
+                                                                num_classes=train_generator.num_classes, dtype='int')
+        val_generator.data_generator.targets = to_categorical(val_generator.data_generator.targets,
+                                                              num_classes=val_generator.num_classes, dtype='int')
+
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
     mcp_save = ModelCheckpoint('../_results/models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
-    cf = ConfusionMatrixPlotter(input_data, save_dir=logdir)
+    cf = ConfusionMatrixPlotter(val_generator, save_dir=logdir)
     custom_callback_handler = nas_callbacks.NASCallbackTF(input_data, [nas_callbacks.F1ScoreCallback], log_path=logdir)
     tensorboard_callback = TensorBoard(
         log_dir=logdir,
@@ -60,17 +73,7 @@ def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInput
     if graph:
         graph_plotter = nas_callbacks.GraphPlotter(graph, log_path=logdir)
         callbacks.append(graph_plotter)
-    is_multiclass = input_data.num_classes > 2
 
-    train_data, val_data = generator_train_test_split(input_data, .8, True)
-
-    train_generator = train_data.data_generator
-    val_generator = val_data.data_generator
-    if is_multiclass:
-        train_generator.data_generator.targets = to_categorical(train_generator.data_generator.targets,
-                                                                num_classes=train_generator.num_classes, dtype='int')
-        val_generator.data_generator.targets = to_categorical(val_generator.data_generator.targets,
-                                                              num_classes=val_generator.num_classes, dtype='int')
     model.fit(train_generator,
               batch_size=batch_size,
               epochs=epochs,
@@ -78,12 +81,12 @@ def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInput
               validation_data=val_generator,
               shuffle=True,
               callbacks=callbacks)
-    return keras_model_predict(model, input_data, is_multiclass=is_multiclass)
+    return keras_model_predict(model, val_data, is_multiclass=is_multiclass)
 
 
-def keras_model_predict(model, input_data: InputData, output_mode: str = 'default',
+def keras_model_predict(model, input_data, output_mode: str = 'default',
                         is_multiclass: bool = False) -> OutputData:
-    evaluation_result = model.predict(input_data.features)
+    evaluation_result = model.predict(input_data.data_generator)
     if output_mode == 'label':
         if is_multiclass:
             evaluation_result = np.argmax(evaluation_result, axis=1)

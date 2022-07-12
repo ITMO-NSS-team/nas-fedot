@@ -1,6 +1,9 @@
 import os
 
 import datetime
+import pathlib
+
+import numpy as np
 from sklearn.metrics import confusion_matrix
 from functools import partial
 import tensorflow as tf
@@ -74,7 +77,7 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
 
     if save:
         conf_matrix = confusion_matrix(test.target, predicted_labels.predict)
-        plot_confusion_matrix(conf_matrix, test.supplementary_data['labels'], save=save)
+        plot_confusion_matrix(conf_matrix, test.supplementary_data.column_types['labels'], save=save)
         print('save best graph structure...')
         optimiser.save(save_folder=save, history=True, image=True)
         json_file = os.path.join(project_root, save, 'model.json')
@@ -86,7 +89,8 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
 
 if __name__ == '__main__':
     data_root = '../datasets/Blood-Cell-Classification_aug/train'
-    save_path = f'../_results/{datetime.datetime.now().date()}/CXR8'
+    folder_name = pathlib.Path(data_root).parts[2]
+    save_path = f'../_results/{datetime.datetime.now().date()}/{folder_name}'
     task = Task(TaskTypesEnum.classification)
 
     img_size = 24
@@ -96,7 +100,7 @@ if __name__ == '__main__':
     saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
     brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
     contrast = partial(tf.image.random_contrast, lower=5, upper=10, seed=1)
-    crop = partial(tf.image.random_crop, size=(40, 40, 3), seed=1)
+    crop = partial(tf.image.random_crop, size=(img_size, img_size, 3), seed=1)
     resize = partial(tf.image.resize, size=(img_size, img_size))
     sup_data = SupplementaryData()
     sup_data.column_types = {'image_size': [img_size, img_size, 3]}
@@ -111,15 +115,16 @@ if __name__ == '__main__':
 
     dataset = ImageDataset(data_root, batch_size, transformations)
     data_loader = DataLoader(dataset, True)
+    true_labels = [f.parts[-1] for f in pathlib.Path(data_root).iterdir() if pathlib.Path(data_root).is_dir()]
     data = DataLoaderInputData.input_data_from_generator(data_loader, task, data_type=DataTypesEnum.image,
-                                                         image_size=[img_size, img_size, 3])
+                                                         image_size=[img_size, img_size, 3], labels=true_labels)
     train_data, test_data = generator_train_test_split(data, .8, True)
 
-    requirements = {'pop_size': 5, 'num_of_generations': 10, 'max_num_of_conv_layers': 50,
+    requirements = {'pop_size': 1, 'num_of_generations': 1, 'max_num_of_conv_layers': 4,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
-                    'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
+                    'batch_size': batch_size, 'epochs': 1, 'has_skip_connection': True,
                     'default_parameters': default_nodes_params}
 
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
-            epochs=30, batch_size=24, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
+            epochs=1, batch_size=24, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
             initial_graph=None, verbose=1)

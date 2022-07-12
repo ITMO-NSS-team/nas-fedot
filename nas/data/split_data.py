@@ -4,10 +4,12 @@ from fedot.core.data.data import InputData
 from sklearn.model_selection import train_test_split, StratifiedKFold
 
 
-def _split_generator(input_data, features, targets, idx):
+def _split_generator(input_data, x, y, idx):
     new_data = copy.deepcopy(input_data)
-    new_data.data_generator.data_generator.features = features
-    new_data.data_generator.data_generator.targets = targets
+    new_data.data_generator.data_generator.features = x
+    new_data.data_generator.data_generator.targets = y
+    new_data.target = y
+    new_data.features = x
     new_data.idx = idx
 
     return new_data
@@ -30,8 +32,8 @@ class KFoldSplit:
     pass
 
 # def loader_train_test_split(input_data, ratio: float = .7, shuffle=True):
-#     features, targets = input_data.data_loader.dataset.samples
-#     x_train, x_val, y_train, y_val = train_test_split(features, targets, test_size=1 - ratio, random_state=42,
+#     x, y = input_data.data_loader.dataset.samples
+#     x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=1 - ratio, random_state=42,
 #                                                       shuffle=shuffle)
 #     train_input_data = copy.deepcopy(input_data)
 #     val_input_data = copy.deepcopy(input_data)

@@ -87,7 +87,7 @@ class ImageDataset(FEDOTDataset):
         targets = []
         for item in self.path.rglob('*.*'):
             if item.suffix in supported_images:
-                features.append(item)
+                features.append(str(item))
                 targets.append(item.parent.name)
         targets = LabelEncoder().fit_transform(targets)
         return features, targets
@@ -131,7 +131,7 @@ class DataLoader(Sequence):
 
     def __getitem__(self, idx):
         features, targets = self.data_generator[idx]
-        return features, targets # tensorflow.keras.utils.to_categorical(targets, num_classes=self.num_classes)
+        return features, targets
 
     def __len__(self):
         return self.steps_per_epoch

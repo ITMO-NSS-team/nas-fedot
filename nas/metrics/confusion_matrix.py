@@ -26,7 +26,8 @@ def plot_confusion_matrix(confusion_matrix, class_names: List, normalize: bool =
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     if save:
-        save_path = str(Path(save) / 'confusion_matrix.png')
+        Path(save).mkdir(parents=True, exist_ok=True)
+        save_path = Path(save) / 'confusion_matrix.png'
         plt.savefig(save_path)
         plt.close()
     return figure
