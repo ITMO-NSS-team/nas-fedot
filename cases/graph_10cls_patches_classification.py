@@ -56,7 +56,7 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
                                    log=default_log(logger_name='10cls-run', verbose_level=4))
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
-          f'number of generations: {nn_requirements.num_of_generations}; number of train epochs: {nn_requirements.epochs}; '
+          f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape}; batch size: {batch_size} \t\n')
 
     optimized_network = optimiser.compose(train_data=train_data, test_data=test_data)

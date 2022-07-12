@@ -69,4 +69,3 @@ class NASCallbackTF(tf.keras.callbacks.Callback):
             metric = self._apply_func(self.data.target, predicted, func=func)
             with self.writer.as_default():
                 tf.summary.scalar(func.__name__, data=metric, step=epoch)
-

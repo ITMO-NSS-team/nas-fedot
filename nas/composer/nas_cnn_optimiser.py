@@ -1,9 +1,7 @@
-import random
 import os
 from typing import List, Optional
 from functools import partial
 from copy import deepcopy
-import numpy as np
 from fedot.core.data.data import InputData
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
@@ -12,12 +10,11 @@ from nas.data.split_data import generator_train_test_split
 from nas.composer.cnn.cnn_graph import CNNGraph
 from nas.composer.cnn.cnn_builder import NASDirector
 from nas.utils.utils import seed_all
-
-seed_all(1)
-
 import tensorflow as tf
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
+seed_all(1)
 
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
