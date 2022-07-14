@@ -3,7 +3,6 @@ import os
 import datetime
 import pathlib
 
-import numpy as np
 from sklearn.metrics import confusion_matrix
 from functools import partial
 import tensorflow as tf
