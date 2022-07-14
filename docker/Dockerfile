@@ -3,5 +3,4 @@ RUN mkdir -p /home/hdd/
 WORKDIR /home/hdd/
 RUN mkdir docker
 COPY . ./docker
-RUN apt install git
-RUN git clone https://github.com/ITMO-NSS-team/nas-fedot.git
+RUN apt install sudo git
