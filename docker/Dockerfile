@@ -3,4 +3,3 @@ RUN mkdir -p /home/hdd/
 WORKDIR /home/hdd/
 RUN mkdir docker
 COPY . ./docker
-RUN apt install sudo git

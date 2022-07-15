@@ -2,8 +2,6 @@ from typing import Optional, Union
 import datetime
 import numpy as np
 
-from sklearn.preprocessing import LabelEncoder
-
 from typing import Any, List
 from tensorflow import keras
 from tensorflow.keras import layers

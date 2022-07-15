@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 import cv2
 import numpy as np
+import tensorflow as tf
 import tensorflow.keras.applications.vgg16
 from sklearn import utils
 from tensorflow.keras.utils import Sequence
@@ -131,7 +132,7 @@ class DataLoader(Sequence):
 
     def __getitem__(self, idx):
         features, targets = self.data_generator[idx]
-        return features, targets
+        return tf.convert_to_tensor(features), tf.convert_to_tensor(targets)
 
     def __len__(self):
         return self.steps_per_epoch
