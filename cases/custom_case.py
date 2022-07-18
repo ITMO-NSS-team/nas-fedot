@@ -87,24 +87,24 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
 
 
 if __name__ == '__main__':
-    data_root = '../datasets/Blood-Cell-Classification_aug/train'
+    data_root = '../datasets/CXR8'
     folder_name = pathlib.Path(data_root).parts[2]
     save_path = f'../_results/{datetime.datetime.now().date()}/{folder_name}'
     task = Task(TaskTypesEnum.classification)
 
-    img_size = 24
-    batch_size = 32
+    img_size = 256
+    batch_size = 8
 
     flip = partial(tf.image.random_flip_left_right, seed=1)
     saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
     brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
     contrast = partial(tf.image.random_contrast, lower=5, upper=10, seed=1)
-    crop = partial(tf.image.random_crop, size=(img_size, img_size, 3), seed=1)
-    resize = partial(tf.image.resize, size=(img_size, img_size))
+    crop = partial(tf.image.random_crop, size=(img_size // 8, img_size // 8, 3), seed=1)
+    resize = partial(tf.image.resize, size=[img_size, img_size])
     sup_data = SupplementaryData()
     sup_data.column_types = {'image_size': [img_size, img_size, 3]}
 
-    transformations = [flip, saturation, brightness, contrast, crop]
+    transformations = [resize]
 
     val_rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
                  graph_has_wrong_structure, flatten_check]
@@ -119,11 +119,13 @@ if __name__ == '__main__':
                                                          image_size=[img_size, img_size, 3], labels=true_labels)
     train_data, test_data = generator_train_test_split(data, .8, True)
 
-    requirements = {'pop_size': 1, 'num_of_generations': 1, 'max_num_of_conv_layers': 4,
-                    'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
-                    'batch_size': batch_size, 'epochs': 1, 'has_skip_connection': True,
-                    'default_parameters': default_nodes_params}
+    requirements = {'pop_size': 5, 'num_of_generations': 15, 'max_num_of_conv_layers': 35,
+                    'max_nn_depth': 3, 'primary': ['conv2d'], 'secondary': ['dense'],
+                    'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
+                    'default_parameters': default_nodes_params, 'timeout': datetime.timedelta(hours=200)}
 
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
-            epochs=1, batch_size=24, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
+            epochs=30, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
+            objective_func=metric,
             initial_graph=None, verbose=1)
+
