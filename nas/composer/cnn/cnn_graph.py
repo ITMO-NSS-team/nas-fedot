@@ -5,9 +5,13 @@ import pathlib
 from fedot.core.data.data import InputData, OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
+from fedot.core.utils import DEFAULT_PARAMS_STUB
 
 from nas.composer.cnn.cnn_graph_node import CNNNode
 from nas.nn.nas_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
+
+# hotfix
+from nas.utils.var import default_nodes_params
 
 
 class CNNGraph(OptGraph):
@@ -56,13 +60,7 @@ class CNNGraph(OptGraph):
     def fit(self, input_data: InputData, verbose=False, requirements=None, train_epochs: int = None):
         train_epochs = requirements.epochs if train_epochs is None else train_epochs
         if not self.model:
-            try:
-                self.model = create_nn_model(self, requirements.input_shape, input_data.num_classes)
-            except Exception as ex:
-                print(ex)
-                _save = '../_results/models_debug'
-                pathlib.Path(_save).mkdir(parents=True, exist_ok=True)
-                self.save(_save)
+            self.model = create_nn_model(self, requirements.input_shape, input_data.num_classes)
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=requirements.batch_size,
                                           epochs=train_epochs, graph=self, ind=CNNGraph.INDIVIDUAL,
                                           gen=CNNGraph.GENERATION)
@@ -103,4 +101,7 @@ class NNNodeOperatorAdapter:
     def restore(self, node) -> CNNNode:
         obj = node
         obj.__class__ = CNNNode
+        if obj.content['params'] == DEFAULT_PARAMS_STUB:
+            node_name = obj.content.get('name')
+            obj.content = default_nodes_params[node_name]
         return obj

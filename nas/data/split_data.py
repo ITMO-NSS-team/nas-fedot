@@ -21,7 +21,8 @@ def generator_train_test_split(data, split_ratio=.8, shuffle_flag=False):
     idx = data.idx
     idx_train, idx_test, x_train, x_test, y_train, y_test = train_test_split(idx, features, targets,
                                                                              test_size=1 - split_ratio,
-                                                                             shuffle=shuffle_flag, random_state=42)
+                                                                             shuffle=shuffle_flag, random_state=42,
+                                                                             stratify=targets)
     train_input_data = _split_generator(data, x_train, y_train, idx_train)
     test_input_data = _split_generator(data, x_test, y_test, idx_test)
 

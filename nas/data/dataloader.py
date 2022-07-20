@@ -1,11 +1,13 @@
 import functools
 import math
+import os
 from typing import (List,
                     Optional,
                     Union)
 import pathlib
 from abc import abstractmethod
 from dataclasses import dataclass
+import pandas as pd
 
 import cv2
 import numpy as np
@@ -56,6 +58,8 @@ class FEDOTDataset:
         try:
             if not isinstance(self._path, pathlib.Path):
                 return pathlib.Path(self._path)
+            else:
+                return self._path
         except TypeError:
             raise TypeError('Wrong path: ', self._path)
 
@@ -94,6 +98,42 @@ class ImageDataset(FEDOTDataset):
         return features, targets
 
     def _load_and_transform(self, file_name):
+        img = cv2.imread(str(file_name))
+        if self.transformations:
+            for t in self.transformations:
+                img = t(img)
+        return img
+
+
+class CSVDataset(FEDOTDataset):
+    def __init__(self, images_path, metadata_path, batch_size: int = 32, transformations: List = None,
+                 shuffle: bool = False):
+        super().__init__(images_path, transformations)
+        self.targets_path = pd.read_csv(metadata_path)
+        self.features, self.targets = self._get_feature_target_pairs()
+        self.batch_size = batch_size
+
+    def __len__(self):
+        return len(self.features)
+
+    def _get_feature_target_pairs(self):
+        features = list(self.targets_path['image_path'])
+        targets = self.targets_path['species']
+        targets = LabelEncoder().fit_transform(targets)
+        return features, targets
+
+    def __getitem__(self, idx):
+        batch_x = self.features[idx * self.batch_size: (idx + 1) * self.batch_size]
+        batch_y = self.targets[idx * self.batch_size: (idx + 1) * self.batch_size]
+        features_batch = [self._load_and_transform(img) for img in batch_x]
+
+        return np.array(features_batch), batch_y
+
+    def shuffle(self):
+        return utils.shuffle(self.features, self.targets)
+
+    def _load_and_transform(self, file_name):
+        file_name = self.path / file_name
         img = cv2.imread(str(file_name))
         if self.transformations:
             for t in self.transformations:

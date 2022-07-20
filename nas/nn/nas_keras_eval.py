@@ -67,7 +67,7 @@ def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInput
     tensorboard_callback = TensorBoard(
         log_dir=logdir,
         histogram_freq=1)
-    callbacks = [early_stopping, mcp_save, reduce_lr_loss, cf, custom_callback_handler, tensorboard_callback]
+    callbacks = [early_stopping, mcp_save, reduce_lr_loss, custom_callback_handler, tensorboard_callback]
     if graph:
         graph_plotter = nas_callbacks.GraphPlotter(graph, log_path=logdir)
         callbacks.append(graph_plotter)

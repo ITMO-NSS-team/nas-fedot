@@ -1,6 +1,7 @@
 from typing import Callable, List
 from abc import abstractmethod
 
+import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
 import tensorflow as tf
@@ -37,6 +38,8 @@ class GraphPlotter(tf.keras.callbacks.Callback):
 
         with self.writer.as_default():
             tf.summary.image('Graph', graph, step=0)
+
+        plt.close()
 
 
 class NASCallbackTF(tf.keras.callbacks.Callback):

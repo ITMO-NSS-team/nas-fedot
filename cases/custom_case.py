@@ -1,5 +1,6 @@
 import os
-
+import numpy as np
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import datetime
 import pathlib
 
@@ -21,7 +22,7 @@ from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutatio
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.optimisers.adapters import DirectAdapter
 
-from nas.data.dataloader import ImageDataset, DataLoaderInputData, DataLoader
+from nas.data.dataloader import ImageDataset, DataLoaderInputData, DataLoader, CSVDataset
 from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
@@ -87,13 +88,13 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
 
 
 if __name__ == '__main__':
-    data_root = '../datasets/CXR8'
+    data_root = '../datasets/DF20M'
     folder_name = pathlib.Path(data_root).parts[2]
     save_path = f'../_results/{datetime.datetime.now().date()}/{folder_name}'
     task = Task(TaskTypesEnum.classification)
 
-    img_size = 256
-    batch_size = 8
+    img_size = 300
+    batch_size = 16
 
     flip = partial(tf.image.random_flip_left_right, seed=1)
     saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
@@ -112,9 +113,13 @@ if __name__ == '__main__':
                       single_change_mutation, single_edge_mutation]
     metric = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
-    dataset = ImageDataset(data_root, batch_size, transformations)
+    images_path = pathlib.Path(data_root, 'images')
+    metadata = pathlib.Path(data_root, 'metadata', 'DF20M-train_metadata_PROD.csv')
+    dataset = CSVDataset(images_path, metadata, batch_size, transformations)
+    # dataset = ImageDataset(data_root, batch_size, transformations)
     data_loader = DataLoader(dataset, True)
-    true_labels = [f.parts[-1] for f in pathlib.Path(data_root).iterdir() if pathlib.Path(data_root).is_dir()]
+    true_labels = dataset.targets_path['species'].unique()
+    # true_labels = [f.parts[-1] for f in pathlib.Path(data_root).iterdir() if pathlib.Path(data_root).is_dir()]
     data = DataLoaderInputData.input_data_from_generator(data_loader, task, data_type=DataTypesEnum.image,
                                                          image_size=[img_size, img_size, 3], labels=true_labels)
     train_data, test_data = generator_train_test_split(data, .8, True)

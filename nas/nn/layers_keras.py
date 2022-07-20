@@ -2,8 +2,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Tuple, List, Any
 
+from fedot.core.utils import DEFAULT_PARAMS_STUB
+
 from tensorflow.keras import layers
 from nas.composer.cnn.cnn_graph_node import CNNNode
+from nas.utils.var import default_nodes_params
 
 
 class ActivationTypesIdsEnum(Enum):
@@ -47,25 +50,34 @@ def make_dense_layer(idx: int, input_layer: Any, current_node: CNNNode):
     :param input_layer: input Keras layer
     :param current_node: current node NNNode type
     """
-    neurons_num = current_node.content['params']['neurons']
-    activation = layers.Activation(current_node.content['params']['activation'])
+    layer_params = _get_layer_params(current_node)
+    neurons_num = layer_params.get('neurons')
+    activation = layers.Activation(layer_params['activation'])
     dense_layer = layers.Dense(units=neurons_num, name=f'dense_layer_{idx}')(input_layer)
-    if 'momentum' in current_node.content['params']:
-        dense_layer = _add_batch_norm(dense_layer, current_node)
+    if 'momentum' in layer_params:
+        dense_layer = _add_batch_norm(dense_layer, layer_params)
     dense_layer = activation(dense_layer)
+    if 'drop' in layer_params:
+        dense_layer = _make_dropout_layer(dense_layer, layer_params)
     return dense_layer
 
 
-def make_dropout_layer(idx: int, input_layer: Any, current_node: CNNNode):
+def _get_layer_params(current_node: CNNNode):
+    if current_node.content['params'] == DEFAULT_PARAMS_STUB:
+        layer_params = default_nodes_params[current_node.content['name']]
+    else:
+        layer_params = current_node.content.get('params')
+    return layer_params
+
+
+def _make_dropout_layer(input_layer: Any, params):
     """
     This function generates dropout layer from given node parameters
 
-    :param idx: layer index
     :param input_layer: input Keras layer
-    :param current_node: current node NNNode type
     """
-    drop = current_node.content['params']['drop']
-    dropout = layers.Dropout(drop, name=f'dropout_layer_{idx}')
+    drop = params.get('drop')
+    dropout = layers.Dropout(drop)
     dropout_layer = dropout(input_layer)
     return dropout_layer
 
@@ -81,27 +93,30 @@ def make_conv_layer(idx: int, input_layer: Any, current_node: CNNNode = None, is
     :param is_free_node: is node not belongs to any of the skip connection blocks
     """
     # Conv layer params
-    kernel_size = current_node.content['params']['kernel_size']
-    conv_strides = current_node.content['params']['conv_strides'] if is_free_node else (1, 1)
-    filters_num = current_node.content['params']['num_of_filters']
-    activation = layers.Activation(current_node.content['params']['activation'])
+    layer_params = _get_layer_params(current_node)
+    kernel_size = layer_params['kernel_size']
+    conv_strides = layer_params['conv_strides'] if is_free_node else (1, 1)
+    filters_num = layer_params['num_of_filters']
+    activation = layers.Activation(layer_params['activation'])
     conv_layer = layers.Conv2D(filters=filters_num, kernel_size=kernel_size, strides=conv_strides,
                                name=f'conv_layer_{idx}', padding='same')(input_layer)
-    if 'momentum' in current_node.content['params']:
-        conv_layer = _add_batch_norm(input_layer=conv_layer, current_node=current_node)
+    if 'momentum' in layer_params:
+        conv_layer = _add_batch_norm(input_layer=conv_layer, layer_params=layer_params)
     conv_layer = activation(conv_layer)
     # Add pooling
     if is_free_node:
-        if current_node.content['params']["pool_size"]:
-            pool_size = current_node.content['params']["pool_size"]
-            pool_strides = current_node.content['params']["pool_strides"]
-            if current_node.content['params']["pool_type"] == 'max_pool2d':
+        if layer_params['pool_size']:
+            pool_size = layer_params['pool_size']
+            pool_strides = layer_params['pool_strides']
+            if layer_params['pool_type'] == 'max_pool2d':
                 pooling = layers.MaxPooling2D(pool_size=pool_size, strides=pool_strides, padding='same')
-            elif current_node.content['params']["pool_type"] == 'average_pool2d':
+            elif layer_params['pool_type'] == 'average_pool2d':
                 pooling = layers.AveragePooling2D(pool_size=pool_size, strides=pool_strides, padding='same')
             else:
                 raise ValueError('Wrong pooling type!')
             conv_layer = pooling(conv_layer)
+    if 'drop' in layer_params:
+        conv_layer = _make_dropout_layer(conv_layer, layer_params)
 
     return conv_layer
 
@@ -128,13 +143,12 @@ def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_
     return input_layer
 
 
-def _add_batch_norm(input_layer: Any, current_node: Any):
+def _add_batch_norm(input_layer: Any, layer_params):
     """
     Method that adds batch normalization layer if current node has batch_norm parameters
 
     :param input_layer: input Keras layer
-    :param current_node: current node
     """
-    batch_norm_layer = layers.BatchNormalization(momentum=current_node.content['params']['momentum'],
-                                                 epsilon=current_node.content['params']['epsilon'])(input_layer)
+    batch_norm_layer = layers.BatchNormalization(momentum=layer_params['momentum'],
+                                                 epsilon=layer_params['epsilon'])(input_layer)
     return batch_norm_layer
