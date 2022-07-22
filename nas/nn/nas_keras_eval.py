@@ -2,6 +2,7 @@ from typing import Optional, Union
 import datetime
 import numpy as np
 
+from keras.utils.layer_utils import count_params
 from typing import Any, List
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -137,4 +138,6 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     outputs = dense(in_layer)
     model = keras.Model(inputs=inputs, outputs=outputs, name='custom_model')
     model.compile(loss=loss_func, optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
+
+    print(f'Total params: {count_params(model.trainable_weights)}')
     return model

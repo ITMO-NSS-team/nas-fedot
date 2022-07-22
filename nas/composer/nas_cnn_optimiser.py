@@ -1,4 +1,8 @@
 import os
+import gc
+
+from tensorflow.keras.backend import clear_session
+
 from typing import List, Optional
 from functools import partial
 from copy import deepcopy
@@ -62,6 +66,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
                          verbose, graph) -> List[float]:
         graph.fit(train_data, requirements=requirements, verbose=verbose)
         out = [metric_function(graph, test_data)]
+        clear_session()
+        gc.collect()
+        del graph.model
         return out
 
     def compose(self, train_data):
