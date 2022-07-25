@@ -1,6 +1,7 @@
 from typing import Callable, List
 from abc import abstractmethod
 
+import psutil
 import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
@@ -15,6 +16,19 @@ class CustomCallbacksNas:
     @abstractmethod
     def apply(reference, predicted, **kwargs):
         return NotImplementedError()
+
+
+class RAMProfiler(CustomCallbacksNas):
+    @staticmethod
+    def apply(reference, predicted, **kwargs):
+        return psutil.virtual_memory().percent
+
+
+class GPUProfiler(CustomCallbacksNas):
+    @staticmethod
+    def apply(reference, predicted, **kwargs):
+        memory_usage = tf.config.experimental.get_memory_info('GPU:0')
+        return memory_usage['current'] / (1024 ** 3)
 
 
 class F1ScoreCallback(CustomCallbacksNas):
@@ -43,7 +57,7 @@ class GraphPlotter(tf.keras.callbacks.Callback):
 
 
 class NASCallbackTF(tf.keras.callbacks.Callback):
-    def __init__(self, data, callbacks_list: List[Callable], log_path, mode='on_epoch'):
+    def __init__(self, data, callbacks_list: List, log_path, mode='on_epoch'):
         self.data = data
         self.callback_list = callbacks_list
         self.mode = mode
@@ -52,18 +66,6 @@ class NASCallbackTF(tf.keras.callbacks.Callback):
     @staticmethod
     def _apply_func(target, predicted, func):
         return func.apply(reference=target, predicted=predicted)
-
-    def on_train_begin(self, logs=None):
-        pass
-
-    def on_train_end(self, logs=None):
-        pass
-
-    def on_test_begin(self, logs=None):
-        pass
-
-    def on_test_end(self, logs=None):
-        pass
 
     def on_epoch_end(self, epoch, logs=None):
         predicted = self.model.predict(self.data.data_generator)

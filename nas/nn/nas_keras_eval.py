@@ -39,12 +39,11 @@ def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False)
 
 
 def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInputData]], verbose: bool = True,
-                    batch_size: int = 16,
-                    epochs: int = 10, **kwargs):
+                    batch_size: int = 16, epochs: int = 10, **kwargs):
     gen = kwargs.get('gen', datetime.date.day)
     ind = kwargs.get('ind', datetime.datetime.hour)
     graph = kwargs.get('graph', None)
-    logdir = f'../_results/logs/{datetime.datetime.now().date()}/{gen}/{ind}'
+    logdir = kwargs.get('results_path')
 
     train_data, val_data = generator_train_test_split(input_data, .8, True)
 
@@ -64,11 +63,17 @@ def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInput
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
     cf = ConfusionMatrixPlotter(val_generator, save_dir=logdir)
-    custom_callback_handler = nas_callbacks.NASCallbackTF(input_data, [nas_callbacks.F1ScoreCallback], log_path=logdir)
-    tensorboard_callback = TensorBoard(
-        log_dir=logdir,
-        histogram_freq=1)
-    callbacks = [early_stopping, mcp_save, reduce_lr_loss, custom_callback_handler, tensorboard_callback]
+    if logdir:
+        logdir = logdir / str(gen) / str(ind)
+        custom_callback_handler = nas_callbacks.NASCallbackTF(input_data,
+                                                              [nas_callbacks.F1ScoreCallback, nas_callbacks.RAMProfiler,
+                                                               nas_callbacks.GPUProfiler], log_path=logdir)
+        tensorboard_callback = TensorBoard(
+            log_dir=logdir,
+            histogram_freq=1)
+        callbacks = [early_stopping, mcp_save, reduce_lr_loss, custom_callback_handler, tensorboard_callback]
+    else:
+        callbacks = [early_stopping, mcp_save, reduce_lr_loss]
     if graph:
         graph_plotter = nas_callbacks.GraphPlotter(graph, log_path=logdir)
         callbacks.append(graph_plotter)

@@ -1,8 +1,16 @@
+import sys
 import os
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import datetime
-from sklearn.metrics import confusion_matrix
+import pathlib
+from functools import partial
 
+from sklearn.metrics import confusion_matrix
+import tensorflow as tf
+
+from fedot.core.data.supplementary_data import SupplementaryData
+from fedot.core.data.data import DataTypesEnum
 from fedot.core.log import default_log
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
@@ -10,19 +18,19 @@ from fedot.core.optimisers.gp_comp.operators.regularization import Regularizatio
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
 from fedot.core.optimisers.optimizer import GraphGenerationParams
-from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.optimisers.adapters import DirectAdapter
 
+from nas.data.dataloader import DataLoaderInputData, DataLoader, ImageDataset
+from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
 from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.nas_cnn_composer import GPNNComposerRequirements
 from nas.composer.cnn.cnn_graph_node import CNNNode
 from nas.composer.cnn.cnn_graph import CNNGraph
-from nas.data.custom_loader import CustomLoader
 from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
@@ -34,12 +42,9 @@ set_root(project_root)
 seed_all(14322)
 
 
-def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, batch_size,
+def run_nas(train, test, save, nn_requirements, epochs, batch_size,
             validation_rules, mutations, objective_func, initial_graph, verbose):
-    if not test_data:
-        train_data, test_data = train_test_data_setup(train_data, val_split, True)
-
-    input_shape = train_data.supplementary_data['image_size']
+    input_shape = train.supplementary_data.column_types['image_size']
     nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
 
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
@@ -54,42 +59,57 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
                                    graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
                                    metrics=objective_func, parameters=optimiser_params, verbose=verbose,
-                                   log=default_log(logger_name='Custom-run', verbose_level=4))
+                                   log=default_log(logger_name='Custom-run', verbose_level=4), save_path=save)
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
           f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape}; batch size: {batch_size} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train_data, test_data=test_data)
-    optimized_network.fit(input_data=train_data, requirements=nn_requirements, train_epochs=epochs, verbose=verbose)
+    optimized_network = optimiser.compose(train_data=train)
+    optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose,
+                          results_path=save)
 
-    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data)
+    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-        calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
+        calculate_validation_metric(test, predicted_probabilities, predicted_labels)
 
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
     if save:
-        conf_matrix = confusion_matrix(test_data.target, predicted_labels.predict)
-        plot_confusion_matrix(conf_matrix, test_data.supplementary_data['labels'], save=save)
+        conf_matrix = confusion_matrix(test.target, predicted_labels.predict)
+        plot_confusion_matrix(conf_matrix, test.supplementary_data.column_types['labels'], save=save)
         print('save best graph structure...')
-        optimiser.save(save_folder=save, history=True, image=True)
-        json_file = os.path.join(project_root, save, 'model.json')
+        optimiser.save(history=True, image=True)
+        json_file = os.path.join(save, 'model.json')
         model_json = optimized_network.model.to_json()
         with open(json_file, 'w') as f:
             f.write(model_json)
-        optimized_network.model.save_weights(os.path.join(project_root, 'models', 'custom_example_model.h5'))
+        _save_path = pathlib.Path(save, 'models', 'custom_example_model.h5')
+        _save_path.parent.mkdir(parents=True, exist_ok=True)
+        optimized_network.model.save_weights(_save_path)
 
 
 if __name__ == '__main__':
-    data_root = '../datasets/CXR8'
-    save_path = f'../results/{datetime.datetime.now().date()}/x-ray'
+    data_root = '../datasets/CXR8_short'
+    folder_name = pathlib.Path(data_root).parts[2]
+    save_path = pathlib.Path(f'../_results/{folder_name}/{datetime.datetime.now().date()}')
     task = Task(TaskTypesEnum.classification)
-    data_loader = CustomLoader(task, None, 128)
-    train_data = data_loader.load(data_root, os.path.join(data_root, 'train_val_list.txt'), 24)
-    test_data = data_loader.load(data_root, os.path.join(data_root, 'test_list.txt'), 24)
+
+    img_size = 48
+    batch_size = 32
+
+    flip = partial(tf.image.random_flip_left_right, seed=1)
+    saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
+    brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
+    contrast = partial(tf.image.random_contrast, lower=5, upper=10, seed=1)
+    crop = partial(tf.image.random_crop, size=(img_size // 5, img_size // 5, 3), seed=1)
+    resize = partial(tf.image.resize, size=(img_size, img_size))
+    sup_data = SupplementaryData()
+    sup_data.column_types = {'image_size': [img_size, img_size, 3]}
+
+    transformations = [resize]
 
     val_rules = [has_no_self_cycled_nodes, has_no_cycle, has_no_flatten_skip, graph_has_several_starts,
                  graph_has_wrong_structure, flatten_check]
@@ -97,12 +117,19 @@ if __name__ == '__main__':
                       single_change_mutation, single_edge_mutation]
     metric = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
 
-    initial_graph_nodes = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
-    requirements = {'pop_size': 5, 'num_of_generations': 10, 'max_num_of_conv_layers': 50,
-                    'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
-                    'batch_size': 24, 'epochs': 5, 'has_skip_connection': True,
-                    'default_parameters': default_nodes_params}
+    dataset = ImageDataset(data_root, batch_size, transformations)
+    data_loader = DataLoader(dataset, True)
+    true_labels = [f.parts[-1] for f in pathlib.Path(data_root).iterdir() if pathlib.Path(data_root).is_dir()]
+    data = DataLoaderInputData.input_data_from_generator(data_loader, task, data_type=DataTypesEnum.image,
+                                                         image_size=[img_size, img_size, 3], labels=true_labels)
+    train_data, test_data = generator_train_test_split(data, .8, True)
 
-    run_nas(train_data=train_data, test_data=test_data, save=save_path, val_split=.7, nn_requirements=requirements,
-            epochs=30, batch_size=24, validation_rules=val_rules, mutations=mutations_list, objective_func=metric,
-            initial_graph=None, verbose=1)
+    requirements = {'pop_size': 1, 'num_of_generations': 1, 'max_num_of_conv_layers': 12,
+                    'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
+                    'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
+                    'default_parameters': default_nodes_params}
+    sys.stdout = open('logs', 'w')
+    run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
+            epochs=10, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
+            objective_func=metric, initial_graph=None, verbose=1)
+    sys.stdout.close()

@@ -1,5 +1,6 @@
 import os
 import gc
+import pathlib
 
 from tensorflow.keras.backend import clear_session
 
@@ -23,12 +24,13 @@ seed_all(1)
 
 class GPNNGraphOptimiser(EvoGraphOptimiser):
     def __init__(self, initial_graph: Optional[List[str]], requirements, graph_generation_params, graph_builder,
-                 metrics, parameters, log, verbose=0):
+                 metrics, parameters, log, verbose=0, save_path=None):
         super().__init__(initial_graph=initial_graph, requirements=requirements,
                          graph_generation_params=graph_generation_params,
                          metrics=metrics,
                          parameters=parameters,
                          log=log)
+        self._save_path = save_path
         self.verbose = verbose
         self.metrics = metrics
         self.graph_builder = graph_builder
@@ -36,19 +38,23 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
         self.initial_graph = [self._define_builder(initial_graph)] if initial_graph else None
         self.population = self.initial_graph if initial_graph else self._make_population(self.requirements.pop_size)
 
-    def save(self, save_folder: str = None, history: bool = True, image: bool = True):
-        print(f'Saving files into {os.path.abspath(save_folder)}')
-        if not os.path.isdir(save_folder):
-            os.mkdir(save_folder)
+    @property
+    def save_path(self):
+        if not self._save_path.exists():
+            pathlib.Path(self._save_path).mkdir()
+        return self._save_path
+
+    def save(self, history: bool = True, image: bool = True):
+        print(f'Saving files into {self.save_path.resolve()}')
         if not isinstance(self.best_individual.graph, CNNGraph):
             graph = self.graph_generation_params.adapter.restore(self.best_individual.graph)
         else:
             graph = self.best_individual.graph
-        graph.save(path=save_folder)
+        graph.save(path=self.save_path)
         if history:
-            self.history.save(json_file_path=os.path.join(save_folder, 'opt_history.json'))
+            self.history.save()
         if image:
-            graph.show(path=os.path.join(save_folder, 'optimized_graph.png'))
+            graph.show(path=self.save_path / 'opt_history.json')
 
     def _define_builder(self, initial_graph=None):
         self.director.set_builder(self.graph_builder(nodes_list=initial_graph, requirements=self.requirements))
@@ -64,7 +70,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
 
     def metric_for_nodes(self, metric_function, train_data: InputData, test_data: InputData, requirements,
                          verbose, graph) -> List[float]:
-        graph.fit(train_data, requirements=requirements, verbose=verbose)
+        graph.fit(train_data, requirements=requirements, verbose=verbose, results_path=self.save_path)
         out = [metric_function(graph, test_data)]
         clear_session()
         gc.collect()

@@ -1,4 +1,5 @@
 import os
+os.environ['tf_cpp_min_log_level'] = '3'
 import datetime
 import pathlib
 from functools import partial
@@ -20,7 +21,6 @@ from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutatio
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.optimisers.adapters import DirectAdapter
 
-import nas.callbacks.tb_metrics as nas_callbacks
 from nas.data.dataloader import DataLoaderInputData, DataLoader, CSVDataset
 from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
@@ -79,7 +79,7 @@ def run_nas(train, test, save, nn_requirements, validation_rules, mutations,
         conf_matrix = confusion_matrix(test.target, predicted_labels.predict)
         plot_confusion_matrix(conf_matrix, test.supplementary_data.column_types['labels'], save=save)
         print('save best graph structure...')
-        optimiser.save(save_folder=save, history=True, image=True)
+        optimiser.save(history=True, image=True)
         json_file = os.path.join(project_root, save, 'model.json')
         model_json = optimized_network.model.to_json()
         with open(json_file, 'w') as f:
@@ -89,13 +89,13 @@ def run_nas(train, test, save, nn_requirements, validation_rules, mutations,
 
 if __name__ == '__main__':
     # paths
-    img_size = 5
+    img_size = 24
     data_root = '../datasets/DF20M'
     folder_name = pathlib.PurePath(data_root).parts[2]
     save_path = pathlib.Path(f'../_results/{datetime.datetime.now().date()}/{folder_name}')
     task = Task(TaskTypesEnum.classification)
 
-    epochs_num = 30
+    epochs_num = 10
     batch_size = 64
 
     # set up transformation functions for data augmentation
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     mutations_list = [cnn_simple_mutation, single_drop_mutation, single_add_mutation,
                       single_change_mutation, single_edge_mutation]
     metric = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    requirements = {'pop_size': 5, 'num_of_generations': 15, 'max_num_of_conv_layers': 35,
+    requirements = {'pop_size': 1, 'num_of_generations': 1, 'max_num_of_conv_layers': 16,
                     'max_nn_depth': 3, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
                     'default_parameters': default_nodes_params, 'timeout': datetime.timedelta(hours=200)}
@@ -131,4 +131,12 @@ if __name__ == '__main__':
     train_data, test_data = generator_train_test_split(data, .8, True)
 
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
-            validation_rules=val_rules, mutations=mutations_list, objective_func=metric, initial_graph=None, verbose=1)
+            validation_rules=val_rules, mutations=mutations_list, objective_func=metric, initial_graph=None,
+            verbose=1)
+    # args = {'train': train_data, 'test': test_data, 'save': save_path, 'nn_requirements': requirements,
+    #         'validation_rules': val_rules, 'mutations': mutations_list, 'objective_func': metric, 'initial_graph': None,
+    #         'verbose': 1}
+    # profiler_path = pathlib.Path(save_path / 'profiler')
+    # profiler_path.mkdir(parents=True, exist_ok=True)
+    # MemoryProfiler(run_nas, kwargs=args, path=str(profiler_path), roots=[run_nas], max_depth=35)
+

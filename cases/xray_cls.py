@@ -77,7 +77,7 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
         conf_matrix = confusion_matrix(test.target, predicted_labels.predict)
         plot_confusion_matrix(conf_matrix, test.supplementary_data.column_types['labels'], save=save)
         print('save best graph structure...')
-        optimiser.save(save_folder=save, history=True, image=True)
+        optimiser.save(history=True, image=True)
         json_file = os.path.join(project_root, save, 'model.json')
         model_json = optimized_network.model.to_json()
         with open(json_file, 'w') as f:
