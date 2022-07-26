@@ -135,7 +135,7 @@ if __name__ == '__main__':
                     'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
                     'default_parameters': None, 'timeout': datetime.timedelta(hours=200)}
     requirements = requirements | conv_requirements | layer_requirements
-    sys.stdout = open('logs', 'w')
+    sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-logs', 'w')
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
             epochs=10, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
             objective_func=metric, initial_graph=None, verbose=1)

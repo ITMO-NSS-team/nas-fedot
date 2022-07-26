@@ -19,14 +19,12 @@ def get_layer_params(layer_type: str, requirements=None):
 def _get_conv2d_requirements(requirements):
     conv_node_type = random.choice(requirements.primary)
     activation = random.choice(requirements.activation_types).value
-    kernel_size = requirements.conv_kernel_size
-    conv_strides = requirements.conv_strides
+    kernel_size = random.choice(requirements.conv_kernel_size)
+    conv_strides = random.choice(requirements.conv_strides)
     num_of_filters = random.choice(requirements.filters)
-    image_size = requirements.input_shape
-    pool_size = requirements.pool_size
-    pool_strides = requirements.pool_strides
+    pool_size = random.choice(requirements.pool_size)
+    pool_strides = random.choice(requirements.pool_strides)
     pool_type = random.choice(requirements.pool_types)
-    requirements.input_shape = image_size
     return {'layer_type': conv_node_type, 'activation': activation, 'kernel_size': kernel_size,
             'conv_strides': conv_strides, 'num_of_filters': num_of_filters, 'pool_size': pool_size,
             'pool_strides': pool_strides, 'pool_type': pool_type}
@@ -47,7 +45,7 @@ def _get_random_layer_params(layer_type: str, requirements):
         layer_params = {'momentum': momentum, 'epsilon': epsilon}
     elif layer_type == 'dense':
         activation = random.choice(requirements.activation_types).value
-        neurons = random.randint(requirements.min_num_of_neurons, requirements.max_num_of_neurons)
+        neurons = random.choice(requirements.neurons_num)
         layer_params = {'layer_type': layer_type, 'neurons': neurons, 'activation': activation}
     return layer_params
 

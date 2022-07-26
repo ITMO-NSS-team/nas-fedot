@@ -77,10 +77,6 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             self.max_num_of_conv_layers = 4
         if not self.batch_size:
             self.batch_size = 16
-        # if not self.skip_connections_id:
-        #     self.skip_connections_id = [0, 4, 8]
-        # if not self.shortcuts_len:
-        #     self.shortcuts_len = 4
         if not self.batch_norm_prob:
             self.batch_norm_prob = 0.5
         if not self.dropout_prob:
@@ -97,11 +93,11 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
                                                                                   self.pool_strides, True)
         self.max_depth = self.max_nn_depth + self.max_num_of_conv_layers
 
-        if self.min_num_of_neurons < 1:
+        if self.min_num_of_neurons < 2:
             raise ValueError(f'min_num_of_neurons value is unacceptable')
-        if self.max_num_of_neurons < 1:
+        if self.max_num_of_neurons < 2:
             raise ValueError(f'max_num_of_neurons value is unacceptable')
-        if self.max_drop_size > 1:
+        if self.max_drop_size >= 1:
             raise ValueError(f'max_drop_size value is unacceptable')
         if self.channels_num > 3 or self.channels_num < 1:
             raise ValueError(f'channels_num value must be anywhere from 1 to 3')
@@ -124,3 +120,13 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             i = i * 2
             filters.append(i)
         return filters
+
+    @property
+    def neurons_num(self):
+        neurons = [self.min_num_of_neurons]
+        i = self.min_num_of_neurons
+        while i < self.max_num_of_neurons:
+            i *= 2
+            neurons.append(i)
+        return neurons
+
