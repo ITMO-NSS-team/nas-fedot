@@ -60,7 +60,7 @@ def _generate_random_struct(requirements: GPNNComposerRequirements) -> List[str]
     struct = ['conv2d']
     for i in range(1, conv_depth + nn_depth):
         if i < conv_depth:
-            node = random.choice(requirements.primary + requirements.secondary) if i != conv_depth - 1 else 'flatten'
+            node = random.choice(requirements.primary) if i != conv_depth - 1 else 'flatten'
         else:
             node = random.choice(requirements.secondary)
         struct.append(node)
@@ -74,7 +74,7 @@ def _add_skip_connections(graph: CNNGraph, requirements, params):
         is_first_conv = current_node <= graph.cnn_depth
         is_second_conv = current_node + shortcut_len < graph.cnn_depth
         if is_first_conv == is_second_conv and (current_node + shortcut_len) < len(graph.nodes):
-            graph.nodes[current_node + requirements.shortcuts_len].nodes_from.append(graph.nodes[current_node])
+            graph.nodes[current_node + shortcut_len].nodes_from.append(graph.nodes[current_node])
         else:
             print('Wrong connection. Connection dropped.')
 
@@ -97,20 +97,16 @@ class CNNBuilder:
         self.requirements = requirements
 
     # TODO fix
-    @property
     def _skip_connection_params(self):
-        if self.requirements.shortcuts_len or self.requirements.skip_connections_id:
+        if self.requirements.shortcuts_len and self.requirements.skip_connections_id:
             return self.requirements.skip_connections_id, self.requirements.shortcuts_len
-        elif self.requirements.has_skip_connection:
-            lst = []
+        else:
+            connections = set()
             skips_len = random.randint(0, len(self.nodes)//2)
             for _ in range(self.requirements.max_number_of_skips):
                 node_id = random.randint(0, len(self.nodes))
-                lst.append(node_id)
-            lst.sort()
-            return lst, skips_len
-        else:
-            return None
+                connections.add(node_id)
+            return connections, skips_len
 
     def _add_node(self, node_type, nodes_from):
         node_params = get_layer_params(node_type, self.requirements)
@@ -133,7 +129,7 @@ class CNNBuilder:
             parent_node = [node]
             graph.add_node(node)
         if self.requirements.has_skip_connection:
-            _add_skip_connections(graph, self.requirements, self._skip_connection_params)
+            _add_skip_connections(graph, self.requirements, self._skip_connection_params())
         return graph
 
 

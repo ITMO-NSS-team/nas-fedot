@@ -28,9 +28,9 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     conv_strides: List[int] = None
     pool_size: List[int] = None
     pool_strides: List[int] = None
-    min_num_of_neurons: int = 50
-    max_num_of_neurons: int = 200
-    min_filters: int = 64
+    min_num_of_neurons: int = 32
+    max_num_of_neurons: int = 256
+    min_filters: int = 32
     max_filters: int = 128
     channels_num: int = 3
     max_drop_size: int = 0.5
@@ -77,10 +77,10 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             self.max_num_of_conv_layers = 4
         if not self.batch_size:
             self.batch_size = 16
-        if not self.skip_connections_id:
-            self.skip_connections_id = [0, 4, 8]
-        if not self.shortcuts_len:
-            self.shortcuts_len = 4
+        # if not self.skip_connections_id:
+        #     self.skip_connections_id = [0, 4, 8]
+        # if not self.shortcuts_len:
+        #     self.shortcuts_len = 4
         if not self.batch_norm_prob:
             self.batch_norm_prob = 0.5
         if not self.dropout_prob:

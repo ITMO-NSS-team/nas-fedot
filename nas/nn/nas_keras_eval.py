@@ -59,7 +59,6 @@ def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInput
                                                               num_classes=val_generator.num_classes, dtype='int')
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-    mcp_save = ModelCheckpoint('../_results/models/mdl_wts.hdf5', save_best_only=True, monitor='val_loss', mode='min')
     reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                        verbose=1, min_delta=1e-4, mode='min')
     cf = ConfusionMatrixPlotter(val_generator, save_dir=logdir)
@@ -68,13 +67,15 @@ def keras_model_fit(model, input_data: Optional[Union[InputData, DataLoaderInput
         custom_callback_handler = nas_callbacks.NASCallbackTF(input_data,
                                                               [nas_callbacks.F1ScoreCallback, nas_callbacks.RAMProfiler,
                                                                nas_callbacks.GPUProfiler], log_path=logdir)
+        mcp_save = ModelCheckpoint(str(logdir / 'model' / 'mdl_wts.hdf5'), save_best_only=True, monitor='val_loss',
+                                   mode='min')
         tensorboard_callback = TensorBoard(
             log_dir=logdir,
             histogram_freq=1)
         callbacks = [early_stopping, mcp_save, reduce_lr_loss, custom_callback_handler, tensorboard_callback]
     else:
-        callbacks = [early_stopping, mcp_save, reduce_lr_loss]
-    if graph:
+        callbacks = [early_stopping, reduce_lr_loss]
+    if graph and logdir:
         graph_plotter = nas_callbacks.GraphPlotter(graph, log_path=logdir)
         callbacks.append(graph_plotter)
 
@@ -144,5 +145,5 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     model = keras.Model(inputs=inputs, outputs=outputs, name='custom_model')
     model.compile(loss=loss_func, optimizer=optimizers.RMSprop(lr=1e-4), metrics=['acc'])
 
-    print(f'Total params: {count_params(model.trainable_weights)}')
+    print(f'\n\n\tModel: {model.summary()}\n\n\n')
     return model

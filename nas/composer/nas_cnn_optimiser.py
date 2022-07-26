@@ -41,7 +41,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     @property
     def save_path(self):
         if not self._save_path.exists():
-            pathlib.Path(self._save_path).mkdir()
+            pathlib.Path(self._save_path).mkdir(parents=True)
         return self._save_path
 
     def save(self, history: bool = True, image: bool = True):

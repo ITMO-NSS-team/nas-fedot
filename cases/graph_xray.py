@@ -39,7 +39,7 @@ from nas.metrics.confusion_matrix import plot_confusion_matrix
 from nas.composer.cnn.cnn_builder import CNNBuilder
 
 set_root(project_root)
-seed_all(14322)
+seed_all(7482)
 
 
 def run_nas(train, test, save, nn_requirements, epochs, batch_size,
@@ -92,14 +92,15 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
 
 
 if __name__ == '__main__':
-    data_root = '../datasets/CXR8_short'
+    data_root = '../datasets/butterfly_cls/train'
     folder_name = pathlib.Path(data_root).parts[2]
     save_path = pathlib.Path(f'../_results/{folder_name}/{datetime.datetime.now().date()}')
     task = Task(TaskTypesEnum.classification)
 
-    img_size = 48
-    batch_size = 32
+    img_size = 224
+    batch_size = 8
 
+    # TODO implement data augmentation func
     flip = partial(tf.image.random_flip_left_right, seed=1)
     saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
     brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
@@ -124,10 +125,16 @@ if __name__ == '__main__':
                                                          image_size=[img_size, img_size, 3], labels=true_labels)
     train_data, test_data = generator_train_test_split(data, .8, True)
 
-    requirements = {'pop_size': 1, 'num_of_generations': 1, 'max_num_of_conv_layers': 12,
+    conv_requirements = {'conv_kernel_size': [3, 3], 'conv_strides': [1, 1], 'pool_size': [2, 2],
+                         'pool_strides': [2, 2]}
+
+    layer_requirements = {'min_num_of_neurons': 32, 'max_num_of_neurons': 256}
+
+    requirements = {'pop_size': 5, 'num_of_generations': 15, 'max_num_of_conv_layers': 50, 'min_num_of_conv_layers': 10,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
-                    'default_parameters': default_nodes_params}
+                    'default_parameters': None, 'timeout': datetime.timedelta(hours=200)}
+    requirements = requirements | conv_requirements | layer_requirements
     sys.stdout = open('logs', 'w')
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
             epochs=10, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
