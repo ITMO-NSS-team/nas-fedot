@@ -58,7 +58,7 @@ def run_nas(train, test, save, nn_requirements, validation_rules, mutations,
     optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
                                    graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
                                    metrics=objective_func, parameters=optimiser_params, verbose=verbose,
-                                   log=default_log(logger_name='Custom-run', verbose_level=4))
+                                   log=default_log(logger_name='Custom-run', verbose_level=4), save_path=save)
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
           f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '

@@ -24,7 +24,7 @@ def permissible_kernel_parameters_correct(image_size: List[float], kernel_size: 
 
 @dataclass
 class GPNNComposerRequirements(PipelineComposerRequirements):
-    conv_kernel_size: List[int] = None
+    kernel_size: List[int] = None
     conv_strides: List[int] = None
     pool_size: List[int] = None
     pool_strides: List[int] = None
@@ -57,8 +57,8 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
     def __post_init__(self):
         if not self.timeout:
             self.timeout = datetime.timedelta(hours=20)
-        if not self.conv_kernel_size:
-            self.conv_kernel_size = [3, 3]
+        if not self.kernel_size:
+            self.kernel_size = [3, 3]
         if not self.conv_strides:
             self.conv_strides = [1, 1]
         if not self.pool_size:
@@ -85,9 +85,9 @@ class GPNNComposerRequirements(PipelineComposerRequirements):
             raise ValueError('Epoch number must be at least 1 or greater')
         if not all([side_size >= 3 for side_size in self.input_shape]):
             raise ValueError(f'Specified image size is unacceptable')
-        self.conv_kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.input_shape,
-                                                                                         self.conv_kernel_size,
-                                                                                         self.conv_strides, False)
+        self.kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.input_shape,
+                                                                                    self.kernel_size,
+                                                                                    self.conv_strides, False)
         self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.input_shape,
                                                                                   self.pool_size,
                                                                                   self.pool_strides, True)

@@ -19,7 +19,7 @@ def get_layer_params(layer_type: str, requirements=None):
 def _get_conv2d_requirements(requirements):
     conv_node_type = random.choice(requirements.primary)
     activation = random.choice(requirements.activation_types).value
-    kernel_size = random.choice(requirements.conv_kernel_size)
+    kernel_size = random.choice(requirements.kernel_size)
     conv_strides = random.choice(requirements.conv_strides)
     num_of_filters = random.choice(requirements.filters)
     pool_size = random.choice(requirements.pool_size)

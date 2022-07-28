@@ -125,7 +125,7 @@ if __name__ == '__main__':
                                                          image_size=[img_size, img_size, 3], labels=true_labels)
     train_data, test_data = generator_train_test_split(data, .8, True)
 
-    conv_requirements = {'conv_kernel_size': [3, 3], 'conv_strides': [1, 1], 'pool_size': [2, 2],
+    conv_requirements = {'kernel_size': [3, 3], 'conv_strides': [1, 1], 'pool_size': [2, 2],
                          'pool_strides': [2, 2]}
 
     layer_requirements = {'min_num_of_neurons': 32, 'max_num_of_neurons': 256}
