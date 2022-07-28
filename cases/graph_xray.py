@@ -92,12 +92,12 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
 
 
 if __name__ == '__main__':
-    data_root = '../datasets/butterfly_cls/test'
+    data_root = '../datasets/butterfly_cls/train'
     folder_name = pathlib.Path(data_root).parts[2]
     save_path = pathlib.Path(f'../_results/{folder_name}/{datetime.datetime.now().date()}')
     task = Task(TaskTypesEnum.classification)
 
-    img_size = 224
+    img_size = 200
     batch_size = 8
 
     # TODO implement data augmentation func
@@ -130,13 +130,13 @@ if __name__ == '__main__':
 
     layer_requirements = {'min_num_of_neurons': 32, 'max_num_of_neurons': 256}
 
-    requirements = {'pop_size': 5, 'num_of_generations': 15, 'max_num_of_conv_layers': 50, 'min_num_of_conv_layers': 10,
+    requirements = {'pop_size': 10, 'num_of_generations': 15, 'max_num_of_conv_layers': 45, 'min_num_of_conv_layers': 10,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
                     'default_parameters': None, 'timeout': datetime.timedelta(hours=200)}
     requirements = requirements | conv_requirements | layer_requirements
-    sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-logs', 'w')
+    sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-new', 'w')
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
-            epochs=10, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
+            epochs=30, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
             objective_func=metric, initial_graph=None, verbose=1)
     sys.stdout.close()

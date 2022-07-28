@@ -44,7 +44,7 @@ seed_all(7482)
 
 def run_nas(train, test, save, nn_requirements, epochs, verbose):
     input_shape = train.supplementary_data.column_types['image_size']
-    nn_requirements = GPNNComposerRequirements(**nn_requirements)
+    nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
     save_path = save / 'optimized'
     save_path.mkdir(parents=True, exist_ok=True)
 

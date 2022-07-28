@@ -52,9 +52,9 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
             graph = self.best_individual.graph
         graph.save(path=self.save_path)
         if history:
-            self.history.save()
+            self.history.save(self.save_path / 'opt_history.json')
         if image:
-            graph.show(path=self.save_path / 'opt_history.json')
+            graph.show(path=self.save_path / 'opt_graph.png')
 
     def _define_builder(self, initial_graph=None):
         self.director.set_builder(self.graph_builder(nodes_list=initial_graph, requirements=self.requirements))
