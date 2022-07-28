@@ -42,32 +42,15 @@ set_root(project_root)
 seed_all(7482)
 
 
-def run_nas(train, test, save, nn_requirements, epochs, batch_size,
-            validation_rules, mutations, objective_func, initial_graph, verbose):
+def run_nas(train, test, save, nn_requirements, epochs, verbose):
     input_shape = train.supplementary_data.column_types['image_size']
-    nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
+    nn_requirements = GPNNComposerRequirements(**nn_requirements)
+    save_path = save / 'optimized'
+    save_path.mkdir(parents=True, exist_ok=True)
 
-    optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-                                                  mutation_types=mutations,
-                                                  crossover_types=[CrossoverTypesEnum.subtree],
-                                                  regularization_type=RegularizationTypesEnum.none)
-
-    graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
-        rules_for_constraint=validation_rules)
-
-    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
-                                   graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
-                                   metrics=objective_func, parameters=optimiser_params, verbose=verbose,
-                                   log=default_log(logger_name='Custom-run', verbose_level=4), save_path=save)
-
-    print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
-          f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
-          f'image size: {input_shape}; batch size: {batch_size} \t\n')
-
-    optimized_network = optimiser.compose(train_data=train)
+    optimized_network = CNNGraph.load(save / 'model.json')
     optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose,
-                          results_path=save)
+                          results_path=save_path)
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
@@ -77,27 +60,14 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    if save:
-        conf_matrix = confusion_matrix(test.target, predicted_labels.predict)
-        plot_confusion_matrix(conf_matrix, test.supplementary_data.column_types['labels'], save=save)
-        print('save best graph structure...')
-        optimiser.save(history=True, image=True)
-        json_file = os.path.join(save, 'model.json')
-        model_json = optimized_network.model.to_json()
-        with open(json_file, 'w') as f:
-            f.write(model_json)
-        _save_path = pathlib.Path(save, 'models', 'custom_example_model.h5')
-        _save_path.parent.mkdir(parents=True, exist_ok=True)
-        optimized_network.model.save_weights(_save_path)
-
 
 if __name__ == '__main__':
-    data_root = '../datasets/butterfly_cls/test'
+    data_root = '../datasets/butterfly_cls/train'
     folder_name = pathlib.Path(data_root).parts[2]
-    save_path = pathlib.Path(f'../_results/{folder_name}/{datetime.datetime.now().date()}')
+    save_path = pathlib.Path(f'../_results/{folder_name}/2022-07-28')
     task = Task(TaskTypesEnum.classification)
 
-    img_size = 224
+    img_size = 200
     batch_size = 8
 
     # TODO implement data augmentation func
@@ -137,6 +107,6 @@ if __name__ == '__main__':
     requirements = requirements | conv_requirements | layer_requirements
     sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-logs', 'w')
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
-            epochs=10, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
+            epochs=30, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
             objective_func=metric, initial_graph=None, verbose=1)
     sys.stdout.close()

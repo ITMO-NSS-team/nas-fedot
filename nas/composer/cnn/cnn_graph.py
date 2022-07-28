@@ -67,6 +67,7 @@ class CNNGraph(OptGraph):
         CNNGraph.INDIVIDUAL += 1
         if CNNGraph.INDIVIDUAL > requirements.pop_size:
             CNNGraph.GENERATION += 1
+            CNNGraph.INDIVIDUAL = 0
         return train_predicted
 
     def predict(self, input_data: InputData, output_mode: str = 'default', is_multiclass: bool = False) -> OutputData:
