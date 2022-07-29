@@ -100,7 +100,7 @@ class CNNBuilder:
             return self.requirements.skip_connections_id, self.requirements.shortcuts_len
         else:
             connections = set()
-            skips_len = random.randint(0, len(self.nodes)//2)
+            skips_len = random.randint(2, len(self.nodes)//2)
             for _ in range(self.requirements.max_number_of_skips):
                 node_id = random.randint(0, len(self.nodes))
                 connections.add(node_id)

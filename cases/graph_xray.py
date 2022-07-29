@@ -1,14 +1,10 @@
 import sys
 import os
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import datetime
 import pathlib
 from functools import partial
 
 from sklearn.metrics import confusion_matrix
-import tensorflow as tf
-
 from fedot.core.data.supplementary_data import SupplementaryData
 from fedot.core.data.data import DataTypesEnum
 from fedot.core.log import default_log
@@ -26,7 +22,7 @@ from fedot.core.optimisers.adapters import DirectAdapter
 from nas.data.dataloader import DataLoaderInputData, DataLoader, ImageDataset
 from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
-from nas.utils.var import project_root, default_nodes_params
+from nas.utils.var import project_root
 from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
 from nas.composer.nas_cnn_composer import GPNNComposerRequirements
 from nas.composer.cnn.cnn_graph_node import CNNNode
@@ -37,6 +33,9 @@ from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, grap
 from nas.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.metrics.confusion_matrix import plot_confusion_matrix
 from nas.composer.cnn.cnn_builder import CNNBuilder
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
 
 set_root(project_root)
 seed_all(7482)
@@ -63,7 +62,7 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
           f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
-          f'image size: {input_shape}; batch size: {batch_size} \t\n')
+          f'image size: {input_shape}; batch size: {nn_requirements.batch_size} \t\n')
 
     optimized_network = optimiser.compose(train_data=train)
     optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose,
@@ -97,8 +96,8 @@ if __name__ == '__main__':
     save_path = pathlib.Path(f'../_results/{folder_name}/{datetime.datetime.now().date()}')
     task = Task(TaskTypesEnum.classification)
 
-    img_size = 200
-    batch_size = 8
+    img_size = 12
+    batch_size = 64
 
     # TODO implement data augmentation func
     flip = partial(tf.image.random_flip_left_right, seed=1)
@@ -130,13 +129,14 @@ if __name__ == '__main__':
 
     layer_requirements = {'min_num_of_neurons': 32, 'max_num_of_neurons': 256}
 
-    requirements = {'pop_size': 10, 'num_of_generations': 15, 'max_num_of_conv_layers': 45, 'min_num_of_conv_layers': 10,
+    requirements = {'pop_size': 10, 'num_of_generations': 15, 'max_num_of_conv_layers': 50,
+                    'min_num_of_conv_layers': 4,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
-                    'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
+                    'batch_size': batch_size, 'epochs': 1, 'has_skip_connection': True,
                     'default_parameters': None, 'timeout': datetime.timedelta(hours=200)}
     requirements = requirements | conv_requirements | layer_requirements
-    sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-new', 'w')
+    # sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-new', 'w')
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
-            epochs=30, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
+            epochs=1, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
             objective_func=metric, initial_graph=None, verbose=1)
-    sys.stdout.close()
+    # sys.stdout.close()

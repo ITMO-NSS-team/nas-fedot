@@ -1,6 +1,5 @@
 import json
 import os
-import pathlib
 
 from fedot.core.data.data import InputData, OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
@@ -11,13 +10,17 @@ from nas.composer.cnn.cnn_graph_node import CNNNode
 from nas.nn.nas_keras_eval import create_nn_model, keras_model_fit, keras_model_predict
 
 # hotfix
-from nas.utils.var import default_nodes_params
+from nas.utils.var import default_nodes_params, project_root
+from nas.utils.utils import set_root, seed_all, save_on_exception
+
+set_root(project_root)
+seed_all(1)
 
 
 class CNNGraph(OptGraph):
     # Temporal fix
-    INDIVIDUAL = 1
-    GENERATION = 1
+    INDIVIDUAL = 0
+    GENERATION = 0
 
     def __init__(self, nodes=None, fitted_model=None):
         super().__init__(nodes)
@@ -57,6 +60,7 @@ class CNNGraph(OptGraph):
             if node.content['name'] == 'flatten':
                 return idx
 
+    @save_on_exception
     def fit(self, input_data: InputData, verbose=False, requirements=None, train_epochs: int = None, results_path=None):
         train_epochs = requirements.epochs if train_epochs is None else train_epochs
         if not self.model:

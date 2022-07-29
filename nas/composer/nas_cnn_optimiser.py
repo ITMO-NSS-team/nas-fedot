@@ -4,6 +4,7 @@ import pathlib
 
 from tensorflow.keras.backend import clear_session
 
+import tensorflow as tf
 from typing import List, Optional
 from functools import partial
 from copy import deepcopy
@@ -15,7 +16,6 @@ from nas.data.split_data import generator_train_test_split
 from nas.composer.cnn.cnn_graph import CNNGraph
 from nas.composer.cnn.cnn_builder import NASDirector
 from nas.utils.utils import seed_all
-import tensorflow as tf
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
