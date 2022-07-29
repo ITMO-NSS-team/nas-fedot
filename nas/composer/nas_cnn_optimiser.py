@@ -71,7 +71,11 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     def metric_for_nodes(self, metric_function, train_data: InputData, test_data: InputData, requirements,
                          verbose, graph) -> List[float]:
         graph.fit(train_data, requirements=requirements, verbose=verbose, results_path=self.save_path)
-        out = [metric_function(graph, test_data)]
+        if graph.model:
+            out = [metric_function(graph, test_data)]
+        else:
+            out = 0
+
         clear_session()
         gc.collect()
         del graph.model
