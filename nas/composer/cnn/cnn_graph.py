@@ -1,7 +1,7 @@
 import json
 import os
 import numpy as np
-import tensorflow.keras.backend as K
+from keras.utils.layer_utils import count_params
 
 from fedot.core.data.data import InputData, OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
@@ -71,7 +71,7 @@ class CNNGraph(OptGraph):
             CNNGraph.INDIVIDUAL = 0
         if not self.model:
             self.model = create_nn_model(self, requirements.input_shape, input_data.num_classes)
-            params_total = int(np.sum([K.count_params(p) for p in set(self.model.trainable_weights)]))
+            params_total = count_params(self.model.trainable_weights)
             if params_total > 8e8:
                 return None
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=requirements.batch_size,
