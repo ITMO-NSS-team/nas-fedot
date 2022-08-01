@@ -65,15 +65,8 @@ class CNNGraph(OptGraph):
     @save_on_exception
     def fit(self, input_data: InputData, verbose=False, requirements=None, train_epochs: int = None, results_path=None):
         train_epochs = requirements.epochs if train_epochs is None else train_epochs
-        CNNGraph.INDIVIDUAL += 1
-        if CNNGraph.INDIVIDUAL > requirements.pop_size:
-            CNNGraph.GENERATION += 1
-            CNNGraph.INDIVIDUAL = 0
         if not self.model:
             self.model = create_nn_model(self, requirements.input_shape, input_data.num_classes)
-            params_total = count_params(self.model.trainable_weights)
-            if params_total > 8e8:
-                return None
         train_predicted = keras_model_fit(self.model, input_data, verbose=verbose, batch_size=requirements.batch_size,
                                           epochs=train_epochs, graph=self, ind=CNNGraph.INDIVIDUAL,
                                           gen=CNNGraph.GENERATION, results_path=results_path)

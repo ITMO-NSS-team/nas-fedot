@@ -1,21 +1,24 @@
 import os
 import gc
-import pathlib
+from pathlib import Path
 
+import numpy as np
 from tensorflow.keras.backend import clear_session
-
 import tensorflow as tf
 from typing import List, Optional
 from functools import partial
 from copy import deepcopy
+from sklearn.metrics import f1_score
+
 from fedot.core.data.data import InputData
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.gp_optimiser import EvoGraphOptimiser
 
-from nas.data.split_data import generator_train_test_split
+from nas.data.split_data import SplitterGenerator
 from nas.composer.cnn.cnn_graph import CNNGraph
 from nas.composer.cnn.cnn_builder import NASDirector
 from nas.utils.utils import seed_all
+from nas.metrics.metrics import get_predictions
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
@@ -41,7 +44,7 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
     @property
     def save_path(self):
         if not self._save_path.exists():
-            pathlib.Path(self._save_path).mkdir(parents=True)
+            Path(self._save_path).mkdir(parents=True)
         return self._save_path
 
     def save(self, history: bool = True, image: bool = True):
@@ -68,25 +71,45 @@ class GPNNGraphOptimiser(EvoGraphOptimiser):
             ind_graphs.append(new_ind)
         return ind_graphs
 
-    def metric_for_nodes(self, metric_function, train_data: InputData, test_data: InputData, requirements,
-                         verbose, graph) -> List[float]:
-        graph.fit(train_data, requirements=requirements, verbose=verbose, results_path=self.save_path)
-        if graph.model:
+    def metric_for_nodes(self, graph, metric_function, input_data: InputData, splitter, split_params, requirements,
+                         verbose) -> List[float]:
+        fitness_hist = []
+        f1_hist = []
+        splitter = SplitterGenerator(splitter, **split_params)
+
+        tf.summary.create_file_writer(
+            str(Path(self.save_path, str(graph.GENERATION), str(graph.INDIVIDUAL), 'metrics')))
+        # TODO optimize
+        for train_data, test_data in splitter.split(input_data):
+            graph.fit(train_data, requirements=requirements, verbose=verbose, results_path=self.save_path)
             out = [metric_function(graph, test_data)]
-        else:
-            out = 0
+            if len(np.unique(test_data.target)) == 2:
+                additional_params = {'average': 'weighted'}
+            else:
+                additional_params = {'average': 'micro'}
+            f1 = [f1_score(test_data.target, get_predictions(graph, test_data)[0].predict, **additional_params)]
 
-        clear_session()
-        gc.collect()
-        del graph.model
-        return out
+            fitness_hist.append(out)
+            f1_hist.append(f1)
+            clear_session()
+            gc.collect()
+            graph.model = None
+        fitness = float(np.mean(fitness_hist))
+        tf.summary.scalar('fitness', data=fitness)
+        tf.summary.scalar('F1 score', data=np.mean(f1_hist))
+        CNNGraph.INDIVIDUAL += 1
+        if CNNGraph.INDIVIDUAL > requirements.pop_size:
+            CNNGraph.GENERATION += 1
+            CNNGraph.INDIVIDUAL = 0
+        return [fitness]
 
-    def compose(self, train_data):
+    def compose(self, train_data, split_method: str = 'holdout', split_params: dict = None):
         self.history.clean_results()
-        train_data, test_data = generator_train_test_split(train_data, .7, True)
+
         metric_function_for_nodes = partial(self.metric_for_nodes,
-                                            self.metrics, train_data, test_data,
-                                            self.requirements, self.verbose)
+                                            metric_function=self.metrics, input_data=train_data, splitter=split_method,
+                                            requirements=self.requirements, verbose=self.verbose,
+                                            split_params=split_params)
         self.optimise(metric_function_for_nodes)
         # TODO
         return self.graph_generation_params.adapter.restore(self.best_individual.graph)

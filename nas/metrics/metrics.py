@@ -1,5 +1,7 @@
 from typing import Tuple
 
+from sklearn.metrics import f1_score
+
 from fedot.core.data.data import InputData
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
 

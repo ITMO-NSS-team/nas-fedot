@@ -20,7 +20,7 @@ from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nod
 from fedot.core.optimisers.adapters import DirectAdapter
 
 from nas.data.dataloader import DataLoaderInputData, DataLoader, ImageDataset
-from nas.data.split_data import generator_train_test_split
+from nas.data.split_data import SplitterGenerator
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root
 from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
@@ -41,8 +41,8 @@ set_root(project_root)
 seed_all(7482)
 
 
-def run_nas(train, test, save, nn_requirements, epochs, batch_size,
-            validation_rules, mutations, objective_func, initial_graph, verbose):
+def run_nas(train, test, save, nn_requirements, epochs, validation_rules, mutations, objective_func, initial_graph,
+            verbose, split_method, split_params):
     input_shape = train.supplementary_data.column_types['image_size']
     nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
 
@@ -64,7 +64,7 @@ def run_nas(train, test, save, nn_requirements, epochs, batch_size,
           f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape}; batch size: {nn_requirements.batch_size} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train)
+    optimized_network = optimiser.compose(train_data=train, split_method=split_method, split_params=split_params)
     optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose,
                           results_path=save)
 
@@ -122,21 +122,26 @@ if __name__ == '__main__':
     true_labels = [f.parts[-1] for f in pathlib.Path(data_root).iterdir() if pathlib.Path(data_root).is_dir()]
     data = DataLoaderInputData.input_data_from_generator(data_loader, task, data_type=DataTypesEnum.image,
                                                          image_size=[img_size, img_size, 3], labels=true_labels)
-    train_data, test_data = generator_train_test_split(data, .8, True)
+
+    splitter = SplitterGenerator('holdout', train_size=.8, shuffle=True, random_state=42)
+    for train, test in splitter.split(data):
+        train_data, test_data = train, test
 
     conv_requirements = {'kernel_size': [3, 3], 'conv_strides': [1, 1], 'pool_size': [2, 2],
                          'pool_strides': [2, 2]}
 
     layer_requirements = {'min_num_of_neurons': 32, 'max_num_of_neurons': 256}
 
-    requirements = {'pop_size': 10, 'num_of_generations': 15, 'max_num_of_conv_layers': 50,
+    requirements = {'pop_size': 10, 'num_of_generations': 15, 'max_num_of_conv_layers': 6,
                     'min_num_of_conv_layers': 4,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': batch_size, 'epochs': 1, 'has_skip_connection': True,
                     'default_parameters': None, 'timeout': datetime.timedelta(hours=200)}
     requirements = requirements | conv_requirements | layer_requirements
+    # TODO mb create dataclass for split params
+    split_params = {'n_splits': 10, 'shuffle': True, 'random_state': 42}
     # sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-new', 'w')
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
-            epochs=1, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
-            objective_func=metric, initial_graph=None, verbose=1)
+            epochs=1, validation_rules=val_rules, mutations=mutations_list,
+            objective_func=metric, initial_graph=None, verbose=1, split_method='k_fold', split_params=split_params)
     # sys.stdout.close()

@@ -16,7 +16,7 @@ import tensorflow.keras.applications.vgg16
 from sklearn import utils
 from tensorflow.keras.utils import Sequence
 from sklearn.preprocessing import LabelEncoder
-
+from sklearn.model_selection import StratifiedKFold
 
 from fedot.core.data.data import InputData
 from fedot.core.data.data import DataTypesEnum
@@ -25,8 +25,7 @@ from fedot.core.data.supplementary_data import SupplementaryData
 
 from nas.utils.var import project_root
 from nas.utils.utils import set_root
-from nas.data.split_data import generator_train_test_split
-
+from nas.data.split_data import generator_kfold_split, SplitterGenerator
 
 set_root(project_root)
 supported_images = ['.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.jpe', '.jp2', '.tiff']
@@ -210,7 +209,7 @@ class DataLoaderInputData(InputData):
 
 if __name__ == '__main__':
     task = TaskTypesEnum.classification
-    dataset_path = '../datasets/CXR8'
+    dataset_path = '../datasets/butterfly_cls'
     resize = functools.partial(tensorflow.image.resize, size=(32, 32))
     dataset = ImageDataset(dataset_path, 16, transformations=[resize])
     data_loader = DataLoader(data_generator=dataset, shuffle=True)
@@ -218,25 +217,46 @@ if __name__ == '__main__':
                                                          data_type=DataTypesEnum.image,
                                                          supplementary_data={'image_size': [32, 32, 3]})
 
-    model = tensorflow.keras.applications.vgg16.VGG16(include_top=False, weights='imagenet',
-                                                      input_shape=(32, 32, 3))
+    k_fold = StratifiedKFold(n_splits=10)
+    k_fold.get_n_splits(data.idx)
 
-    train_data, test_data = generator_train_test_split(data, shuffle_flag=True)
+    for train_idx, test_idx in k_fold.split(data.features, data.target):
+        new_idx_train = data.idx[train_idx]
+        new_idx_test = data.idx[test_idx]
 
-    for layer in model.layers:
-        layer.trainable = True
+    generator_splitter = generator_kfold_split(data, n_splits=10)
 
-    top_model = model.output
-    top_model = tensorflow.keras.layers.Flatten()(top_model)
-    top_model = tensorflow.keras.layers.Dense(4096, activation='relu')(top_model)
-    top_model = tensorflow.keras.layers.Dense(1072, activation='relu')(top_model)
-    top_model = tensorflow.keras.layers.Dropout(0.2)(top_model)
-    output_layer = tensorflow.keras.layers.Dense(12, activation='softmax')(top_model)
+    # generator_splits_train = []
+    # generator_splits_test = []
+    # for train_idx, test_idx in generator_splitter:
+    #     generator_splits_train.extend([data.data_generator[i] for i in train_idx])
+    #     generator_splits_test.extend([data.data_generator[i] for i in test_idx])
 
-    model = tensorflow.keras.models.Model(inputs=model.input, outputs=output_layer)
-    model.compile(optimizer=tensorflow.keras.optimizers.Adam(learning_rate=1e-3), loss='categorical_crossentropy',
-                  metrics=['accuracy'])
+    splitter = SplitterGenerator('holdout', shuffle=True, random_state=42)
 
-    model.fit(data_loader, epochs=5)
+    for train_data, test_data in splitter.split(data):
+        a = train_data
+        b = test_data
 
+    # model = tensorflow.keras.applications.vgg16.VGG16(include_top=False, weights='imagenet',
+    #                                                   input_shape=(32, 32, 3))
+    #
+    # train_data, test_data = generator_train_test_split(data, shuffle_flag=True)
+    #
+    # for layer in model.layers:
+    #     layer.trainable = True
+    #
+    # top_model = model.output
+    # top_model = tensorflow.keras.layers.Flatten()(top_model)
+    # top_model = tensorflow.keras.layers.Dense(4096, activation='relu')(top_model)
+    # top_model = tensorflow.keras.layers.Dense(1072, activation='relu')(top_model)
+    # top_model = tensorflow.keras.layers.Dropout(0.2)(top_model)
+    # output_layer = tensorflow.keras.layers.Dense(12, activation='softmax')(top_model)
+    #
+    # model = tensorflow.keras.models.Model(inputs=model.input, outputs=output_layer)
+    # model.compile(optimizer=tensorflow.keras.optimizers.Adam(learning_rate=1e-3), loss='categorical_crossentropy',
+    #               metrics=['accuracy'])
+    #
+    # model.fit(data_loader, epochs=5)
+    #
     print('Done!')
