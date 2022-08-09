@@ -1,13 +1,12 @@
-import sys
 import os
 import datetime
 import pathlib
 from functools import partial
-
 from sklearn.metrics import confusion_matrix
+
 from fedot.core.data.supplementary_data import SupplementaryData
 from fedot.core.data.data import DataTypesEnum
-from fedot.core.log import default_log
+from fedot.core.optimisers.objective import Objective
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
@@ -16,23 +15,23 @@ from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameter
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
-from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
+from fedot.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.optimisers.adapters import DirectAdapter
 
 from nas.data.dataloader import DataLoaderInputData, DataLoader, ImageDataset
 from nas.data.split_data import SplitterGenerator
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root
-from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.nas_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn.cnn_graph_node import CNNNode
-from nas.composer.cnn.cnn_graph import CNNGraph
-from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
-from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
+from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
+from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.metrics.metrics import calculate_validation_metric, get_predictions
-from nas.metrics.confusion_matrix import plot_confusion_matrix
-from nas.composer.cnn.cnn_builder import CNNBuilder
+from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
+from nas.operations.evaluation.metrics import plot_confusion_matrix
+from nas.graph.nn_graph.cnn import CNNBuilder
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
@@ -43,29 +42,36 @@ seed_all(7482)
 
 def run_nas(train, test, save, nn_requirements, epochs, validation_rules, mutations, objective_func, initial_graph,
             verbose, split_method, split_params):
-    input_shape = train.supplementary_data.column_types['image_size']
-    nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
+    input_shape = train.supplementary_data.column_types['_image_size']
 
-    optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-                                                  mutation_types=mutations,
-                                                  crossover_types=[CrossoverTypesEnum.subtree],
-                                                  regularization_type=RegularizationTypesEnum.none)
+    metric_function = ClassificationMetricsEnum.logloss
+    objective = Objective(metric_function)
 
-    graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
+    cnn_composer_parameters = NNComposerRequirements(input_shape=input_shape, **nn_requirements)
+
+    optimizer_parameters = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
+                                                      mutation_types=mutations,
+                                                      crossover_types=[CrossoverTypesEnum.subtree],
+                                                      regularization_type=RegularizationTypesEnum.none)
+
+    graph_generation_parameters = GraphGenerationParams(
+        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=CNNNode),
         rules_for_constraint=validation_rules)
 
-    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
-                                   graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
-                                   metrics=objective_func, parameters=optimiser_params, verbose=verbose,
-                                   log=default_log(logger_name='Custom-run', verbose_level=4), save_path=save)
+    optimizer = NNGraphOptimiser(initial_graph=initial_graph, requirements=cnn_composer_parameters,
+                                 graph_generation_params=graph_generation_parameters, graph_builder=CNNBuilder,
+                                 objective=objective, parameters=optimizer_parameters, verbose=verbose,
+                                 save_path=save)
 
-    print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
-          f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
-          f'image size: {input_shape}; batch size: {nn_requirements.batch_size} \t\n')
+    print(
+        f'\n\t Starting optimisation process with following params: '
+        f'population size: {cnn_composer_parameters.pop_size}; '
+        f'number of generations: {cnn_composer_parameters.num_of_generations}; '
+        f'number of epochs: {cnn_composer_parameters.epochs}; '
+        f'image size: {input_shape}; batch size: {cnn_composer_parameters.batch_size} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train, split_method=split_method, split_params=split_params)
-    optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose,
+    optimized_network = optimizer.optimise(train_data=train, split_method=split_method, split_params=split_params)
+    optimized_network.fit(input_data=train, requirements=cnn_composer_parameters, train_epochs=epochs, verbose=verbose,
                           results_path=save)
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test)
@@ -80,7 +86,7 @@ def run_nas(train, test, save, nn_requirements, epochs, validation_rules, mutati
         conf_matrix = confusion_matrix(test.target, predicted_labels.predict)
         plot_confusion_matrix(conf_matrix, test.supplementary_data.column_types['labels'], save=save)
         print('save best graph structure...')
-        optimiser.save(history=True, image=True)
+        optimizer.save(history=True, image=True)
         json_file = os.path.join(save, 'model.json')
         model_json = optimized_network.model.to_json()
         with open(json_file, 'w') as f:
@@ -99,7 +105,7 @@ if __name__ == '__main__':
     img_size = 12
     batch_size = 64
 
-    # TODO implement data augmentation func
+    # TODO implement dataset augmentation func
     flip = partial(tf.image.random_flip_left_right, seed=1)
     saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
     brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
@@ -107,7 +113,7 @@ if __name__ == '__main__':
     crop = partial(tf.image.random_crop, size=(img_size // 5, img_size // 5, 3), seed=1)
     resize = partial(tf.image.resize, size=(img_size, img_size))
     sup_data = SupplementaryData()
-    sup_data.column_types = {'image_size': [img_size, img_size, 3]}
+    sup_data.column_types = {'_image_size': [img_size, img_size, 3]}
 
     transformations = [resize]
 
@@ -136,7 +142,7 @@ if __name__ == '__main__':
                     'min_num_of_conv_layers': 4,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': batch_size, 'epochs': 1, 'has_skip_connection': True,
-                    'default_parameters': None, 'timeout': datetime.timedelta(hours=200)}
+                    'default_parameters': None, 'max_pipeline_fit_time': datetime.timedelta(hours=200)}
     requirements = requirements | conv_requirements | layer_requirements
     # TODO mb create dataclass for split params
     split_params = {'n_splits': 10, 'shuffle': True, 'random_state': 42}

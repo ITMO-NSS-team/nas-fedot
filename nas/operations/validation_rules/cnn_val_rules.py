@@ -1,9 +1,12 @@
-from fedot.core.dag.validation_rules import ERROR_PREFIX
+from fedot.core.dag.verification_rules import ERROR_PREFIX
 
-from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 
 
-def flatten_check(graph: CNNGraph):
+def validate_parameters(graph: NNGraph):
+    pass
+
+def flatten_check(graph: NNGraph):
     cnt = 0
     for node in graph.nodes:
         if node.content['name'] == 'flatten':
@@ -13,14 +16,14 @@ def flatten_check(graph: CNNGraph):
     return True
 
 
-def has_no_flatten_skip(graph: CNNGraph):
+def has_no_flatten_skip(graph: NNGraph):
     for node in graph.free_nodes:
         if node.content['name'] == 'flatten':
             return True
     raise ValueError(f'{ERROR_PREFIX} Graph has wrong skip connections')
 
 
-def graph_has_several_starts(graph: CNNGraph):
+def graph_has_several_starts(graph: NNGraph):
     cnt = 0
     for node in graph.graph_struct:
         if not node.nodes_from:
@@ -30,7 +33,7 @@ def graph_has_several_starts(graph: CNNGraph):
     return True
 
 
-def graph_has_wrong_structure(graph: CNNGraph):
+def graph_has_wrong_structure(graph: NNGraph):
     for node in graph.graph_struct[graph.cnn_depth:]:
         if node.content['name'] == 'conv2d':
             raise ValueError(f'{ERROR_PREFIX} Graph has wrong structure')

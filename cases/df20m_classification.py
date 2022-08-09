@@ -25,16 +25,16 @@ from nas.data.dataloader import DataLoaderInputData, DataLoader, CSVDataset
 from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
-from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.nas_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn.cnn_graph_node import CNNNode
-from nas.composer.cnn.cnn_graph import CNNGraph
-from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
-from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
+from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
+from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.metrics.metrics import calculate_validation_metric, get_predictions
-from nas.metrics.confusion_matrix import plot_confusion_matrix
-from nas.composer.cnn.cnn_builder import CNNBuilder
+from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
+from nas.operations.evaluation.metrics import plot_confusion_matrix
+from nas.graph.nn_graph.cnn import CNNBuilder
 
 set_root(project_root)
 seed_all(942212)
@@ -42,9 +42,9 @@ seed_all(942212)
 
 def run_nas(train, test, save, nn_requirements, validation_rules, mutations,
             objective_func, initial_graph, verbose, epoch=10):
-    input_shape = train.supplementary_data.column_types['image_size']
+    input_shape = train.supplementary_data.column_types['_image_size']
 
-    nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
+    nn_requirements = NNComposerRequirements(input_shape=input_shape, **nn_requirements)
 
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                   mutation_types=mutations,
@@ -52,19 +52,19 @@ def run_nas(train, test, save, nn_requirements, validation_rules, mutations,
                                                   regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
+        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=CNNNode),
         rules_for_constraint=validation_rules)
 
-    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
-                                   graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
-                                   metrics=objective_func, parameters=optimiser_params, verbose=verbose,
-                                   log=default_log(logger_name='Custom-run', verbose_level=4), save_path=save)
+    optimiser = NNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
+                                 graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
+                                 metrics=objective_func, parameters=optimiser_params, verbose=verbose,
+                                 log=default_log(logger_name='Custom-run', verbose_level=4), save_path=save)
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
           f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train)
+    optimized_network = optimiser.optimise(train_data=train)
     optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epoch, verbose=verbose)
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     epochs_num = 10
     batch_size = 64
 
-    # set up transformation functions for data augmentation
+    # set up transformation functions for dataset augmentation
     flip = partial(tf.image.random_flip_left_right, seed=1)
     saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
     brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     crop = partial(tf.image.random_crop, size=(img_size // 8, img_size // 8, 3), seed=1)
     resize = partial(tf.image.resize, size=[img_size, img_size])
     sup_data = SupplementaryData()
-    sup_data.column_types = {'image_size': [img_size, img_size, 3]}
+    sup_data.column_types = {'_image_size': [img_size, img_size, 3]}
     transformations = [resize]
 
     # set up optimisation params
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     requirements = {'pop_size': 1, 'num_of_generations': 1, 'max_num_of_conv_layers': 16,
                     'max_nn_depth': 3, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
-                    'default_parameters': default_nodes_params, 'timeout': datetime.timedelta(hours=200)}
+                    'default_parameters': default_nodes_params, 'max_pipeline_fit_time': datetime.timedelta(hours=200)}
 
     # prepare dataset
     images_path = pathlib.Path(data_root, 'images')
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,
             validation_rules=val_rules, mutations=mutations_list, objective_func=metric, initial_graph=None,
             verbose=1)
-    # args = {'train': train_data, 'test': test_data, 'save': save_path, 'nn_requirements': requirements,
+    # args = {'train': train_generator, 'test': test_data, 'save': save_path, 'nn_requirements': requirements,
     #         'validation_rules': val_rules, 'mutations': mutations_list, 'objective_func': metric, 'initial_graph': None,
     #         'verbose': 1}
     # profiler_path = pathlib.Path(save_path / 'profiler')

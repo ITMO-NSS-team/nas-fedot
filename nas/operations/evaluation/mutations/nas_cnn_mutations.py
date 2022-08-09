@@ -1,16 +1,18 @@
+import copy
 from random import random, choice
 from typing import Any
 
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from nas.composer.cnn.cnn_builder import get_layer_params
-from nas.composer.cnn.cnn_graph_node import CNNNode
-from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.utils.utils import seed_all
 
 seed_all(1)
 
 
-def cnn_simple_mutation(graph: CNNGraph, requirements, **kwargs) -> Any:
+def cnn_simple_mutation(graph: NNGraph, requirements, **kwargs) -> Any:
+    original_graph = copy.deepcopy(graph)
     node_mutation_probability = requirements.mutation_prob
     for i, node in enumerate(graph.nodes[::-1]):
         if random() < node_mutation_probability and not node.content['name'] == 'flatten':

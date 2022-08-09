@@ -2,9 +2,9 @@ import random
 from math import floor
 from typing import (List, Any, Callable)
 
-from nas.composer.cnn.cnn_builder import get_layer_params
+from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
 from nas.utils.var import batch_norm_probability
-from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
@@ -79,7 +79,7 @@ def conv_output_shape(node, image_size):
     return image_size
 
 
-def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list: List, requirements=None) -> CNNGraph:
+def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list: List, requirements=None) -> NNGraph:
     """
     Method for initial graph generation from defined nodes list.
 
@@ -117,7 +117,7 @@ def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list
 
 
 # TODO optimize skip connections for both cases
-def add_skip_connections(graph: CNNGraph):
+def add_skip_connections(graph: NNGraph):
     """
     Add random skip connection to given graph_class
 
@@ -146,7 +146,7 @@ def add_skip_connections(graph: CNNGraph):
                 graph.nodes[destination_node_id].nodes_from.append(graph_node)
 
 
-def random_conv_graph_generation(graph_class: Callable, node_func: Callable, requirements) -> CNNGraph:
+def random_conv_graph_generation(graph_class: Callable, node_func: Callable, requirements) -> NNGraph:
     """
     Method for random graph_class generation with given requirements
 

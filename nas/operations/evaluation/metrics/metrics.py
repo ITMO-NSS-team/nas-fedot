@@ -1,15 +1,18 @@
 from typing import Tuple
 
-from sklearn.metrics import f1_score
-
-from fedot.core.data.data import InputData
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
+from fedot.core.data.data import InputData, OutputData
+
+from nas.data.data_generator import DataGenerator
+from nas.data.setup_data import setup_data
 
 
-def get_predictions(graph, data: InputData):
+# Hotfix
+def get_predictions(graph, data: InputData, data_preprocessor) -> Tuple[OutputData, OutputData]:
     multiclass = data.num_classes > 2
-    predicted_labels = graph.predict(data, output_mode='label', is_multiclass=multiclass)
-    predicted_probabilities = graph.predict(data, output_mode='default', is_multiclass=multiclass)
+    data_generator_to_predict = setup_data(data, 1, data_preprocessor, 'test', DataGenerator, False)
+    predicted_labels = graph.predict(data_generator_to_predict, output_mode='labels', is_multiclass=multiclass)
+    predicted_probabilities = graph.predict(data_generator_to_predict, output_mode='default', is_multiclass=multiclass)
     return predicted_labels, predicted_probabilities
 
 

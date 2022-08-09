@@ -17,17 +17,17 @@ from fedot.core.optimisers.adapters import DirectAdapter
 
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
-from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.nas_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn.cnn_graph_node import CNNNode
-from nas.composer.cnn.cnn_graph import CNNGraph
+from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
+from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.data.load_images import ImageDataLoader
-from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
-from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
+from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.metrics.metrics import calculate_validation_metric, get_predictions
-from nas.metrics.confusion_matrix import plot_confusion_matrix
-from nas.composer.cnn.cnn_builder import CNNBuilder
+from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
+from nas.operations.evaluation.metrics import plot_confusion_matrix
+from nas.graph.nn_graph.cnn import CNNBuilder
 
 set_root(project_root)
 seed_all(14322)
@@ -38,8 +38,8 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
     if not test_data:
         train_data, test_data = train_test_data_setup(train_data, val_split, True)
 
-    input_shape = train_data.supplementary_data['image_size']
-    nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
+    input_shape = train_data.supplementary_data['_image_size']
+    nn_requirements = NNComposerRequirements(input_shape=input_shape, **nn_requirements)
 
     optimiser_params = GPGraphOptimiserParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                   mutation_types=mutations,
@@ -47,19 +47,19 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
                                                   regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=CNNGraph, base_node_class=CNNNode),
+        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=CNNNode),
         rules_for_constraint=validation_rules)
 
-    optimiser = GPNNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
-                                   graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
-                                   metrics=objective_func, parameters=optimiser_params, verbose=verbose,
-                                   log=default_log(logger_name='10cls-run', verbose_level=4))
+    optimiser = NNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,
+                                 graph_generation_params=graph_generation_params, graph_builder=CNNBuilder,
+                                 metrics=objective_func, parameters=optimiser_params, verbose=verbose,
+                                 log=default_log(logger_name='10cls-run', verbose_level=4))
 
     print(f'\n\t Starting optimisation process with following params: population size: {nn_requirements.pop_size}; '
           f'number of generations: {nn_requirements.num_of_generations}; number of epochs: {nn_requirements.epochs}; '
           f'image size: {input_shape}; batch size: {batch_size} \t\n')
 
-    optimized_network = optimiser.compose(train_data=train_data, test_data=test_data)
+    optimized_network = optimiser.optimise(train_data=train_data, test_data=test_data)
     optimized_network.fit(input_data=train_data, requirements=nn_requirements, train_epochs=epochs, verbose=verbose)
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data)

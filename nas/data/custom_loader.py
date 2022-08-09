@@ -9,10 +9,10 @@ from sklearn.preprocessing import LabelEncoder
 import cv2
 
 from fedot.core.data.data import InputData
-from nas.data.load_images import NASDataLoader
+from nas.data.load_images import NNData
 
 
-class CustomLoader(NASDataLoader):
+class Custom(NNData):
     def __init__(self, task, transformations, image_size):
         self.task = task
         self.transformations = transformations if transformations else []
@@ -36,7 +36,7 @@ class CustomLoader(NASDataLoader):
         images_array = []
         labels_array = []
         if labels_file:
-            labels_file = CustomLoader._train_test_lists(labels_file)
+            labels_file = Custom._train_test_lists(labels_file)
         for dir_name, folders, files in os.walk(path, True):
             if folders:
                 labels = copy.deepcopy(folders)
@@ -57,7 +57,7 @@ class CustomLoader(NASDataLoader):
         images_array = np.array(images_array)
         input_data = InputData.from_image(images=images_array, labels=labels_array, task=self.task)
         input_data.supplementary_data = {'labels': labels,
-                                         'image_size': [self.image_size, self.image_size, 3]}
+                                         '_image_size': [self.image_size, self.image_size, 3]}
         return input_data
 
     @staticmethod

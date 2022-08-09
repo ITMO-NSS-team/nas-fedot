@@ -5,7 +5,7 @@ from typing import Tuple, List, Any
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 
 from tensorflow.keras import layers
-from nas.composer.cnn.cnn_graph_node import CNNNode
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
 from nas.utils.var import default_nodes_params
 
 
@@ -133,8 +133,6 @@ def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_
     """
     if current_node in layers_dict:
         tmp = layers_dict.pop(current_node)
-        if current_node.nodes_from[0].content['name'] == 'serial_connection':
-            return input_layer
         start_layer = tmp.pop(0)
         input_layer = layers.concatenate([start_layer, input_layer],
                                          axis=-1, name=f'residual_end_{idx}')

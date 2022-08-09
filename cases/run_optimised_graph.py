@@ -6,49 +6,38 @@ import datetime
 import pathlib
 from functools import partial
 
-from sklearn.metrics import confusion_matrix
 import tensorflow as tf
 
 from fedot.core.data.supplementary_data import SupplementaryData
 from fedot.core.data.data import DataTypesEnum
-from fedot.core.log import default_log
 from fedot.core.repository.tasks import Task, TaskTypesEnum
-from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
-from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
-from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
-from fedot.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
-from fedot.core.optimisers.adapters import DirectAdapter
 
 from nas.data.dataloader import DataLoaderInputData, DataLoader, ImageDataset
 from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
-from nas.utils.var import project_root, default_nodes_params
-from nas.composer.nas_cnn_optimiser import GPNNGraphOptimiser
-from nas.composer.nas_cnn_composer import GPNNComposerRequirements
-from nas.composer.cnn.cnn_graph_node import CNNNode
-from nas.composer.cnn.cnn_graph import CNNGraph
-from nas.mutations.nas_cnn_mutations import cnn_simple_mutation
-from nas.mutations.cnn_val_rules import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
+from nas.utils.var import project_root
+from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.metrics.metrics import calculate_validation_metric, get_predictions
-from nas.metrics.confusion_matrix import plot_confusion_matrix
-from nas.composer.cnn.cnn_builder import CNNBuilder
+from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 
 set_root(project_root)
 seed_all(7482)
 
 
 def run_nas(train, test, save, nn_requirements, epochs, verbose):
-    input_shape = train.supplementary_data.column_types['image_size']
-    nn_requirements = GPNNComposerRequirements(input_shape=input_shape, **nn_requirements)
+    input_shape = train.supplementary_data.column_types['_image_size']
+    nn_requirements = NNComposerRequirements(input_shape=input_shape, **nn_requirements)
     save_path = save / 'optimized'
     save_path.mkdir(parents=True, exist_ok=True)
 
-    optimized_network = CNNGraph.load(save / 'model.json')
+    optimized_network = NNGraph.load(save / 'model.json')
     optimized_network.fit(input_data=train, requirements=nn_requirements, train_epochs=epochs, verbose=verbose,
                           results_path=save_path)
 
@@ -70,7 +59,7 @@ if __name__ == '__main__':
     img_size = 200
     batch_size = 8
 
-    # TODO implement data augmentation func
+    # TODO implement dataset augmentation func
     flip = partial(tf.image.random_flip_left_right, seed=1)
     saturation = partial(tf.image.random_saturation, lower=5, upper=10, seed=1)
     brightness = partial(tf.image.random_brightness, max_delta=.2, seed=1)
@@ -78,7 +67,7 @@ if __name__ == '__main__':
     crop = partial(tf.image.random_crop, size=(img_size // 5, img_size // 5, 3), seed=1)
     resize = partial(tf.image.resize, size=(img_size, img_size))
     sup_data = SupplementaryData()
-    sup_data.column_types = {'image_size': [img_size, img_size, 3]}
+    sup_data.column_types = {'_image_size': [img_size, img_size, 3]}
 
     transformations = [resize]
 
@@ -103,7 +92,7 @@ if __name__ == '__main__':
     requirements = {'pop_size': 5, 'num_of_generations': 15, 'max_num_of_conv_layers': 50, 'min_num_of_conv_layers': 10,
                     'max_nn_depth': 2, 'primary': ['conv2d'], 'secondary': ['dense'],
                     'batch_size': batch_size, 'epochs': 5, 'has_skip_connection': True,
-                    'default_parameters': None, 'timeout': datetime.timedelta(hours=200)}
+                    'default_parameters': None, 'max_pipeline_fit_time': datetime.timedelta(hours=200)}
     requirements = requirements | conv_requirements | layer_requirements
     sys.stdout = open(f'{folder_name}-{datetime.datetime.now().date()}-logs', 'w')
     run_nas(train=train_data, test=test_data, save=save_path, nn_requirements=requirements,

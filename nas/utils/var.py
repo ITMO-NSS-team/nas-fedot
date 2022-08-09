@@ -14,3 +14,6 @@ default_nodes_params = {
     'dense': {'activation': 'relu', 'layer_type': 'dense', 'neurons': 121},
     'serial_connection': {'layer_type': 'serial_connection'},
     'flatten': None}
+default_split_params = {
+    'k_fold': {'n_splits': 5, 'shuffle': True},
+    'holdout': {'train_size': 0.8, 'random_state': 42}}

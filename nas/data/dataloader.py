@@ -5,7 +5,7 @@ from typing import (List,
                     Optional,
                     Union)
 import pathlib
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 import pandas as pd
 
@@ -32,7 +32,7 @@ supported_images = ['.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.s
 
 
 @dataclass
-class FEDOTDataset:
+class FEDOTDataset(ABC):
     """
     General class for loading path.
     """
@@ -161,9 +161,9 @@ class DataLoader(Sequence):
     def batch_id(self):
         return self._batch_id
 
-    @batch_id.setter
-    def batch_id(self, val):
-        self._batch_id = val
+    # @batch_id.setter
+    # def batch_id(self, val):
+    #     self._batch_id = val
 
     @property
     def steps_per_epoch(self):
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     data_loader = DataLoader(data_generator=dataset, shuffle=True)
     data = DataLoaderInputData.input_data_from_generator(data_generator=data_loader, task=Task(task),
                                                          data_type=DataTypesEnum.image,
-                                                         supplementary_data={'image_size': [32, 32, 3]})
+                                                         supplementary_data={'_image_size': [32, 32, 3]})
 
     k_fold = StratifiedKFold(n_splits=10)
     k_fold.get_n_splits(data.idx)
@@ -229,8 +229,8 @@ if __name__ == '__main__':
     # generator_splits_train = []
     # generator_splits_test = []
     # for train_idx, test_idx in generator_splitter:
-    #     generator_splits_train.extend([data.data_generator[i] for i in train_idx])
-    #     generator_splits_test.extend([data.data_generator[i] for i in test_idx])
+    #     generator_splits_train.extend([dataset.data_generator[i] for i in train_idx])
+    #     generator_splits_test.extend([dataset.data_generator[i] for i in test_idx])
 
     splitter = SplitterGenerator('holdout', shuffle=True, random_state=42)
 
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     # model = tensorflow.keras.applications.vgg16.VGG16(include_top=False, weights='imagenet',
     #                                                   input_shape=(32, 32, 3))
     #
-    # train_data, test_data = generator_train_test_split(data, shuffle_flag=True)
+    # train_generator, test_data = generator_train_test_split(dataset, shuffle_flag=True)
     #
     # for layer in model.layers:
     #     layer.trainable = True
@@ -255,7 +255,7 @@ if __name__ == '__main__':
     #
     # model = tensorflow.keras.models.Model(inputs=model.input, outputs=output_layer)
     # model.compile(optimizer=tensorflow.keras.optimizers.Adam(learning_rate=1e-3), loss='categorical_crossentropy',
-    #               metrics=['accuracy'])
+    #               objective=['accuracy'])
     #
     # model.fit(data_loader, epochs=5)
     #

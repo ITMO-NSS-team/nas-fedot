@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import List
 from abc import abstractmethod
 
 import psutil
@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import sklearn.metrics as m
 
-from nas.callbacks.utils import plot2image
+from nas.operations.evaluation.callbacks.utils import plot2image
 
 
 class CustomCallbacksNas:

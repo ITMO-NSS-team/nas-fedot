@@ -1,22 +1,22 @@
-from nas.composer.nas_cnn_composer import GPNNComposerRequirements
-from nas.nn.nas_keras_eval import create_nn_model
+from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.model.nn import create_nn_model
 from nas.utils.utils import project_root
 from nas.utils.var import default_nodes_params
-from nas.composer.cnn.cnn_builder import NASDirector, CNNBuilder
+from nas.graph.nn_graph.cnn import NNGraphBuilder, CNNBuilder
 
 root = project_root()
-requirements = GPNNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
-                                        num_of_generations=1, max_num_of_conv_layers=4,
-                                        max_nn_depth=3, primary=['conv2d'], secondary=['dense'],
-                                        batch_size=4, epochs=1,
-                                        has_skip_connection=True, skip_connections_id=[0, 2, 5], shortcuts_len=2,
-                                        batch_norm_prob=-1, dropout_prob=-1,
-                                        default_parameters=default_nodes_params)
+requirements = NNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
+                                      num_of_generations=1, max_num_of_conv_layers=4,
+                                      max_nn_depth=3, primary=['conv2d'], secondary=['dense'],
+                                      batch_size=4, epochs=1,
+                                      has_skip_connection=True, skip_connections_id=[0, 2, 5], shortcuts_len=2,
+                                      batch_norm_prob=-1, dropout_prob=-1,
+                                      default_parameters=default_nodes_params)
 NODES_LIST = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense', 'dense', 'dense']
 
 
 def generate_graphs():
-    director = NASDirector()
+    director = NNGraphBuilder()
     director.set_builder(CNNBuilder(NODES_LIST, requirements=requirements))
     graphs = []
     for _ in range(10):

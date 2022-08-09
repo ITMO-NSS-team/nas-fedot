@@ -4,10 +4,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import numpy as np
 
-from fedot.core.data.data import InputData
-
-from nas.callbacks.utils import plot2image
-from nas.metrics.confusion_matrix import plot_confusion_matrix
+from nas.operations.evaluation.callbacks.utils import plot2image
+from nas.operations.evaluation.metrics import plot_confusion_matrix
 
 
 class ConfusionMatrixPlotter(tf.keras.callbacks.Callback):
@@ -32,13 +30,13 @@ class ConfusionMatrixPlotter(tf.keras.callbacks.Callback):
         labels = self._true_labels if self._true_labels else labels
         return labels
 
-    # def __init__(self, data: InputData, normalize: bool = False, color_map=plt.cm.YlGn, title=None, save_dir=None):
-    #     self.val = data.x
-    #     self.target = data.target
+    # def __init__(self, dataset: InputData, normalize: bool = False, color_map=plt.cm.YlGn, title=None, save_dir=None):
+    #     self.val = dataset.x
+    #     self.target = dataset.target
     #     self.title = title
     #     self.normalize = normalize
     #     self.color_map = color_map
-    #     self.data = data
+    #     self.dataset = dataset
     #     self.figure = plt.figure(figsize=(8, 8))
     #     self.save_dir = save_dir
     #     plt.title(self.title)

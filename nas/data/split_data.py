@@ -1,22 +1,31 @@
-import copy
+from copy import deepcopy
 from typing import Callable
 from functools import partial
 
 from sklearn.model_selection import train_test_split, StratifiedKFold
+from fedot.core.data.data import InputData
 
 
-# def generator_train_test_split(data, split_ratio=.8, shuffle_flag=False):
-#     data_generator = data.data_generator
-#     features, targets = data_generator.data_generator.features, data_generator.data_generator.targets
-#     idx = data.idx
-#     idx_train, idx_test, x_train, x_test, y_train, y_test = train_test_split(idx, features, targets,
-#                                                                              test_size=1 - split_ratio,
-#                                                                              shuffle=shuffle_flag, random_state=42,
-#                                                                              stratify=targets)
-#     train_input_data = _split_generator(data, x_train, y_train, idx_train)
-#     test_input_data = _split_generator(data, x_test, y_test, idx_test)
-#
-#     return train_input_data, test_input_data
+def k_fold_for_images(data: InputData, n_splits, shuffle=True):
+    task = data.task
+    supplementary_data = deepcopy(data.supplementary_data)
+    data_type = data.data_type
+
+    features = data.features
+    target = data.target
+    indices = data.idx
+
+    splitter = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=1)
+    splitter.get_n_splits(features, target)
+
+    for train_id, test_id in splitter.split(features, target, indices):
+        x_train, y_train, train_id = [features[i] for i in train_id], [target[i] for i in train_id], indices[train_id]
+        x_test, y_test, test_id = [features[i] for i in test_id], [target[i] for i in test_id], indices[test_id]
+        train_data = InputData(idx=train_id, features=x_train, target=y_train, task=task,
+                               supplementary_data=supplementary_data, data_type=data_type)
+        test_data = InputData(idx=test_id, features=x_test, target=y_test, task=task,
+                              supplementary_data=supplementary_data, data_type=data_type)
+        yield train_data, test_data
 
 
 def generator_kfold_split(data, n_splits=2, random_state=42, shuffle=True):
