@@ -12,7 +12,7 @@ NAME = 'fedot'
 VERSION = '0.5.2'
 AUTHOR = 'NSS Lab'
 SHORT_DESCRIPTION = 'NAS'
-README = Path(HERE, 'README.rst').read_text(encoding='utf-8')
+README = Path(HERE, 'README.md').read_text(encoding='utf-8')
 URL = 'https://github.com/ITMO-NSS-team/nas-fedot'
 REQUIRES_PYTHON = '>=3.9'
 LICENSE = 'BSD 3-Clause'
@@ -34,18 +34,6 @@ def _get_requirements(req_name: str):
 
 
 setuptools.setup(
-    name=NAME,
-    version=VERSION,
-    author=AUTHOR,
-    author_email='itmo.nss.team@gmail.com',
-    description=SHORT_DESCRIPTION,
-    long_description=README,
-    long_description_content_type='text/x-rst',
-    url=URL,
-    python_requires=REQUIRES_PYTHON,
-    license=LICENSE,
-    packages=setuptools.find_packages(exclude=['test*']),
-    include_package_data=True,
     install_requires=_get_requirements('requirements.txt'),
     # extras_require={
     #     key: _get_requirements(Path('other_requirements', f'{key}.txt'))
@@ -53,8 +41,6 @@ setuptools.setup(
     # },
     classifiers=[
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9'
     ],
 )
