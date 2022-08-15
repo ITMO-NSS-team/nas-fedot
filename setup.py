@@ -8,8 +8,8 @@ import setuptools
 HERE = Path(__file__).parent.resolve()
 
 # The text of the README file
-NAME = 'fedot'
-VERSION = '0.5.2'
+NAME = 'nas-fedot'
+VERSION = '0.1.0'
 AUTHOR = 'NSS Lab'
 SHORT_DESCRIPTION = 'NAS'
 README = Path(HERE, 'README.md').read_text(encoding='utf-8')
