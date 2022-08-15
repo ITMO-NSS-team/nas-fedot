@@ -13,7 +13,7 @@ VERSION = '0.1.0'
 AUTHOR = 'NSS Lab'
 SHORT_DESCRIPTION = 'NAS'
 README = Path(HERE, 'README.md').read_text(encoding='utf-8')
-URL = 'https://github.com/ITMO-NSS-team/nas-fedot'
+URL = 'https://github.com/ITMO-NSS-team/nas-fedot/tree/Data_Generator'
 REQUIRES_PYTHON = '>=3.9'
 LICENSE = 'BSD 3-Clause'
 
@@ -38,6 +38,8 @@ setuptools.setup(
     name='nas-fedot',
     version='0.1.0',
     py_module=[],
+    packages=setuptools.find_packages(exclude=['tests*']),
+    include_package_data=True,
     # extras_require={
     #     key: _get_requirements(Path('other_requirements', f'{key}.txt'))
     #     for key in ('docs', 'examples', 'extra', 'profilers')
