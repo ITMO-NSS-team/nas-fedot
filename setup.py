@@ -35,6 +35,9 @@ def _get_requirements(req_name: str):
 
 setuptools.setup(
     install_requires=_get_requirements('requirements.txt'),
+    name='nas-fedot',
+    version=0.1.0,
+    py_module=[],
     # extras_require={
     #     key: _get_requirements(Path('other_requirements', f'{key}.txt'))
     #     for key in ('docs', 'examples', 'extra', 'profilers')
