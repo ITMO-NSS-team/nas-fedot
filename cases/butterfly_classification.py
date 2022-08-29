@@ -16,7 +16,7 @@ from fedot.core.repository.quality_metrics_repository import ClassificationMetri
 from fedot.core.repository.quality_metrics_repository import MetricsRepository
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
-import nas.composer.nn_composer_requirements as NAS_requirements
+import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
 import nas.utils as nas_utils
 from nas.composer.nn_composer import NNComposer
@@ -49,24 +49,24 @@ def build_butterfly_cls(save_path=None):
 
     train_data, test_data = train_test_data_setup(data, shuffle_flag=True)
 
-    data_requirements = NAS_requirements.DataRequirements(split_params={'cv_folds': 3})
-    conv_requirements = NAS_requirements.ConvRequirements(input_shape=[20, 20, 3], color_mode='RGB',
+    data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': 3})
+    conv_requirements = nas_requirements.ConvRequirements(input_shape=[20, 20, 3], color_mode='RGB',
                                                           min_filters=32, max_filters=128,
                                                           kernel_size=[3, 3], conv_strides=[1, 1],
                                                           pool_size=[2, 2], pool_strides=[2, 2],
                                                           pool_types=['max_pool2d', 'average_pool2d'])
-    fc_requirements = NAS_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
+    fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
                                                                   max_number_of_neurons=128)
-    nn_requirements = NAS_requirements.NNRequirements(conv_requirements=conv_requirements,
+    nn_requirements = nas_requirements.NNRequirements(conv_requirements=conv_requirements,
                                                       fc_requirements=fc_requirements,
                                                       primary=['conv2d'], secondary=['dense'],
                                                       epochs=epochs, batch_size=batch_size,
                                                       max_nn_depth=3, max_num_of_conv_layers=10,
                                                       has_skip_connection=True
                                                       )
-    optimizer_requirements = NAS_requirements.OptimizerRequirements(opt_epochs=1)
+    optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=1)
 
-    requirements = NAS_requirements.NNComposerRequirements(data_requirements=data_requirements,
+    requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),

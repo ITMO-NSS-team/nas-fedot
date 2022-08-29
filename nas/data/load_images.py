@@ -1,5 +1,4 @@
-from functools import partial
-from typing import List, Union, Optional
+import os
 from dataclasses import dataclass
 
 import pathlib
@@ -8,7 +7,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 from fedot.core.data.data import InputData, Data
-from fedot.core.repository.tasks import Task, TaskTypesEnum
+from fedot.core.repository.tasks import Task
 from fedot.core.repository.dataset_types import DataTypesEnum
 from nas.utils.utils import project_root
 
@@ -19,7 +18,7 @@ supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.s
 @dataclass
 class NNData(Data):
     @staticmethod
-    def data_from_folder(data_path, task):
+    def data_from_folder(data_path: os.PathLike, task: Task) -> InputData:
         data_path = pathlib.Path(data_path) if not isinstance(data_path, pathlib.Path) else data_path
         data_type = DataTypesEnum.image
         features = []
@@ -29,13 +28,12 @@ class NNData(Data):
                 features.append(str(item))
                 target.append(item.parent.name)
         target = LabelEncoder().fit_transform(target)
-        # features = features
         features = np.reshape(features, (-1, 1))
         idx = np.arange(0, len(features))
         return InputData(idx=idx, features=features, target=target, task=task, data_type=data_type)
 
     @staticmethod
-    def data_from_csv(data_path, features_col, target_col, task):
+    def data_from_csv(data_path: os.PathLike, features_col: str, target_col: str, task: Task) -> InputData:
         dataframe = pd.read_csv(data_path)
         data_type = DataTypesEnum.image
         features = list(dataframe[features_col])
