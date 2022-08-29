@@ -16,10 +16,10 @@ from fedot.core.repository.quality_metrics_repository import ClassificationMetri
 from fedot.core.repository.quality_metrics_repository import MetricsRepository
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
-import nas.composer.ComposerRequirements as NAS_requirements
+import nas.composer.nn_composer_requirements as NAS_requirements
 import nas.data.load_images as loader
 import nas.utils as nas_utils
-from nas.composer.NNComposer import NNComposer
+from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import Preprocessor
 from nas.graph.nn_graph.cnn.cnn_builder import CNNBuilder
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph, CNNNode

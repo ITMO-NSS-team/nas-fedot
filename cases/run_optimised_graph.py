@@ -20,7 +20,7 @@ from nas.data.dataloader import DataLoaderInputData, DataLoader, ImageDataset
 from nas.data.split_data import generator_train_test_split
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \

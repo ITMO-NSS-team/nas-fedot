@@ -18,7 +18,7 @@ from fedot.core.optimisers.adapters import DirectAdapter
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.data.load_images import ImageDataLoader

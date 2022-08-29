@@ -23,7 +23,7 @@ from nas.data.split_data import SplitterGenerator
 from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation

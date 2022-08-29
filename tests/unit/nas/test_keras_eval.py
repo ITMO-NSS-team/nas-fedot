@@ -1,4 +1,4 @@
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.model.nn import create_nn_model
 from nas.utils.utils import project_root
 from nas.utils.var import default_nodes_params

@@ -15,7 +15,7 @@ from fedot.core.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 
 from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.data_generator import Preprocessor, DataGenerator, Loader, temporal_setup_data
 
 # hotfix

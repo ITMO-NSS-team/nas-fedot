@@ -12,7 +12,7 @@ from fedot.core.optimisers.opt_history import OptHistory
 
 from nas.optimizer.objective.NNObjectiveEval import NNObjectiveEvaluate
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.data.data_generator import Preprocessor
 

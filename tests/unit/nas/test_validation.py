@@ -2,7 +2,7 @@ import os
 
 from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.utils.var import tests_root
 from nas.graph.nn_graph.cnn import NNGraphBuilder, CNNBuilder

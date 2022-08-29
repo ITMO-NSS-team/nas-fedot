@@ -4,7 +4,7 @@ from random import choice
 from fedot.core.optimisers.opt_node_factory import OptNodeFactory
 
 from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
 
 

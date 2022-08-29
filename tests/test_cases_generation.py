@@ -1,7 +1,7 @@
 import os
 
 from nas.graph.nn_graph.cnn import CNNBuilder, NNGraphBuilder
-from nas.composer.ComposerRequirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.utils.var import default_nodes_params, tests_root
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 
