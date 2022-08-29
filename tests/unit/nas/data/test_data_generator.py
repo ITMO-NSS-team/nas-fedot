@@ -21,8 +21,8 @@ def _setup_preprocessor():
 def setup_loader():
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path('example_datasets/butterfly_cls')
-    data = nas.data.load_images.NNData.data_from_folder(dataset_path, task)
-    return nas.data.data_generator.Loader(data)
+    dataset = nas.data.load_images.NNData.data_from_folder(dataset_path, task)
+    return nas.data.data_generator.Loader(dataset)
 
 
 def setup_data_generator():

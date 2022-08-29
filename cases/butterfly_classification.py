@@ -40,7 +40,7 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('../datasets/train')
+    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     image_size = (20, 20)
