@@ -12,8 +12,7 @@ from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.optimizer import GraphGenerationParams
-from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum
-from fedot.core.repository.quality_metrics_repository import MetricsRepository
+from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.nn_composer_requirements as nas_requirements
@@ -40,7 +39,7 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
+    dataset_path = pathlib.Path('../datasets/train')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     image_size = (20, 20)
@@ -103,8 +102,9 @@ def build_butterfly_cls(save_path=None):
     composer.set_preprocessor(data_preprocessor)
 
     optimized_network = composer.compose_pipeline(train_data)
-    if save_path:
-        composer.save(path=save_path)
+
+    # TODO FIX SAVE PATHS FOR WINDOWS. CURRENT APPROACH SEEMS WORK ONLY FOR LINUX.
+    #  NOT pathlib.Path('..',proj_root()). Also fitted model doesn't save into save path.
 
     train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
 
@@ -121,6 +121,9 @@ def build_butterfly_cls(save_path=None):
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
 
+    if save_path:
+        composer.save(path=save_path)
+
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
@@ -129,5 +132,6 @@ def build_butterfly_cls(save_path=None):
 
 
 if __name__ == '__main__':
-    path = '_results/debug/master'
+    path = f'_results/debug/master/{datetime.datetime.now().date()}'
+    print(tf.config.list_physical_devices('GPU'))
     build_butterfly_cls(path)

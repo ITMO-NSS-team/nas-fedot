@@ -127,22 +127,28 @@ class NNGraph(OptGraph):
     def fit_with_cache(self, *args, **kwargs):
         return False
 
-    def save(self, path: Union[str, os.PathLike]):
+    def save(self, path: Union[str, os.PathLike, pathlib.Path]):
+        """Save graph and fitted model to json and mdf5 formats"""
         full_path = pathlib.Path(path) if not isinstance(path, pathlib.Path) else path
         full_path = full_path.resolve()
+
+        model_path = full_path / 'fitted_model.h5'
+        self.model.save(model_path)
+        self.model = None
+
         graph = json.dumps(self, indent=4, cls=Serializer)
         with open(full_path / 'graph.json', 'w') as f:
             f.write(graph)
 
     @staticmethod
-    def load(path: str):
+    def load(path: Union[str, os.PathLike, pathlib.Path]):
         """load graph from json file"""
         with open(path, 'r') as json_file:
             json_data = json_file.read()
             return json.loads(json_data, cls=Serializer)
 
     @property
-    def graph_struct(self):
+    def graph_struct(self) -> List:
         if self.nodes[0].content['name'] != 'conv2d':
             return self.nodes[::-1]
         else:
