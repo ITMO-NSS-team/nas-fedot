@@ -12,7 +12,7 @@ VERSION = '0.1.0'
 AUTHOR = 'NSS Lab'
 SHORT_DESCRIPTION = 'Neural architecture search'
 README = Path(HERE, 'README.md').read_text(encoding='utf-8')
-URL = 'https://github.com/ITMO-NSS-team/nas-fedot/archive/core-upgrade.zip'
+URL = 'https://github.com/ITMO-NSS-team/nas-fedot/archive/SA-branch.zip'
 REQUIRES_PYTHON = '>=3.9'
 LICENSE = 'BSD 3-Clause'
 
