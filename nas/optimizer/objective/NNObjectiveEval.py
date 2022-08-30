@@ -16,7 +16,7 @@ from tensorflow.python.keras.backend import clear_session
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.data_generator import Preprocessor, DataGenerator
 from nas.data.setup_data import setup_data
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NNGraph
 
 G = TypeVar('G', Graph, OptGraph)
 

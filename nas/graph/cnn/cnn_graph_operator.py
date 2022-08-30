@@ -2,9 +2,9 @@ import random
 from math import floor
 from typing import (List, Any, Callable)
 
-from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
+from nas.graph.cnn.cnn_builder import get_layer_params
 from nas.utils.var import batch_norm_probability
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NNGraph
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):

@@ -3,9 +3,9 @@ from random import random, choice
 from typing import Any
 
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
-from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_builder import get_layer_params
+from nas.graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph import NNGraph
 from nas.utils.utils import seed_all
 
 seed_all(1)

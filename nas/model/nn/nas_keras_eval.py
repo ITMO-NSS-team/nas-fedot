@@ -5,6 +5,7 @@ from nas.utils import utils, var
 utils.set_root(var.project_root)
 
 
+# TODO move to operations
 def _keras_model_prob2labels(predictions: np.array, is_multiclass: bool = False) -> np.array:
     if is_multiclass:
         output = []

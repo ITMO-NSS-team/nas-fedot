@@ -1,22 +1,19 @@
 import pathlib
-from typing import List, Optional, Union
+from typing import List, Union
 
 import json
 import os
 import numpy as np
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.python.keras.engine.functional import Functional
-from keras.utils.layer_utils import count_params
 
-
-from fedot.core.data.data import InputData, OutputData
+from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 
-from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph_node import CNNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.data_generator import Preprocessor, DataGenerator, Loader, temporal_setup_data
 
 # hotfix
 from nas.utils.var import default_nodes_params
@@ -42,6 +39,9 @@ class NNNodeOperatorAdapter:
 
 
 class NNGraph(OptGraph):
+    # TODO add parent class NNGraph inherited from OptGraph with base nn logic e.g. fit, predict, save etc
+    #  And create child class for CNN's with CNN specific parameters e.g. number of conv_layers.
+
     def __init__(self, nodes=None, model=None):
         super().__init__(nodes)
         self._model = model
@@ -125,6 +125,7 @@ class NNGraph(OptGraph):
             return np.where(predictions > .5, 1, 0)
 
     def fit_with_cache(self, *args, **kwargs):
+        # TODO
         return False
 
     def save(self, path: Union[str, os.PathLike, pathlib.Path]):

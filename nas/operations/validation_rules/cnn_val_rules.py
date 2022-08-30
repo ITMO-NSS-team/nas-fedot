@@ -1,6 +1,6 @@
 from fedot.core.dag.verification_rules import ERROR_PREFIX
 
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NNGraph
 
 
 def validate_parameters(graph: NNGraph):

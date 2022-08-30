@@ -1,7 +1,7 @@
 import random
 from typing import List, Optional
 
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph, CNNNode
+from nas.graph.cnn.cnn_graph import NNGraph, CNNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 
 # TODO mb need to move add dense layers from keras_eval and increase the number of nn layers in requirements

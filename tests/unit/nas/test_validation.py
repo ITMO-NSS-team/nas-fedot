@@ -3,9 +3,9 @@ import os
 from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NNGraph
 from nas.utils.var import tests_root
-from nas.graph.nn_graph.cnn import NNGraphBuilder, CNNBuilder
+from nas.graph.cnn import NNGraphBuilder, CNNBuilder
 
 requirements = NNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
                                       num_of_generations=1, max_num_of_conv_layers=4,

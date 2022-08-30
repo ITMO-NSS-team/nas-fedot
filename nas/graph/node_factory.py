@@ -3,9 +3,9 @@ from random import choice
 
 from fedot.core.optimisers.opt_node_factory import OptNodeFactory
 
-from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph_node import CNNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
+from nas.graph.cnn.cnn_builder import get_layer_params
 
 
 class NNNodeFactory(OptNodeFactory):
@@ -39,10 +39,7 @@ class NNNodeFactory(OptNodeFactory):
                                                  possible_operations=possible_operations)
         return self._return_node(candidates)
 
-    # TODO ask about nodes
     def get_node(self, primary: bool) -> Optional[CNNNode]:
-        # in nas primapy node is conv part not only graph without nodes from field!
-
         candidates = self.requirements.primary if primary else self._pool_fc_nodes
         return self._return_node(candidates)
 

@@ -7,7 +7,7 @@ from typing import List
 
 from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
 
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NNGraph
 from nas.utils.utils import seed_all
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)

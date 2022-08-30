@@ -11,7 +11,7 @@ from fedot.core.optimisers.objective import DataSourceSplitter
 from fedot.core.optimisers.opt_history import OptHistory
 
 from nas.optimizer.objective.NNObjectiveEval import NNObjectiveEvaluate
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NNGraph
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.data_generator import Preprocessor
 

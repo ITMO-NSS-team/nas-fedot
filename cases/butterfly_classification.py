@@ -20,10 +20,10 @@ import nas.data.load_images as loader
 import nas.utils as nas_utils
 from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import Preprocessor
-from nas.graph.nn_graph.cnn.cnn_builder import CNNBuilder
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph, CNNNode
-from nas.graph.nn_graph.nn_graph_builder import NNGraphBuilder
-from nas.graph.nn_graph.node_factory import NNNodeFactory
+from nas.graph.cnn.cnn_builder import CNNBuilder
+from nas.graph.cnn.cnn_graph import NNGraph, CNNNode
+from nas.graph.nn_graph_builder import NNGraphBuilder
+from nas.graph.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_check, \
     graph_has_several_starts, graph_has_wrong_structure

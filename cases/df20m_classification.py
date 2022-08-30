@@ -27,14 +27,14 @@ from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph import NNGraph
 from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.evaluation.metrics import plot_confusion_matrix
-from nas.graph.nn_graph.cnn import CNNBuilder
+from nas.graph.cnn import CNNBuilder
 
 set_root(project_root)
 seed_all(942212)
