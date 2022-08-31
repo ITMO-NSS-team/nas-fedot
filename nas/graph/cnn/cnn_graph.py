@@ -134,8 +134,9 @@ class NNGraph(OptGraph):
         full_path = full_path.resolve()
 
         model_path = full_path / 'fitted_model.h5'
-        self.model.save(model_path)
-        self.model = None
+        if self.model:
+            self.model.save(model_path)
+            self.model = None
 
         graph = json.dumps(self, indent=4, cls=Serializer)
         with open(full_path / 'graph.json', 'w') as f:
