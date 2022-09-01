@@ -23,9 +23,9 @@ G = TypeVar('G', Graph, OptGraph)
 
 class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
     def __init__(self, objective, data_producer, preprocessor: Preprocessor, requirements: NNComposerRequirements,
-                 pipeline_cache=None, preprocessing_cache=None, **objective_kwargs):
+                 pipeline_cache=None, preprocessing_cache=None, eval_n_jobs=1, **objective_kwargs):
         # Add cache
-        super().__init__(objective)
+        super().__init__(objective, eval_n_jobs)
         self._data_producer = data_producer
         self._requirements = requirements
         self._pipeline_cache = pipeline_cache

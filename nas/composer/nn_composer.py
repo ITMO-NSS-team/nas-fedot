@@ -64,7 +64,7 @@ class NNComposer(Composer):
         if self.composer_requirements.collect_intermediate_metric:
             self.optimizer.set_evaluation_callback(objective_evaluator.evaluate_intermediate_metrics)
 
-        opt_result = self.optimizer.optimise(objective_function, True)
+        opt_result = self.optimizer.optimise(objective_function)
         best_model, self.best_models = self._convert_opt_results_to_nn_graph(opt_result)
         self.log.info('NAS composition has been finished')
         return best_model
