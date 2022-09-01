@@ -42,7 +42,7 @@ class NNGraph(OptGraph):
     # TODO add parent class NNGraph inherited from OptGraph with base nn logic e.g. fit, predict, save etc
     #  And create child class for CNN's with CNN specific parameters e.g. number of conv_layers.
 
-    def __init__(self, nodes=None, model=None):
+    def __init__(self, nodes=(), model=None):
         super().__init__(nodes)
         self._model = model
 
