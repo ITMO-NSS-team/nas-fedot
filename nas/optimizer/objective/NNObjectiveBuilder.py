@@ -15,5 +15,3 @@ class NNObjectiveBuilder(DataObjectiveBuilder):
             data_producer = self._build_holdout_producer(data, **kwargs)
 
         # objective_evaluate =
-
-

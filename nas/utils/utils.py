@@ -9,6 +9,7 @@ import tensorflow as tf
 
 from pathlib import Path
 
+
 def set_root(root: Path):
     os.chdir(root)
     sys.path.append(root)
