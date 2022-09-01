@@ -19,7 +19,7 @@ from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root, default_nodes_params
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.data.load_images import ImageDataLoader
 from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
@@ -47,7 +47,7 @@ def run_nas(train_data, test_data, val_split, save, nn_requirements, epochs, bat
                                                   regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_params = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=CNNNode),
+        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=validation_rules)
 
     optimiser = NNGraphOptimiser(initial_graph=initial_graph, requirements=nn_requirements,

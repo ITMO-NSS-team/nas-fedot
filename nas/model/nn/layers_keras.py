@@ -5,7 +5,7 @@ from typing import Tuple, List, Any
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 
 from tensorflow.keras import layers
-from nas.graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.utils.var import default_nodes_params
 
 
@@ -42,7 +42,7 @@ class LayerParams:
     epsilon: float = None
 
 
-def make_dense_layer(idx: int, input_layer: Any, current_node: CNNNode):
+def make_dense_layer(idx: int, input_layer: Any, current_node: NNNode):
     """
     This function generates dense layer from given node parameters
 
@@ -62,7 +62,7 @@ def make_dense_layer(idx: int, input_layer: Any, current_node: CNNNode):
     return dense_layer
 
 
-def _get_layer_params(current_node: CNNNode):
+def _get_layer_params(current_node: NNNode):
     if current_node.content['params'] == DEFAULT_PARAMS_STUB:
         layer_params = default_nodes_params[current_node.content['name']]
     else:
@@ -82,7 +82,7 @@ def _make_dropout_layer(input_layer: Any, params):
     return dropout_layer
 
 
-def make_conv_layer(idx: int, input_layer: Any, current_node: CNNNode = None, is_free_node: bool = False):
+def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_free_node: bool = False):
     """
     This function generates convolutional layer from given node and adds pooling layer if node doesn't belong to any of
     skip connection blocks

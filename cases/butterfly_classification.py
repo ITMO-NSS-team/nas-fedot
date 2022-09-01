@@ -21,11 +21,11 @@ import nas.utils as nas_utils
 from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import Preprocessor
 from nas.graph.cnn.cnn_builder import CNNBuilder
-from nas.graph.cnn.cnn_graph import NNGraph, CNNNode
+from nas.graph.cnn.cnn_graph import NNGraph, NNNode
 from nas.graph.nn_graph_builder import NNGraphBuilder
 from nas.graph.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
-from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_check, \
+from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_count, \
     graph_has_several_starts, graph_has_wrong_structure
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.utils.utils import set_root, project_root
@@ -75,7 +75,7 @@ def build_butterfly_cls(save_path=None):
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
                  MutationTypesEnum.single_change, MutationTypesEnum.simple]
 
-    validation_rules = [has_no_flatten_skip, flatten_check, graph_has_several_starts, graph_has_wrong_structure,
+    validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
                         has_no_cycle, has_no_self_cycled_nodes]
 
     optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
@@ -84,7 +84,7 @@ def build_butterfly_cls(save_path=None):
                                                       regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=CNNNode),
+        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements, DefaultChangeAdvisor()))
 
     graph_generation_function = NNGraphBuilder()

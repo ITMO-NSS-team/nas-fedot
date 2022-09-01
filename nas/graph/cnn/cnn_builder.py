@@ -1,7 +1,7 @@
 import random
 from typing import List, Optional
 
-from nas.graph.cnn.cnn_graph import NNGraph, CNNNode
+from nas.graph.cnn.cnn_graph import NNGraph, NNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 
 # TODO mb need to move add dense layers from keras_eval and increase the number of nn layers in requirements
@@ -93,7 +93,7 @@ class CNNBuilder:
 
     def _add_node(self, node_type, nodes_from):
         node_params = get_layer_params(node_type, self.requirements)
-        node = CNNNode(content={'name': node_type, 'params': node_params}, nodes_from=nodes_from)
+        node = NNNode(content={'name': node_type, 'params': node_params}, nodes_from=nodes_from)
         if node_type == 'flatten':
             return node
         if random.random() > self.requirements.nn_requirements.batch_norm_prob:

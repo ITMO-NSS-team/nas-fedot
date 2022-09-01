@@ -24,7 +24,7 @@ from nas.utils.utils import set_root, seed_all
 from nas.utils.var import project_root
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
 from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
@@ -55,7 +55,7 @@ def run_nas(train, test, save, nn_requirements, epochs, validation_rules, mutati
                                                       regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=CNNNode),
+        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
         rules_for_constraint=validation_rules)
 
     optimizer = NNGraphOptimiser(initial_graph=initial_graph, requirements=cnn_composer_parameters,

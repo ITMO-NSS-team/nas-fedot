@@ -3,7 +3,7 @@ from random import choice
 
 from fedot.core.optimisers.opt_node_factory import OptNodeFactory
 
-from nas.graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.cnn.cnn_builder import get_layer_params
 
@@ -14,7 +14,7 @@ class NNNodeFactory(OptNodeFactory):
         self._pool_conv_nodes = self.requirements.primary
         self._pool_fc_nodes = self.requirements.secondary
 
-    def exchange_node(self, node: CNNNode) -> Optional[CNNNode]:
+    def exchange_node(self, node: NNNode) -> Optional[NNNode]:
         if node.content['name'] in self._pool_conv_nodes:
             candidates = self._pool_conv_nodes
         else:
@@ -26,8 +26,8 @@ class NNNodeFactory(OptNodeFactory):
         return self._return_node(candidates)
 
     def get_parent_node(self,
-                        node: CNNNode,
-                        primary: bool) -> Optional[CNNNode]:
+                        node: NNNode,
+                        primary: bool) -> Optional[NNNode]:
         parent_operations_ids = None
         possible_operations = self._pool_conv_nodes if node.content['name'] in self._pool_conv_nodes \
             else self._pool_fc_nodes
@@ -39,7 +39,7 @@ class NNNodeFactory(OptNodeFactory):
                                                  possible_operations=possible_operations)
         return self._return_node(candidates)
 
-    def get_node(self, primary: bool) -> Optional[CNNNode]:
+    def get_node(self, primary: bool) -> Optional[NNNode]:
         candidates = self.requirements.primary if primary else self._pool_fc_nodes
         return self._return_node(candidates)
 
@@ -48,7 +48,7 @@ class NNNodeFactory(OptNodeFactory):
             return None
         layer_name = choice(candidates)
         layer_params = get_layer_params(layer_name, self.requirements)
-        return CNNNode(content={'name': layer_name,
+        return NNNode(content={'name': layer_name,
                                 'params': layer_params})
 
 

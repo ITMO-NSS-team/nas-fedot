@@ -12,7 +12,7 @@ from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 
-from nas.graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 
 # hotfix
@@ -29,9 +29,9 @@ class NNNodeOperatorAdapter:
         adaptee.__class__ = OptNode
         return adaptee
 
-    def restore(self, node) -> CNNNode:
+    def restore(self, node) -> NNNode:
         obj = node
-        obj.__class__ = CNNNode
+        obj.__class__ = NNNode
         if obj.content['params'] == DEFAULT_PARAMS_STUB:
             node_name = obj.content.get('name')
             obj.content = default_nodes_params[node_name]

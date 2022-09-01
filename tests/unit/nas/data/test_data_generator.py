@@ -48,7 +48,7 @@ def test_is_all_samples_unique():
 
 def test_is_correct_number_of_classes():
     loader = _setup_loader()
-    assert tuple(set([len(s) for _, s in loader]))[-1] == loader.num_classes
+    assert set(tuple(len(target) for sample, target in loader)).issubset([4])
 
 
 def test_targets_samples_dtype():
@@ -69,9 +69,9 @@ def test_if_image_size_is_correct():
 
 def test_is_correct_batch_size():
     generator = setup_data_generator()
-    for i in range(len(generator)):
-        sample, target = generator[i]
+    for sample, target in generator:
         assert len(sample) == generator.batch_size
+        assert len(target) == generator.batch_size
 
 
 def test_if_task_correct():
