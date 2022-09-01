@@ -26,7 +26,7 @@ def test_is_graph_trainable():
     for _ in range(100):
         graph = get_graph()
         try:
-            build_nn_from_graph(graph, n_classes=75, requirements=get_requirements())
+            build_nn_from_graph(graph, n_classes=4, requirements=get_requirements())
         except (ValueError, MemoryError):
             is_valid = False
         assert is_valid
