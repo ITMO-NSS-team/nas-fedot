@@ -26,7 +26,7 @@ from nas.graph.nn_graph_builder import NNGraphBuilder
 from nas.graph.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_count, \
-    graph_has_several_starts, graph_has_wrong_structure
+    graph_has_several_starts, graph_has_wrong_structure, unique_node_types
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.utils.utils import set_root, project_root
 from nas.data.setup_data import setup_data
@@ -76,7 +76,7 @@ def build_butterfly_cls(save_path=None):
                  MutationTypesEnum.single_change, MutationTypesEnum.simple]
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
-                        has_no_cycle, has_no_self_cycled_nodes]
+                        has_no_cycle, has_no_self_cycled_nodes, unique_node_types]
 
     optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                       mutation_types=mutations,
