@@ -1,11 +1,11 @@
-from typing import (Optional)
 from random import choice
+from typing import (Optional)
 
 from fedot.core.optimisers.opt_node_factory import OptNodeFactory
 
-from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
 
 
 class NNNodeFactory(OptNodeFactory):
@@ -53,5 +53,3 @@ class NNNodeFactory(OptNodeFactory):
         layer_params = get_layer_params(layer_name, self.requirements)
         return CNNNode(content={'name': layer_name,
                                 'params': layer_params})
-
-

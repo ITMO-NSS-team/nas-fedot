@@ -1,12 +1,12 @@
-from typing import List
 from abc import abstractmethod
-
-import psutil
-import matplotlib.pyplot as plt
 from pathlib import Path
+from typing import List
+
+import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
+import psutil
 import sklearn.metrics as m
+import tensorflow as tf
 
 from nas.operations.evaluation.callbacks.utils import plot2image
 

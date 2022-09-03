@@ -1,8 +1,9 @@
 import random
 from typing import List, Optional
 
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph, CNNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph, CNNNode
+
 
 # TODO mb need to move add dense layers from keras_eval and increase the number of nn layers in requirements
 
@@ -29,20 +30,21 @@ def _get_conv2d_requirements(requirements: NNComposerRequirements):
 def _get_random_layer_params(layer_type: str, requirements: NNComposerRequirements):
     layer_params = {'n_jobs': 1}
     if layer_type == 'conv2d':
-        layer_params = _get_conv2d_requirements(requirements) | layer_params
-    elif layer_type == 'serial_connection':
-        layer_params = {'layer_type': layer_type} | layer_params
+        conv_params = _get_conv2d_requirements(requirements)
+        layer_params = {**conv_params, **layer_params}
     elif layer_type == 'dropout':
         drop_value = random.randint(1, (requirements.nn_requirements.max_drop_size * 10)) / 10
-        layer_params = {'drop': drop_value} | layer_params
+        layer_params = {'drop': drop_value, **layer_params}
     elif layer_type == 'batch_normalization':
         momentum = random.uniform(0, 1)
         epsilon = random.uniform(0, 1)
-        layer_params = {'momentum': momentum, 'epsilon': epsilon}
+        batch_norm_params = {'momentum': momentum, 'epsilon': epsilon}
+        layer_params = {**batch_norm_params, **layer_params}
     elif layer_type == 'dense':
         activation = random.choice(requirements.nn_requirements.activation_types).value
         neurons = random.choice(requirements.nn_requirements.fc_requirements.neurons_num)
-        layer_params = {'layer_type': layer_type, 'neurons': neurons, 'activation': activation} | layer_params
+        dense_params = {'layer_type': layer_type, 'neurons': neurons, 'activation': activation}
+        layer_params = {**dense_params, **layer_params}
     return layer_params
 
 
@@ -98,10 +100,10 @@ class CNNBuilder:
             return node
         if random.random() > self.requirements.nn_requirements.batch_norm_prob:
             batch_norm_params = get_layer_params('batch_normalization', self.requirements)
-            node.content['params'] = node.content['params'] | batch_norm_params
+            node.content['params'] = {**node.content['params'], **batch_norm_params}
         if random.random() > self.requirements.nn_requirements.dropout_prob:
             dropout_params = get_layer_params('dropout', self.requirements)
-            node.content['params'] = node.content['params'] | dropout_params
+            node.content['params'] = {**node.content['params'], **dropout_params}
         return node
 
     def build_graph(self) -> NNGraph:
@@ -114,9 +116,3 @@ class CNNBuilder:
         if self.requirements.nn_requirements.has_skip_connection:
             _add_skip_connections(graph, self._skip_connection_params())
         return graph
-
-
-if __name__ == '__main__':
-    r = NNComposerRequirements(primary=None, secondary=None, input_shape=[120, 120, 3])
-    graph = CNNBuilder(NNGraph, requirements=r).build_graph()
-    print("DONE!")

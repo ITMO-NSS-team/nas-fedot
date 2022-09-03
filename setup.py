@@ -8,12 +8,12 @@ HERE = Path(__file__).parent.resolve()
 
 # The text of the README file
 NAME = 'nas-fedot'
-VERSION = '0.1.0'
+VERSION = '0.1.1a'
 AUTHOR = 'NSS Lab'
-SHORT_DESCRIPTION = 'Neural architecture search'
+SHORT_DESCRIPTION = 'Neural architecture search for sensitivity analysis'
 README = Path(HERE, 'README.md').read_text(encoding='utf-8')
 URL = 'https://github.com/ITMO-NSS-team/nas-fedot/archive/SA-branch.zip'
-REQUIRES_PYTHON = '>=3.9'
+REQUIRES_PYTHON = '>=3.8'
 LICENSE = 'BSD 3-Clause'
 
 
@@ -39,12 +39,8 @@ setuptools.setup(
     version=VERSION,
     packages=setuptools.find_packages(exclude=['tests*']),
     include_package_data=True,
-    # extras_require={
-    #     key: _get_requirements(Path('other_requirements', f'{key}.txt'))
-    #     for key in ('docs', 'examples', 'extra', 'profilers')
-    # },
     classifiers=[
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.9'
+        'Programming Language :: Python :: 3.8'
     ],
 )

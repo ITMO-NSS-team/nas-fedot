@@ -1,4 +1,5 @@
 import os
+
 os.environ['tf_cpp_min_log_level'] = '3'
 import datetime
 import pathlib
@@ -139,4 +140,3 @@ if __name__ == '__main__':
     # profiler_path = pathlib.Path(save_path / 'profiler')
     # profiler_path.mkdir(parents=True, exist_ok=True)
     # MemoryProfiler(run_nas, kwargs=args, path=str(profiler_path), roots=[run_nas], max_depth=35)
-

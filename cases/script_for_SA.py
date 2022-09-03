@@ -1,15 +1,15 @@
 import pathlib
-import tensorflow as tf
 
-from fedot.core.repository.tasks import Task, TaskTypesEnum
+import tensorflow as tf
 from fedot.core.optimisers.objective.objective import Objective
 from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from fedot.core.repository.tasks import Task, TaskTypesEnum
 
-from nas.utils.utils import project_root, set_root
-from nas.data.load_images import NNData
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.data.data_generator import Preprocessor, DataGenerator
+from nas.data.load_images import NNData
 from nas.data.setup_data import setup_data
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.utils.utils import project_root, set_root
 
 project_root = project_root()
 set_root(project_root)

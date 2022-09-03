@@ -1,13 +1,12 @@
 import os
 
-from nas.graph.nn_graph.cnn import CNNBuilder, NNGraphBuilder
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.utils.var import default_nodes_params, tests_root
+from nas.graph.nn_graph.cnn import CNNBuilder, NNGraphBuilder
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.utils.var import default_nodes_params, tests_root
 
 NODES_LIST = ['conv2d', 'conv2d', 'conv2d', 'conv2d', 'conv2d', 'flatten', 'dense',
               'dense', 'dense']
-
 
 requirements = NNComposerRequirements(input_shape=[120, 120, 3], pop_size=1,
                                       num_of_generations=1, max_num_of_conv_layers=4,

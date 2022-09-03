@@ -2,9 +2,9 @@ import os
 
 from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.nn_graph.cnn import CNNBuilder, NNGraphBuilder
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
-from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts
 from nas.utils.var import tests_root, default_nodes_params
 

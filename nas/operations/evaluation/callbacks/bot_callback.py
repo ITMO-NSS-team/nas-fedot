@@ -1,6 +1,6 @@
-import tensorflow as tf
-import requests
 import matplotlib.pyplot as plt
+import requests
+import tensorflow as tf
 
 
 # TODO upgrade

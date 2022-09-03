@@ -25,7 +25,8 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
     def __init__(self, objective, data_producer, preprocessor: Preprocessor, requirements: NNComposerRequirements,
                  pipeline_cache=None, preprocessing_cache=None, **objective_kwargs):
         # Add cache
-        super().__init__(objective)
+        # hotfix
+        super().__init__(objective, eval_n_jobs=1)
         self._data_producer = data_producer
         self._requirements = requirements
         self._pipeline_cache = pipeline_cache

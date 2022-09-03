@@ -1,11 +1,10 @@
 import gc
-
-import numpy as np
-from tensorflow.keras.backend import clear_session
-import tensorflow as tf
 from typing import List
 
+import numpy as np
+import tensorflow as tf
 from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
+from tensorflow.keras.backend import clear_session
 
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.utils.utils import seed_all

@@ -1,7 +1,7 @@
-import numpy as np
 import pathlib
-import tensorflow as tf
 
+import numpy as np
+import tensorflow as tf
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas
@@ -26,7 +26,6 @@ def setup_loader():
 
 
 def setup_data_generator():
-
     dataset_loader = setup_loader()
     preprocessor = _setup_preprocessor()
     return DataGenerator(dataset_loader, preprocessor, batch_size=8)

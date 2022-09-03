@@ -19,7 +19,9 @@ import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
 import nas.utils as nas_utils
 from nas.composer.nn_composer import NNComposer
+from nas.data.data_generator import DataGenerator
 from nas.data.data_generator import Preprocessor
+from nas.data.setup_data import setup_data
 from nas.graph.nn_graph.cnn.cnn_builder import CNNBuilder
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph, CNNNode
 from nas.graph.nn_graph.nn_graph_builder import NNGraphBuilder
@@ -29,8 +31,6 @@ from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, f
     graph_has_several_starts, graph_has_wrong_structure
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.utils.utils import set_root, project_root
-from nas.data.setup_data import setup_data
-from nas.data.data_generator import DataGenerator
 
 nas_utils.utils.set_root(nas_utils.var.project_root)
 
@@ -39,7 +39,7 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('../datasets/train')
+    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     image_size = (20, 20)
@@ -128,7 +128,7 @@ def build_butterfly_cls(save_path=None):
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
 
-    print('done')
+    print('Done')
 
 
 if __name__ == '__main__':

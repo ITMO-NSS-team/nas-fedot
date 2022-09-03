@@ -1,39 +1,38 @@
-import os
 import datetime
+import os
 import pathlib
-
-from sklearn.metrics import confusion_matrix
 from functools import partial
-import tensorflow as tf
 
-from fedot.core.data.supplementary_data import SupplementaryData
+import tensorflow as tf
+from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.data.data import DataTypesEnum
+from fedot.core.data.supplementary_data import SupplementaryData
 from fedot.core.log import default_log
-from fedot.core.repository.tasks import Task, TaskTypesEnum
-from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
-from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.gp_comp.gp_optimiser import GPGraphOptimiserParameters, GeneticSchemeTypesEnum
-from fedot.core.optimisers.optimizer import GraphGenerationParams
+from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import single_edge_mutation, single_add_mutation, \
     single_change_mutation, single_drop_mutation
-from fedot.core.dag.validation_rules import has_no_cycle, has_no_self_cycled_nodes
-from fedot.core.optimisers.adapters import DirectAdapter
-
+from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
+from fedot.core.optimisers.optimizer import GraphGenerationParams
+from fedot.core.repository.quality_metrics_repository import MetricsRepository, ClassificationMetricsEnum
+from fedot.core.repository.tasks import Task, TaskTypesEnum
 from nas.data.dataloader import ImageDataset, DataLoaderInputData, DataLoader
 from nas.data.split_data import generator_train_test_split
-from nas.utils.utils import set_root, seed_all
-from nas.utils.var import project_root, default_nodes_params
-from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
+from sklearn.metrics import confusion_matrix
+
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.graph.nn_graph.cnn import CNNBuilder
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
-from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.operations.evaluation.metrics import plot_confusion_matrix
+from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.evaluation.mutations import flatten_check, has_no_flatten_skip, graph_has_several_starts, \
     graph_has_wrong_structure
-from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
-from nas.operations.evaluation.metrics import plot_confusion_matrix
-from nas.graph.nn_graph.cnn import CNNBuilder
+from nas.operations.evaluation.mutations.nas_cnn_mutations import cnn_simple_mutation
+from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
+from nas.utils.utils import set_root, seed_all
+from nas.utils.var import project_root, default_nodes_params
 
 set_root(project_root)
 seed_all(942212)
@@ -127,4 +126,3 @@ if __name__ == '__main__':
             epochs=30, batch_size=batch_size, validation_rules=val_rules, mutations=mutations_list,
             objective_func=metric,
             initial_graph=None, verbose=1)
-

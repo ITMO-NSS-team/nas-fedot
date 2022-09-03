@@ -3,8 +3,8 @@ from math import floor
 from typing import (List, Any, Callable)
 
 from nas.graph.nn_graph.cnn.cnn_builder import get_layer_params
-from nas.utils.var import batch_norm_probability
 from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.utils.var import batch_norm_probability
 
 
 def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
@@ -15,7 +15,7 @@ def _add_flatten_node(node_func: Callable, current_node: Any, graph: Any):
 
 def _add_batch_norm2node(node, requirements=None):
     batch_norm_params = get_layer_params('batch_normalization', requirements)
-    node.content['params'] = node.content['params'] | batch_norm_params
+    node.content['params'] = {**node.content['params'], **batch_norm_params}
 
 
 def _create_conv2d_node(node_func: Callable, requirements=None):
@@ -106,6 +106,7 @@ def generate_initial_graph(graph_class: Callable, node_func: Callable, node_list
                 graph.nodes[current_node + shortcuts_length].nodes_from.append(graph.nodes[current_node])
             else:
                 print('Wrong connection. Connection dropped.')
+
     graph = graph_class()
     created_node = None
     for node in node_list:
@@ -244,6 +245,7 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
 
         root_node = root_node if root_node else None
         _growth_nn(node_parent=root_node)
+
     graph = graph_class()
     _random_cnn()
     _random_nn(root_node=graph.nodes[-1])
@@ -253,5 +255,3 @@ def random_conv_graph_generation(graph_class: Callable, node_func: Callable, req
     if not hasattr(graph, 'parent_operators'):
         setattr(graph, 'parent_operators', [])
     return graph
-
-

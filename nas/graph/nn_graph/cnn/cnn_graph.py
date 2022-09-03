@@ -1,27 +1,22 @@
-import pathlib
-from typing import List, Optional, Union
-
 import json
 import os
+import pathlib
+from typing import List, Optional, Union, Any
+
 import numpy as np
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-from tensorflow.python.keras.engine.functional import Functional
-from keras.utils.layer_utils import count_params
-
-
-from fedot.core.data.data import InputData, OutputData
+from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.python.keras.engine.functional import Functional
 
-from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.data_generator import Preprocessor, DataGenerator, Loader, temporal_setup_data
-
+from nas.graph.nn_graph.cnn.cnn_graph_node import CNNNode
+from nas.model.nn.keras_graph_converter import build_nn_from_graph
+from nas.utils.utils import set_root, seed_all, project_root
 # hotfix
 from nas.utils.var import default_nodes_params
-from nas.utils.utils import set_root, seed_all, project_root
-from nas.model.nn.keras_graph_converter import build_nn_from_graph
 
 set_root(project_root())
 seed_all(1)
@@ -42,7 +37,7 @@ class NNNodeOperatorAdapter:
 
 
 class NNGraph(OptGraph):
-    def __init__(self, nodes=None, model=None):
+    def __init__(self, nodes: Optional[List[Any]] = (), model=None):
         super().__init__(nodes)
         self._model = model
 

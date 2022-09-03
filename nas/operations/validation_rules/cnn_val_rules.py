@@ -6,6 +6,7 @@ from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 def validate_parameters(graph: NNGraph):
     pass
 
+
 def flatten_check(graph: NNGraph):
     cnt = 0
     for node in graph.nodes:

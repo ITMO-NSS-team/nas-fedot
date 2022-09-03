@@ -2,18 +2,18 @@ import pathlib
 from typing import Sequence, Tuple, Union, Optional
 
 from fedot.core.composer.composer import Composer
-from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
 from fedot.core.data.data import InputData
 from fedot.core.data.multi_modal import MultiModalData
-from fedot.core.optimisers.optimizer import GraphGenerationParams
+from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
 from fedot.core.optimisers.graph import OptGraph
 from fedot.core.optimisers.objective import DataSourceSplitter
 from fedot.core.optimisers.opt_history import OptHistory
+from fedot.core.optimisers.optimizer import GraphGenerationParams
 
-from nas.optimizer.objective.NNObjectiveEval import NNObjectiveEvaluate
-from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.data_generator import Preprocessor
+from nas.graph.nn_graph.cnn.cnn_graph import NNGraph
+from nas.optimizer.objective.NNObjectiveEval import NNObjectiveEvaluate
 
 
 class NNComposer(Composer):
@@ -64,7 +64,7 @@ class NNComposer(Composer):
         if self.composer_requirements.collect_intermediate_metric:
             self.optimizer.set_evaluation_callback(objective_evaluator.evaluate_intermediate_metrics)
 
-        opt_result = self.optimizer.optimise(objective_function, True)
+        opt_result = self.optimizer.optimise(objective_function)
         best_model, self.best_models = self._convert_opt_results_to_nn_graph(opt_result)
         self.log.info('NAS composition has been finished')
         return best_model
