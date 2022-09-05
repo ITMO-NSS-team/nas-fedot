@@ -1,7 +1,7 @@
 import pathlib
-from nas.utils.utils import set_root, project_root
 
 from nas.operations.validation_rules.cnn_val_rules import *
+from nas.utils.utils import set_root, project_root
 
 tests_path = pathlib.Path(project_root(), 'tests', 'unit', 'test_data')
 set_root(tests_path)

@@ -1,24 +1,22 @@
+import json
+import os
 import pathlib
 from typing import List, Union
 
-import json
-import os
 import numpy as np
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.python.keras.engine.functional import Functional
-
 from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.python.keras.engine.functional import Functional
 
-from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-
+from nas.graph.cnn.cnn_graph_node import NNNode
+from nas.model.nn.keras_graph_converter import build_nn_from_graph
+from nas.utils.utils import set_root, seed_all, project_root
 # hotfix
 from nas.utils.var import default_nodes_params
-from nas.utils.utils import set_root, seed_all, project_root
-from nas.model.nn.keras_graph_converter import build_nn_from_graph
 
 set_root(project_root())
 seed_all(1)

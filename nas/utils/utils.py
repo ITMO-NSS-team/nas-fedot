@@ -3,11 +3,10 @@ import os
 import pathlib
 import random
 import sys
-import numpy as np
-
-import tensorflow as tf
-
 from pathlib import Path
+
+import numpy as np
+import tensorflow as tf
 
 
 def set_root(root: Path):

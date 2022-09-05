@@ -25,23 +25,13 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
     def __init__(self, objective, data_producer, preprocessor: Preprocessor, requirements: NNComposerRequirements,
                  pipeline_cache=None, preprocessing_cache=None, eval_n_jobs=1, **objective_kwargs):
         # Add cache
-        super().__init__(objective, eval_n_jobs)
+        super().__init__(objective, eval_n_jobs, **objective_kwargs)
         self._data_producer = data_producer
         self._requirements = requirements
         self._pipeline_cache = pipeline_cache
         self._preprocessing_cache = preprocessing_cache
-        self._objective_kwargs = objective_kwargs
         self._preprocessor = preprocessor
         self._log = default_log(self)
-
-    # def setup_data(self, data: InputData, shuffle: bool = False, data_generator: DataGenerator = DataGenerator,
-    #                mode: str = 'train') -> Any:
-    #     dataset_loader = Loader(data)
-    #     batch_size = self._requirements.nn_requirements.batch_size
-    #     if mode == 'train':
-    #         return data_generator(dataset_loader, self._preprocessor, batch_size, shuffle)
-    #     else:
-    #         return data_generator(dataset_loader, self._preprocessor, 1, False)
 
     def evaluate_objective(self, graph: NNGraph, data: InputData, fold_id: Optional[int] = None) -> None:
         shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False

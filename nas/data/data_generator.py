@@ -1,14 +1,13 @@
-from typing import List, Optional, Union, Callable, Tuple
-from functools import partial
 import math
+from functools import partial
+from typing import List, Optional, Union, Callable, Tuple
 
 import cv2
-import sklearn
 import numpy as np
+import sklearn
 import tensorflow as tf
-from sklearn.preprocessing import OneHotEncoder
-
 from fedot.core.data.data import InputData
+from sklearn.preprocessing import OneHotEncoder
 
 
 def temporal_setup_data(input_data: InputData, batch_size, data_preprocessor,

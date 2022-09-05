@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Tuple, List, Any
 
 from fedot.core.utils import DEFAULT_PARAMS_STUB
-
 from tensorflow.keras import layers
+
 from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.utils.var import default_nodes_params
 

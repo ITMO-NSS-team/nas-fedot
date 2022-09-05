@@ -1,7 +1,7 @@
-import numpy as np
 import pathlib
-import tensorflow as tf
 
+import numpy as np
+import tensorflow as tf
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas

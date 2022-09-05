@@ -1,8 +1,8 @@
 from typing import Any, List
 
+from keras.utils.layer_utils import count_params
 from tensorflow import keras
 from tensorflow.keras import layers, optimizers
-from keras.utils.layer_utils import count_params
 
 import nas
 

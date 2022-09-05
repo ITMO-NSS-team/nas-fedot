@@ -1,14 +1,14 @@
 import os
+import pathlib
 from dataclasses import dataclass
 
-import pathlib
 import numpy as np
 import pandas as pd
+from fedot.core.data.data import InputData, Data
+from fedot.core.repository.dataset_types import DataTypesEnum
+from fedot.core.repository.tasks import Task
 from sklearn.preprocessing import LabelEncoder
 
-from fedot.core.data.data import InputData, Data
-from fedot.core.repository.tasks import Task
-from fedot.core.repository.dataset_types import DataTypesEnum
 from nas.utils.utils import project_root
 
 root = project_root()

@@ -1,7 +1,7 @@
 import pathlib
 
-from fedot.core.repository.tasks import Task, TaskTypesEnum
 from fedot.core.data.data import InputData
+from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas
 from nas.utils.utils import project_root, set_root

@@ -1,8 +1,9 @@
+import itertools
 from pathlib import Path
 from typing import List
-import itertools
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot_confusion_matrix(confusion_matrix, class_names: List, normalize: bool = False, save=None, cmap=plt.cm.YlGn):
