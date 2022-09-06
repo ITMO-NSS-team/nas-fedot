@@ -16,7 +16,7 @@ from nas.graph.cnn.cnn_graph_node import NNNode
 from nas.model.nn.keras_graph_converter import build_nn_from_graph
 from nas.utils.utils import set_root, seed_all, project_root
 # hotfix
-from nas.utils.var import default_nodes_params
+from nas.utils.default_parameters import default_nodes_params
 
 set_root(project_root())
 seed_all(1)
@@ -37,8 +37,6 @@ class NNNodeOperatorAdapter:
 
 
 class NNGraph(OptGraph):
-    # TODO add parent class NNGraph inherited from OptGraph with base nn logic e.g. fit, predict, save etc
-    #  And create child class for CNN's with CNN specific parameters e.g. number of conv_layers.
 
     def __init__(self, nodes=(), model=None):
         super().__init__(nodes)
@@ -104,10 +102,9 @@ class NNGraph(OptGraph):
     def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs):
         if not self.model:
             raise AttributeError("Graph doesn't have a model yet")
-        # hotfix
+
         is_multiclass = test_data.num_classes > 2
 
-        # test_generator = temporal_setup_data(test_data, batch_size, self._preprocessor, DataGenerator)
         predictions = self.model.predict(test_data, batch_size)
         if output_mode == 'labels':
             predictions = self._probs2labels(predictions, is_multiclass)

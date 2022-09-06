@@ -2,14 +2,12 @@ import gc
 from typing import List
 
 import numpy as np
-import tensorflow as tf
 from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
 from tensorflow.keras.backend import clear_session
 
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.utils.utils import seed_all
 
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 seed_all(1)
 
@@ -25,7 +23,6 @@ class NNGraphOptimiser(EvoGraphOptimizer):
         self.verbose = verbose
         self.metrics = objective
 
-    # TODO fix fot new version
     def save(self, history: bool = True, image: bool = True):
         print(f'Saving files into {self.save_path.resolve()}')
         if not isinstance(self.generations.best_individuals[0].graph, NNGraph):

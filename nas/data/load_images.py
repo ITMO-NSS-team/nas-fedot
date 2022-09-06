@@ -17,6 +17,7 @@ supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.s
 
 @dataclass
 class NNData(Data):
+    """ Class for loading heavy datasets into FEDOT's InputData e.g. image datasets"""
     @staticmethod
     def data_from_folder(data_path: os.PathLike, task: Task) -> InputData:
         data_path = pathlib.Path(data_path) if not isinstance(data_path, pathlib.Path) else data_path

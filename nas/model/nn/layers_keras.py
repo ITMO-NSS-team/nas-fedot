@@ -6,7 +6,7 @@ from fedot.core.utils import DEFAULT_PARAMS_STUB
 from tensorflow.keras import layers
 
 from nas.graph.cnn.cnn_graph_node import NNNode
-from nas.utils.var import default_nodes_params
+from nas.utils.default_parameters import default_nodes_params
 
 
 class ActivationTypesIdsEnum(Enum):

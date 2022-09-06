@@ -1,6 +1,3 @@
-from enum import Enum
-from dataclasses import dataclass
-
 verbose_values = {0: -1, 'auto': 1, 1: 1, 2: 1}
 
 batch_norm_probability = 0.4
@@ -18,8 +15,3 @@ default_nodes_params = {
 default_split_params = {
     'k_fold': {'n_splits': 5, 'shuffle': True},
     'holdout': {'train_size': 0.8, 'random_state': 42}}
-
-
-class VerboseLevelsEnum(Enum):
-    silent = -1
-

@@ -41,14 +41,17 @@ def build_butterfly_cls(save_path=None):
     dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
-    image_size = (20, 20)
+    cv_folds = 3
+    image_side_size = 20
     batch_size = 8
     epochs = 1
+    optimization_epochs = 1
 
     train_data, test_data = train_test_data_setup(data, shuffle_flag=True)
 
-    data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': 3})
-    conv_requirements = nas_requirements.ConvRequirements(input_shape=[20, 20, 3], color_mode='RGB',
+    data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': cv_folds})
+    conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
+                                                          color_mode='RGB',
                                                           min_filters=32, max_filters=128,
                                                           kernel_size=[3, 3], conv_strides=[1, 1],
                                                           pool_size=[2, 2], pool_strides=[2, 2],
@@ -62,7 +65,7 @@ def build_butterfly_cls(save_path=None):
                                                       max_nn_depth=3, max_num_of_conv_layers=10,
                                                       has_skip_connection=True
                                                       )
-    optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=1)
+    optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
 
     requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                            optimizer_requirements=optimizer_requirements,
@@ -97,17 +100,13 @@ def build_butterfly_cls(save_path=None):
 
     transformations = [tf.convert_to_tensor]
     data_preprocessor = Preprocessor()
-    data_preprocessor.set_image_size(image_size).set_features_transformations(transformations)
+    data_preprocessor.set_image_size((image_side_size, image_side_size)).set_features_transformations(transformations)
     composer.set_preprocessor(data_preprocessor)
 
     optimized_network = composer.compose_pipeline(train_data)
 
-    # TODO FIX SAVE PATHS FOR WINDOWS. CURRENT APPROACH SEEMS WORK ONLY FOR LINUX.
-    #  NOT pathlib.Path('..',proj_root()). Also fitted model doesn't save into save path.
-
     train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
 
-    # TODO integrate model loading or creation
     train_generator = setup_data(train_data, requirements.nn_requirements.batch_size, data_preprocessor, 'train',
                                  DataGenerator, True)
     val_generator = setup_data(val_data, requirements.nn_requirements.batch_size, data_preprocessor, 'train',
@@ -126,8 +125,6 @@ def build_butterfly_cls(save_path=None):
     print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
     print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
     print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
-
-    print('done')
 
 
 if __name__ == '__main__':

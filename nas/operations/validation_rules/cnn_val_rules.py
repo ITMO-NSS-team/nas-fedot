@@ -5,10 +5,6 @@ from fedot.core.dag.verification_rules import ERROR_PREFIX
 from nas.graph.cnn.cnn_graph import NNGraph
 
 
-def validate_parameters(graph: NNGraph):
-    pass
-
-
 def unique_node_types(graph: NNGraph):
     if len(set(map(str, graph.nodes))) < 3:
         raise ValueError(f'{ERROR_PREFIX} CNN should has at least 3 unique layer types')

@@ -6,6 +6,7 @@ from nas.data.data_generator import Loader
 
 def setup_data(input_data: InputData, batch_size, data_preprocessor, mode,
                data_generator, shuffle) -> tf.keras.utils.Sequence:
+    """This function converts FEDOT's InputData to generator format"""
     dataset_loader = Loader(input_data)
     if mode == 'train':
         shuffle = shuffle

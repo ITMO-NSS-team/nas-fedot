@@ -10,12 +10,6 @@ from fedot.core.data.data import InputData
 from sklearn.preprocessing import OneHotEncoder
 
 
-def temporal_setup_data(input_data: InputData, batch_size, data_preprocessor,
-                        data_generator) -> tf.keras.utils.Sequence:
-    data_loader = Loader(input_data)
-    return data_generator(data_loader, data_preprocessor, batch_size, shuffle=True)
-
-
 class Loader:
     """ Class for loading image dataset from InputData format. Implement loading by batches"""
 
@@ -138,29 +132,3 @@ class Preprocessor:
         new_features_batch = tf.convert_to_tensor([self.transform_sample(sample) for sample in features_batch])
         new_targets_batch = tf.convert_to_tensor(targets_batch)
         return new_features_batch, new_targets_batch
-
-
-if __name__ == '__main__':
-    import pathlib
-    import nas.data.load_images as loader
-    from fedot.core.repository.tasks import TaskTypesEnum, Task
-    from nas.utils.utils import project_root, set_root
-
-    set_root(project_root())
-
-    task = Task(TaskTypesEnum.classification)
-    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    data = loader.NNData.data_from_folder(dataset_path, task)
-
-    dataset_loader = Loader(data)
-    preprocessor = Preprocessor()
-    preprocessor.set_image_size((20, 20))
-    preprocessor.set_features_transformations([tf.convert_to_tensor])
-
-    data_generator = DataGenerator(dataset_loader, preprocessor, batch_size=8)
-
-    x, y = data_generator[0]
-
-    data_generator.shuffle_dataset()
-
-    print('Done!')

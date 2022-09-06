@@ -5,9 +5,6 @@ from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.cnn.cnn_graph import NNGraph, NNNode
 
 
-# TODO mb need to move add dense layers from keras_eval and increase the number of nn layers in requirements
-
-
 def get_layer_params(layer_type: str, requirements=None):
     layer_params = _get_random_layer_params(layer_type, requirements)
     return layer_params
@@ -115,9 +112,3 @@ class CNNBuilder:
         if self.requirements.nn_requirements.has_skip_connection:
             _add_skip_connections(graph, self._skip_connection_params())
         return graph
-
-
-if __name__ == '__main__':
-    r = NNComposerRequirements(primary=None, secondary=None, input_shape=[120, 120, 3])
-    graph = CNNBuilder(NNGraph, requirements=r).build_graph()
-    print("DONE!")

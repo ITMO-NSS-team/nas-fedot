@@ -63,8 +63,12 @@ class ConvRequirements:
     pool_types: List[str] = None
 
     def __post_init__(self):
+        if not self.color_mode:
+            self.color_mode = 'RGB'
         if not self.input_shape:
-            self.input_shape = [64, 64, 3]
+            self.input_shape = [64, 64]
+        if self.color_mode:
+            self.input_shape.append(3) if self.color_mode == 'RGB' else self.input_shape.append(1)
         if self.min_filters < 2:
             raise ValueError(f'min_filters value {self.min_filters} is unacceptable')
         if self.max_filters < 2:
