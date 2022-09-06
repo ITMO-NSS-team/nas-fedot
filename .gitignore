@@ -80,8 +80,14 @@ dist/
 /IcebergsDataset/*.json
 /10cls_Generated_dataset/
 /Generated_dataset/
+/result-wo-skips
+/results
+/successful-results
 /*.png
+/*.jpg
+/*.jpeg
 /*.h5
 /*.json
 /*.hdf5
 
+/logs

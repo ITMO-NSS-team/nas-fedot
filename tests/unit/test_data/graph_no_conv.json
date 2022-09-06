@@ -1,0 +1,66 @@
+{
+    "_model": null,
+    "operator": {
+        "_nodes": [
+            {
+                "_nodes_from": [
+                    "de3759a5-3a61-496d-8963-33189ec4fb34"
+                ],
+                "content": {
+                    "name": "dense",
+                    "params": {
+                        "layer_type": "dense",
+                        "neurons": 32,
+                        "activation": "sigmoid",
+                        "n_jobs": 1,
+                        "momentum": 0.7705231398308006,
+                        "epsilon": 0.5396174484497788,
+                        "drop": 0.2
+                    }
+                },
+                "uid": "229df3db-1a07-4205-861c-f160ffa13581",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "002c45b2-e9ec-4919-97be-ab55e338418f"
+                ],
+                "content": {
+                    "name": "dense",
+                    "params": {
+                        "layer_type": "dense",
+                        "neurons": 128,
+                        "activation": "relu",
+                        "n_jobs": 1,
+                        "momentum": 0.6148107170550803,
+                        "epsilon": 0.5781759052991843,
+                        "drop": 0.2
+                    }
+                },
+                "uid": "de3759a5-3a61-496d-8963-33189ec4fb34",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [],
+                "content": {
+                    "name": "dense",
+                    "params": {
+                        "layer_type": "dense",
+                        "neurons": 128,
+                        "activation": "selu",
+                        "n_jobs": 1,
+                        "momentum": 0.37052266664574673,
+                        "epsilon": 0.7327658089218658
+                    }
+                },
+                "uid": "002c45b2-e9ec-4919-97be-ab55e338418f",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            }
+        ],
+        "_postprocess_nodes": {
+            "_class_path": "fedot.core.dag.graph_operator/GraphOperator._empty_postprocess"
+        },
+        "_class_path": "fedot.core.dag.graph_operator/GraphOperator"
+    },
+    "_class_path": "nas.graph.cnn.cnn_graph/NNGraph"
+}

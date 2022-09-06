@@ -1,250 +1,195 @@
 {
-    "nodes": [
-        {
-            "_nodes_from": [],
-            "content": {
-                "name": "conv2d",
-                "params": {
-                    "layer_type": "conv2d",
-                    "activation": "relu",
-                    "kernel_size": [
-                        3,
-                        3
-                    ],
-                    "conv_strides": [
-                        2,
-                        2
-                    ],
-                    "num_of_filters": 16,
-                    "pool_size": [
-                        2,
-                        2
-                    ],
-                    "pool_strides": [
-                        2,
-                        2
-                    ],
-                    "pool_type": "max_pool2d"
-                }
+    "_model": null,
+    "operator": {
+        "_nodes": [
+            {
+                "_nodes_from": [],
+                "content": {
+                    "name": "conv2d",
+                    "params": {
+                        "layer_type": "conv2d",
+                        "activation": "elu",
+                        "kernel_size": 3,
+                        "conv_strides": 1,
+                        "num_of_filters": 64,
+                        "pool_size": 2,
+                        "pool_strides": 2,
+                        "pool_type": "average_pool2d",
+                        "n_jobs": 1,
+                        "drop": 0.5
+                    }
+                },
+                "uid": "cbb53499-afae-43f1-9a08-ebf45786008d",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
             },
-            "uid": "a49f5494-70bf-4e65-9360-73cc427a8a7b",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
+            {
+                "_nodes_from": [
+                    "cbb53499-afae-43f1-9a08-ebf45786008d"
+                ],
+                "content": {
+                    "name": "conv2d",
+                    "params": {
+                        "layer_type": "conv2d",
+                        "activation": "softsign",
+                        "kernel_size": 3,
+                        "conv_strides": 1,
+                        "num_of_filters": 32,
+                        "pool_size": 2,
+                        "pool_strides": 2,
+                        "pool_type": "max_pool2d",
+                        "n_jobs": 1,
+                        "momentum": 0.7258526014465152,
+                        "epsilon": 0.5276294143623982,
+                        "drop": 0.4
+                    }
+                },
+                "uid": "ba304b93-438f-4af4-8033-9ca3086f8d42",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "ba304b93-438f-4af4-8033-9ca3086f8d42"
+                ],
+                "content": {
+                    "name": "conv2d",
+                    "params": {
+                        "layer_type": "conv2d",
+                        "activation": "softsign",
+                        "kernel_size": 3,
+                        "conv_strides": 1,
+                        "num_of_filters": 64,
+                        "pool_size": 2,
+                        "pool_strides": 2,
+                        "pool_type": "average_pool2d",
+                        "n_jobs": 1,
+                        "momentum": 0.5564543226524334,
+                        "epsilon": 0.6422943629324456
+                    }
+                },
+                "uid": "2214675b-ebf4-48a2-a0f6-bead969428ca",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "2214675b-ebf4-48a2-a0f6-bead969428ca"
+                ],
+                "content": {
+                    "name": "conv2d",
+                    "params": {
+                        "layer_type": "conv2d",
+                        "activation": "elu",
+                        "kernel_size": 3,
+                        "conv_strides": 1,
+                        "num_of_filters": 128,
+                        "pool_size": 2,
+                        "pool_strides": 2,
+                        "pool_type": "average_pool2d",
+                        "n_jobs": 1,
+                        "momentum": 0.8824790008318577,
+                        "epsilon": 0.8461974184283128,
+                        "drop": 0.5
+                    }
+                },
+                "uid": "d22668dd-a9b9-4b5b-b2c2-ee3b5bb52286",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "d22668dd-a9b9-4b5b-b2c2-ee3b5bb52286"
+                ],
+                "content": {
+                    "name": "conv2d",
+                    "params": {
+                        "layer_type": "conv2d",
+                        "activation": "hard_sigmoid",
+                        "kernel_size": 3,
+                        "conv_strides": 1,
+                        "num_of_filters": 64,
+                        "pool_size": 2,
+                        "pool_strides": 2,
+                        "pool_type": "average_pool2d",
+                        "n_jobs": 1,
+                        "drop": 0.1
+                    }
+                },
+                "uid": "d1b02084-c365-42e2-9f29-1f87dbc923f0",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "d1b02084-c365-42e2-9f29-1f87dbc923f0"
+                ],
+                "content": {
+                    "name": "flatten",
+                    "params": {
+                        "n_jobs": 1
+                    }
+                },
+                "uid": "0642589d-3f03-4127-8ad1-c69d9f48d346",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "0642589d-3f03-4127-8ad1-c69d9f48d346"
+                ],
+                "content": {
+                    "name": "dense",
+                    "params": {
+                        "layer_type": "dense",
+                        "neurons": 128,
+                        "activation": "selu",
+                        "n_jobs": 1,
+                        "momentum": 0.37052266664574673,
+                        "epsilon": 0.7327658089218658
+                    }
+                },
+                "uid": "9122566c-a0bf-4e83-b807-0969b992fd82",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "9122566c-a0bf-4e83-b807-0969b992fd82"
+                ],
+                "content": {
+                    "name": "dense",
+                    "params": {
+                        "layer_type": "dense",
+                        "neurons": 128,
+                        "activation": "relu",
+                        "n_jobs": 1,
+                        "momentum": 0.6148107170550803,
+                        "epsilon": 0.5781759052991843,
+                        "drop": 0.2
+                    }
+                },
+                "uid": "4808265a-4ee9-4317-8907-8ccc16f95e83",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            },
+            {
+                "_nodes_from": [
+                    "4808265a-4ee9-4317-8907-8ccc16f95e83",
+                    "0642589d-3f03-4127-8ad1-c69d9f48d346"
+                ],
+                "content": {
+                    "name": "dense",
+                    "params": {
+                        "layer_type": "dense",
+                        "neurons": 32,
+                        "activation": "sigmoid",
+                        "n_jobs": 1,
+                        "momentum": 0.7705231398308006,
+                        "epsilon": 0.5396174484497788,
+                        "drop": 0.2
+                    }
+                },
+                "uid": "0cbd8af1-e14e-47ea-9759-3b2d80922883",
+                "_class_path": "nas.graph.cnn.cnn_graph_node/NNNode"
+            }
+        ],
+        "_postprocess_nodes": {
+            "_class_path": "fedot.core.dag.graph_operator/GraphOperator._empty_postprocess"
         },
-        {
-            "_nodes_from": [
-                "a49f5494-70bf-4e65-9360-73cc427a8a7b"
-            ],
-            "content": {
-                "name": "conv2d",
-                "params": {
-                    "layer_type": "conv2d",
-                    "activation": "relu",
-                    "kernel_size": [
-                        3,
-                        3
-                    ],
-                    "conv_strides": [
-                        2,
-                        2
-                    ],
-                    "num_of_filters": 16,
-                    "pool_size": [
-                        2,
-                        2
-                    ],
-                    "pool_strides": [
-                        2,
-                        2
-                    ],
-                    "pool_type": "max_pool2d"
-                }
-            },
-            "uid": "f188074e-a537-4195-9ebe-0c9163cc967e",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "f188074e-a537-4195-9ebe-0c9163cc967e"
-            ],
-            "content": {
-                "name": "dropout",
-                "params": {
-                    "layer_type": "dropout",
-                    "drop": 0.2
-                }
-            },
-            "uid": "9dcf8745-d132-4234-b300-1f5f28f86e06",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "9dcf8745-d132-4234-b300-1f5f28f86e06"
-            ],
-            "content": {
-                "name": "conv2d",
-                "params": {
-                    "layer_type": "conv2d",
-                    "activation": "relu",
-                    "kernel_size": [
-                        3,
-                        3
-                    ],
-                    "conv_strides": [
-                        2,
-                        2
-                    ],
-                    "num_of_filters": 16,
-                    "pool_size": [
-                        2,
-                        2
-                    ],
-                    "pool_strides": [
-                        2,
-                        2
-                    ],
-                    "pool_type": "max_pool2d"
-                }
-            },
-            "uid": "624f4fb2-6625-4a82-86f4-ff57e08d17ea",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "624f4fb2-6625-4a82-86f4-ff57e08d17ea"
-            ],
-            "content": {
-                "name": "conv2d",
-                "params": {
-                    "layer_type": "conv2d",
-                    "activation": "relu",
-                    "kernel_size": [
-                        3,
-                        3
-                    ],
-                    "conv_strides": [
-                        2,
-                        2
-                    ],
-                    "num_of_filters": 16,
-                    "pool_size": [
-                        2,
-                        2
-                    ],
-                    "pool_strides": [
-                        2,
-                        2
-                    ],
-                    "pool_type": "max_pool2d"
-                }
-            },
-            "uid": "8cc70df6-ec43-4c78-a6c5-20c2619e1026",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "8cc70df6-ec43-4c78-a6c5-20c2619e1026"
-            ],
-            "content": {
-                "name": "conv2d",
-                "params": {
-                    "layer_type": "conv2d",
-                    "activation": "relu",
-                    "kernel_size": [
-                        3,
-                        3
-                    ],
-                    "conv_strides": [
-                        2,
-                        2
-                    ],
-                    "num_of_filters": 16,
-                    "pool_size": [
-                        2,
-                        2
-                    ],
-                    "pool_strides": [
-                        2,
-                        2
-                    ],
-                    "pool_type": "max_pool2d"
-                }
-            },
-            "uid": "fef3f71f-5a53-46ce-b615-f59755bd5f70",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "fef3f71f-5a53-46ce-b615-f59755bd5f70"
-            ],
-            "content": {
-                "name": "flatten",
-                "params": null
-            },
-            "uid": "11d92144-f3f3-4418-a303-e90a97e52698",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "11d92144-f3f3-4418-a303-e90a97e52698",
-                "8cc70df6-ec43-4c78-a6c5-20c2619e1026"
-            ],
-            "content": {
-                "name": "dense",
-                "params": {
-                    "activation": "relu",
-                    "layer_type": "dense",
-                    "neurons": 121
-                }
-            },
-            "uid": "b6254d5e-69f7-4794-b751-be71f75d196a",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "b6254d5e-69f7-4794-b751-be71f75d196a",
-                "fef3f71f-5a53-46ce-b615-f59755bd5f70"
-            ],
-            "content": {
-                "name": "dropout",
-                "params": {
-                    "layer_type": "dropout",
-                    "drop": 0.2
-                }
-            },
-            "uid": "8401eaa7-6f51-4c35-8204-ac92483047be",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "8401eaa7-6f51-4c35-8204-ac92483047be"
-            ],
-            "content": {
-                "name": "dense",
-                "params": {
-                    "activation": "relu",
-                    "layer_type": "dense",
-                    "neurons": 121
-                }
-            },
-            "uid": "dd684fbf-2bba-43f2-abd8-586095500fbf",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        },
-        {
-            "_nodes_from": [
-                "dd684fbf-2bba-43f2-abd8-586095500fbf"
-            ],
-            "content": {
-                "name": "dense",
-                "params": {
-                    "activation": "relu",
-                    "layer_type": "dense",
-                    "neurons": 121
-                }
-            },
-            "uid": "febc5b41-af33-4959-a115-2143cc0a5da6",
-            "_class_path": "nas.composer.graph_gp_cnn_composer/NNNode"
-        }
-    ],
-    "model": null,
-    "_class_path": "nas.composer.graph_gp_cnn_composer/NNGraph"
+        "_class_path": "fedot.core.dag.graph_operator/GraphOperator"
+    },
+    "_class_path": "nas.graph.cnn.cnn_graph/NNGraph"
 }
