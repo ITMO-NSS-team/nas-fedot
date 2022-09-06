@@ -17,7 +17,6 @@ from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
-import nas.utils as nas_utils
 from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import DataGenerator
 from nas.data.data_generator import Preprocessor
@@ -32,7 +31,7 @@ from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, f
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.utils.utils import set_root, project_root
 
-nas_utils.utils.set_root(nas_utils.var.project_root)
+set_root(project_root())
 
 
 def build_butterfly_cls(save_path=None):

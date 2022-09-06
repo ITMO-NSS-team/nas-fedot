@@ -63,7 +63,6 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
             except Exception as ex:
                 self._log.warning(f'Continuing after graph fit error {ex}\nfor graph: {graph_id}')
                 continue
-            # evaluated_fitness = self._objective(graph, reference_data=test_data)
             evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
 
             if evaluated_fitness.valid:

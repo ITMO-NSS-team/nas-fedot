@@ -38,23 +38,20 @@ class NNGraphOptimiser(EvoGraphOptimizer):
 
     def _calculate_objective_function(self, graph, objective_function, data_producer, requirements,
                                       verbose) -> List[float]:
-        fitness_hist = []
+        fitness_history = []
 
         for fold_id, (train_data, test_data) in enumerate(data_producer()):
             graph.fit(train_data, requirements=requirements, verbose=verbose, results_path=self.save_path)
             ind_fitness = objective_function(graph, test_data)
 
-            fitness_hist.append(ind_fitness)
+            fitness_history.append(ind_fitness)
 
             clear_session()
             gc.collect()
             graph.model = None
 
-        fitness = float(np.mean(fitness_hist))
-        NNGraph.INDIVIDUAL += 1
-        if NNGraph.INDIVIDUAL > requirements.pop_size:
-            NNGraph.GENERATION += 1
-            NNGraph.INDIVIDUAL = 0
+        fitness = float(np.mean(fitness_history))
+
         return [fitness]
 
     def with_save_path(self, save_path):
