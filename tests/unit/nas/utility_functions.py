@@ -7,7 +7,7 @@ from nas.graph.nn_graph_builder import NNGraphBuilder
 
 def get_requirements():
     data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': 3})
-    conv_requirements = nas_requirements.ConvRequirements(input_shape=[20, 20, 3], color_mode='RGB',
+    conv_requirements = nas_requirements.ConvRequirements(input_shape=[20, 20], color_mode='RGB',
                                                           min_filters=32, max_filters=128,
                                                           kernel_size=[3, 3], conv_strides=[1, 1],
                                                           pool_size=[2, 2], pool_strides=[2, 2],
