@@ -1,52 +1,43 @@
+import gc
 import json
 import os
 import pathlib
-from typing import List, Union
+from typing import List, Union, Optional, Tuple, Callable, Annotated
 
-import numpy as np
+import keras.backend
+import tensorflow as tf
 from fedot.core.data.data import OutputData
-from fedot.core.optimisers.graph import OptGraph, OptNode
-from fedot.core.serializers import Serializer
-from fedot.core.utils import DEFAULT_PARAMS_STUB
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from golem.core.dag.graph_node import GraphNode
+from golem.core.optimisers.graph import OptGraph
+from golem.serializers import Serializer
+from golem.visualisation.graph_viz import NodeColorType
 from tensorflow.python.keras.engine.functional import Functional
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.cnn.cnn_graph_node import NNNode
-from nas.model.nn.keras_graph_converter import build_nn_from_graph
-from nas.utils.utils import set_root, seed_all, project_root
+from nas.graph.node.nn_graph_node import NNNode
+from nas.graph.utils import probs2labels
+from nas.model.nn.tf_model import KerasModelMaker
+from nas.model.utils import converter
 # hotfix
-from nas.utils.default_parameters import default_nodes_params
+from nas.utils.utils import seed_all, clear_keras_session
 
-set_root(project_root())
 seed_all(1)
 
 
-class NNNodeOperatorAdapter:
-    def adapt(self, adaptee) -> OptNode:
-        adaptee.__class__ = OptNode
-        return adaptee
-
-    def restore(self, node) -> NNNode:
-        obj = node
-        obj.__class__ = NNNode
-        if obj.content['params'] == DEFAULT_PARAMS_STUB:
-            node_name = obj.content.get('name')
-            obj.content = default_nodes_params[node_name]
-        return obj
-
-
-class NNGraph(OptGraph):
-
-    def __init__(self, nodes=(), model=None):
+class NasGraph(OptGraph):
+    def __init__(self, nodes: Optional[List[NNNode]] = ()):
         super().__init__(nodes)
-        self._model = model
+        self._model = None
 
     def __repr__(self):
-        return f"{self.depth}:{self.length}:{self.cnn_depth}"
+        return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
 
     def __eq__(self, other) -> bool:
         return self is other
+
+    def show(self, save_path: Optional[Union[os.PathLike, str]] = None, engine: str = 'pyvis',
+             node_color: Optional[NodeColorType] = None, dpi: int = 100,
+             node_size_scale: float = 1.0, font_size_scale: float = 1.0, edge_curvature_scale: float = 1.0):
+        super().show(save_path, engine, node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
 
     @property
     def model(self) -> Functional:
@@ -56,68 +47,43 @@ class NNGraph(OptGraph):
     def model(self, value: Union[Functional]):
         self._model = value
 
-    @property
-    def free_nodes(self):
-        free_nodes = []
-        skip_connections_start_nodes = set()
-        for node in self.graph_struct[::-1]:
-            if len(skip_connections_start_nodes) == 0:
-                free_nodes.append(node)
-            is_skip_connection_end = len(node.nodes_from) > 1
-            if is_skip_connection_end:
-                skip_connections_start_nodes.update(node.nodes_from[1:])
-            if node in skip_connections_start_nodes:
-                skip_connections_start_nodes.remove(node)
-        return free_nodes
-
-    @property
-    def _node_adapter(self):
-        return NNNodeOperatorAdapter()
+    @model.deleter
+    def model(self):
+        del self._model
+        self._model = None
+        gc.collect()
 
     @property
     def cnn_depth(self):
-        for idx, node in enumerate(self.graph_struct):
-            if node.content['name'] == 'flatten':
-                return idx
+        flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
+        return flatten_id
 
-    def fit(self, train_generator, val_generator, requirements: NNComposerRequirements, num_classes: int,
-            verbose='auto', optimization: bool = True, shuffle: bool = False):
+    def compile_model(self, input_shape: Union[Annotated[List[int], 3], Annotated[Tuple[int], 3]], loss_function: str,
+                      metrics: Optional[List] = None, model_builder: Callable = KerasModelMaker,
+                      n_classes: Optional[int] = None, learning_rate: float = 1e-3, optimizer: Callable = None):
+        optimizer = optimizer(learning_rate=learning_rate)
 
-        epochs = requirements.optimizer_requirements.opt_epochs if optimization else requirements.nn_requirements.epochs
-        batch_size = requirements.nn_requirements.batch_size
-
-        early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-        reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
-                                           verbose=1, min_delta=1e-4, mode='min')
-        callbacks_list = [early_stopping, reduce_lr_loss]
-
-        if not self.model:
-            build_nn_from_graph(self, num_classes, requirements)
-
-        self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,
-                       validation_data=val_generator, shuffle=shuffle, callbacks=callbacks_list)
-
+        self.model = model_builder(input_shape, self, converter.GraphStruct, n_classes).build()
+        self.model.compile(loss=loss_function, optimizer=optimizer, metrics=metrics)
         return self
 
-    def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs):
+    def fit(self, train_generator, validation_generator, epoch_num: int = 5, batch_size: int = 32,
+            callbacks: List = None, verbose='auto', **kwargs):
+        tf.keras.backend.clear_session()
+        self.model.fit(train_generator, batch_size=batch_size, epochs=epoch_num, verbose=verbose,
+                       validation_data=validation_generator, callbacks=callbacks)
+
+    def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs) -> OutputData:
         if not self.model:
             raise AttributeError("Graph doesn't have a model yet")
 
         is_multiclass = test_data.num_classes > 2
-
         predictions = self.model.predict(test_data, batch_size)
         if output_mode == 'labels':
-            predictions = self._probs2labels(predictions, is_multiclass)
+            predictions = probs2labels(predictions, is_multiclass)
 
         return OutputData(idx=test_data.idx, features=test_data.features, predict=predictions,
                           task=test_data.task, data_type=test_data.data_type)
-
-    @staticmethod
-    def _probs2labels(predictions, is_multiclass):
-        if is_multiclass:
-            return np.argmax(predictions, axis=-1)
-        else:
-            return np.where(predictions > .5, 1, 0)
 
     def fit_with_cache(self, *args, **kwargs):
         # TODO
@@ -145,8 +111,20 @@ class NNGraph(OptGraph):
             return json.loads(json_data, cls=Serializer)
 
     @property
-    def graph_struct(self) -> List:
-        if self.nodes[0].content['name'] != 'conv2d':
-            return self.nodes[::-1]
-        else:
+    def graph_struct(self) -> List[Union[NNNode, GraphNode]]:
+        if 'conv' in self.nodes[0].content['name']:
             return self.nodes
+        else:
+            return self.nodes[::-1]
+
+    @staticmethod
+    def release_memory(**kwargs):
+        clear_keras_session(**kwargs)
+        # gc.collect()
+
+    def unfit(self, **kwargs):
+        if self.model:
+            del self.model
+        if hasattr(self, '_weights'):
+            del self._weights
+        keras.backend.clear_session()

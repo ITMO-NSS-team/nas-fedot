@@ -1,23 +1,22 @@
+from __future__ import annotations
+
 import os
 import pathlib
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from fedot.core.data.data import InputData, Data
+from fedot.core.data.data import Data, InputData
 from fedot.core.repository.dataset_types import DataTypesEnum
-from fedot.core.repository.tasks import Task
 from sklearn.preprocessing import LabelEncoder
 
-from nas.utils.utils import project_root
-
-root = project_root()
 supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.jpe', '.jp2', '.tiff'}
 
 
 @dataclass
-class NNData(Data):
+class BaseNasImageData(Data):
     """ Class for loading heavy datasets into FEDOT's InputData e.g. image datasets"""
+
     @staticmethod
     def data_from_folder(data_path: os.PathLike, task: Task) -> InputData:
         data_path = pathlib.Path(data_path) if not isinstance(data_path, pathlib.Path) else data_path

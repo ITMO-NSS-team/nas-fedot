@@ -1,64 +1,62 @@
+from __future__ import annotations
+
 import pathlib
 from typing import Sequence, Tuple, Union, Optional
 
+from fedot.core.caching.pipelines_cache import OperationsCache
+from fedot.core.caching.preprocessing_cache import PreprocessingCache
 from fedot.core.composer.composer import Composer
 from fedot.core.data.data import InputData
 from fedot.core.data.multi_modal import MultiModalData
-from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
-from fedot.core.optimisers.graph import OptGraph
-from fedot.core.optimisers.objective import DataSourceSplitter
-from fedot.core.optimisers.opt_history import OptHistory
-from fedot.core.optimisers.optimizer import GraphGenerationParams
+from fedot.core.optimisers.objective.data_source_splitter import DataSourceSplitter
+from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
+from golem.core.optimisers.graph import OptGraph
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.data_generator import Preprocessor
-from nas.graph.cnn.cnn_graph import NNGraph
-from nas.optimizer.objective.nn_objective_evaluate import NNObjectiveEvaluate
+from nas.data.dataset.builder import BaseNasDatasetBuilder
+from nas.graph.cnn.cnn_graph import NasGraph
+from nas.optimizer.objective.nn_objective_evaluate import NasObjectiveEvaluate
 
 
-class NNComposer(Composer):
+class NasComposer(Composer):
     def __init__(self, optimizer: EvoGraphOptimizer,
-                 composer_requirements: NNComposerRequirements, history: OptHistory = None,
-                 pipelines_cache=None, preprocessing_cache=None,
-                 graph_generation_params: Optional[GraphGenerationParams] = None):
+                 composer_requirements: NNComposerRequirements,
+                 pipelines_cache: Optional[OperationsCache] = None,
+                 preprocessing_cache: Optional[PreprocessingCache] = None,
+                 verbose: 'VerboseLevelsEnum' = 'VerboseLevelsEnum.default'):
         super().__init__(optimizer, composer_requirements)
-        self.graph_generation_params = graph_generation_params
 
-        self._preprocessor = Preprocessor()
-
-        self.composer_requirements = composer_requirements
+        self.best_models = ()
+        self._data_transformer: Optional[BaseNasDatasetBuilder] = None
         self.pipelines_cache = pipelines_cache
         self.preprocessing_cache = preprocessing_cache
 
-        self.history = history
-        self.best_models = ()
-
-    def _convert_opt_results_to_nn_graph(self, graphs: Sequence[OptGraph]) -> Tuple[NNGraph, Sequence[NNGraph]]:
+    def _convert_opt_results_to_nn_graph(self, graphs: Sequence[OptGraph]) -> Tuple[NasGraph, Sequence[NasGraph]]:
         adapter = self.optimizer.graph_generation_params.adapter
         multi_objective = self.optimizer.objective.is_multi_objective
         best_graphs = [adapter.restore(graph) for graph in graphs]
         best_graph = best_graphs if multi_objective else best_graphs[0]
         return best_graph, best_graphs
 
-    def set_preprocessor(self, preprocessor):
-        self._preprocessor = preprocessor
+    def set_data_transformer(self, transformer: BaseNasDatasetBuilder) -> NasComposer:
+        self._data_transformer = transformer
         return self
 
     def set_callbacks(self, callbacks):
         raise NotImplementedError
 
-    def compose_pipeline(self, data: Union[InputData, MultiModalData]) -> NNGraph:
+    def compose_pipeline(self, data: Union[InputData, MultiModalData], optimization_verbose=None) -> NasGraph:
         """ Method for objective evaluation"""
 
         data.shuffle()
         if self.history:
             self.history.clean_results()
 
-        data_producer = DataSourceSplitter(**self.composer_requirements.data_requirements.split_params).build(data)
+        data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
 
-        objective_evaluator = NNObjectiveEvaluate(self.optimizer.objective, data_producer, self._preprocessor,
-                                                  self.composer_requirements, self.pipelines_cache,
-                                                  self.preprocessing_cache)
+        objective_evaluator = NasObjectiveEvaluate(self.optimizer.objective, data_producer, self._data_transformer,
+                                                   self.composer_requirements, self.pipelines_cache,
+                                                   self.preprocessing_cache, optimization_verbose)
         objective_function = objective_evaluator.evaluate
 
         if self.composer_requirements.collect_intermediate_metric:
@@ -75,10 +73,9 @@ class NNComposer(Composer):
         self.log.info(f'Saving results into {path.resolve()}')
         if self.best_models:
             graph = self.best_models[0]
-            if not isinstance(graph, NNGraph):
+            if not isinstance(graph, NasGraph):
                 graph = self.graph_generation_params.adapter.restore(graph)
             graph.save(path)
-            graph.show(path / 'graph.png')
 
         if self.history:
             self.history.save(path / 'history.json')

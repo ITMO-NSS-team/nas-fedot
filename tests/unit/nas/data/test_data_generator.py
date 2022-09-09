@@ -5,7 +5,9 @@ import tensorflow as tf
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas
-from nas.data.data_generator import DataGenerator
+import nas.data.loader
+import nas.data.nas_data
+from nas.data import KerasDataset
 from nas.utils.utils import set_root, project_root
 
 set_root(project_root())
@@ -13,8 +15,9 @@ img_size = 16
 
 
 def _setup_preprocessor():
-    preprocessor = nas.data.data_generator.Preprocessor()
-    preprocessor.set_image_size((img_size, img_size))
+    image_size = (img_size, img_size)
+    preprocessor = nas.data.preprocessor.Preprocessor(image_size)
+    preprocessor.set_image_size(image_size)
     preprocessor.set_features_transformations([tf.convert_to_tensor])
     return preprocessor
 
@@ -22,18 +25,18 @@ def _setup_preprocessor():
 def _setup_input_data_dataset():
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path('example_datasets/butterfly_cls')
-    return nas.data.load_images.NNData.data_from_folder(dataset_path, task)
+    return nas.data.nas_data.BaseNasImageData.data_from_folder(dataset_path, task)
 
 
 def _setup_loader():
     dataset = _setup_input_data_dataset()
-    return nas.data.data_generator.Loader(dataset)
+    return nas.data.loader.ImageLoader(dataset)
 
 
 def setup_data_generator():
     dataset_loader = _setup_loader()
     preprocessor = _setup_preprocessor()
-    return DataGenerator(dataset_loader, preprocessor, batch_size=8)
+    return KerasDataset(dataset_loader, preprocessor, batch_size=8)
 
 
 def test_is_valid_loader_len():

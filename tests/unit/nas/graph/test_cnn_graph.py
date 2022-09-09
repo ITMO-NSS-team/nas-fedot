@@ -1,26 +1,40 @@
-from nas.graph.cnn.cnn_graph import NNGraph
-from nas.model.nn.keras_graph_converter import build_nn_from_graph
-from tests.unit.nas.utility_functions import get_requirements, get_graph
+import tensorflow as tf
+from nas.composer.nn_composer_requirements import load_default_requirements
+from nas.graph.cnn.cnn_graph import NasGraph
+from tests.unit.nas.utilities import get_graph
+
+
+def test_generated_graph_len():
+    requirements = load_default_requirements()
+    max_depth = requirements.max_depth
+    for _ in range(100):
+        graph = get_graph()
+        if not max_depth >= len(graph):
+            assert False
+    assert True
+
+
+def test_generated_graph_nodes_num():
+    for _ in range(100):
+        graph = get_graph()
+        has_correct_nodes_num = len(graph.nodes) > 1
+        if not has_correct_nodes_num:
+            assert False
+    assert True
 
 
 def test_graph_type():
     for _ in range(100):
         graph = get_graph()
-        assert isinstance(graph, NNGraph)
+        assert isinstance(graph, NasGraph)
 
 
-def test_is_valid_graph():
-    for _ in range(100):
-        graph = get_graph()
-        assert len(graph.nodes) > 1
-
-
-def test_is_graph_trainable():
-    is_valid = True
+def test_graph_model_build():
     for _ in range(100):
         graph = get_graph()
         try:
-            build_nn_from_graph(graph, n_classes=4, requirements=get_requirements())
-        except (ValueError, MemoryError) as ex:
-            is_valid = False
-        assert is_valid
+            graph.model = graph.compile_model([32, 32, 3], 'binary_crossentropy',
+                                              optimizer=tf.keras.optimizers.Adam, n_classes=3)
+        except ValueError:
+            assert False
+    assert True
