@@ -59,5 +59,5 @@ def build_nn_from_graph(graph, n_classes, requirements):
 
     # restrictions for large number of trainable parameters
     total_trainable_params = count_params(graph.model.trainable_weights)
-    if total_trainable_params > 7e8:
+    if total_trainable_params > 2e8:
         raise MemoryError('Model has too many trainable parameters. Fit operation has been cancelled')

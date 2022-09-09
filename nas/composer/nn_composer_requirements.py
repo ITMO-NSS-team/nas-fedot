@@ -10,19 +10,22 @@ from nas.model.nn.layers_keras import activation_types
 _possible_color_modes = {'RGB': 3, 'Gray': 1}
 
 
-def permissible_kernel_parameters_correct(image_size: List[float], kernel_size: List[int],
-                                          strides: List[int],
-                                          pooling: bool) -> Tuple[List[int], List[int]]:
-    is_strides_permissible = all([strides[i] < kernel_size[i] for i in range(len(strides))])
-    is_kernel_size_permissible = all([kernel_size[i] < image_size[i] for i in range(len(strides))])
-    if not is_strides_permissible:
-        if pooling:
-            strides = [2, 2]
-        else:
-            strides = [1, 1]
-    if not is_kernel_size_permissible:
-        kernel_size = [2, 2]
-    return kernel_size, strides
+def permissible_kernel_parameters_correct(image_size: List[float], kernel_sizes: List[List[int]],
+                                          strides: List[List[int]],
+                                          pooling: bool):
+    # TODO update parameters checker
+    for i, kernel_size in enumerate(kernel_sizes):
+        for j, stride in enumerate(strides):
+            is_strides_permissible = all([stride[i] < kernel_size[i] for i in range(len(stride))])
+            is_kernel_size_permissible = all([kernel_size[i] < image_size[i] for i in range(len(stride))])
+
+            if not is_strides_permissible:
+                if pooling:
+                    strides[j] = [2, 2]
+                else:
+                    strides[j] = [1, 1]
+            if not is_kernel_size_permissible:
+                kernel_sizes[i] = [2, 2]
 
 
 @dataclass
@@ -51,16 +54,16 @@ class ConvRequirements:
     input_shape: Optional[List[float]] = None
     color_mode: Optional[str] = None
 
-    cnn_secondary: List[str] = None
+    cnn_secondary: List[str] = None  # Additional node type that can be placed in conv part of the graph
 
     min_filters: int = 32
     max_filters: int = 128
-    kernel_size: List[int] = None
-    conv_strides: List[int] = None
-    pool_size: List[int] = None
-    pool_strides: List[int] = None
-    conv_layer: List[str] = None
-    pool_types: List[str] = None
+    kernel_size: List[List[int]] = None
+    conv_strides: List[List[int]] = None
+    pool_size: List[List[int]] = None
+    pool_strides: List[List[int]] = None
+    conv_layer: Optional[List[str]] = None
+    pool_types: Optional[List[str]] = None
 
     def __post_init__(self):
         if not self.color_mode:
@@ -74,24 +77,21 @@ class ConvRequirements:
         if self.max_filters < 2:
             raise ValueError(f'max_filters value {self.max_filters} is unacceptable')
         if not self.kernel_size:
-            self.kernel_size = [3, 3]
+            self.kernel_size = [[3, 3]]
         if not self.conv_strides:
-            self.conv_strides = [1, 1]
+            self.conv_strides = [[1, 1]]
         if not self.pool_size:
-            self.pool_size = [2, 2]
+            self.pool_size = [[2, 2]]
         if not self.pool_strides:
-            self.pool_strides = [2, 2]
+            self.pool_strides = [[2, 2]]
         if not self.pool_types:
             self.pool_types = ['max_pool2d', 'average_pool2d']
         if not all([side_size >= 3 for side_size in self.input_shape]):
             raise ValueError(f'Specified image size is unacceptable')
 
-        self.kernel_size, self.conv_strides = permissible_kernel_parameters_correct(self.input_shape,
-                                                                                    self.kernel_size,
-                                                                                    self.conv_strides, False)
-        self.pool_size, self.pool_strides = permissible_kernel_parameters_correct(self.input_shape,
-                                                                                  self.pool_size,
-                                                                                  self.pool_strides, True)
+        # TODO Extend checker method. Current one doesn't fit it's name.
+        permissible_kernel_parameters_correct(self.input_shape, self.kernel_size, self.conv_strides, False)
+        permissible_kernel_parameters_correct(self.input_shape, self.pool_size, self.pool_strides, True)
 
     @property
     def num_of_channels(self):

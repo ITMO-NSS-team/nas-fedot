@@ -53,8 +53,9 @@ def build_butterfly_cls(save_path=None):
     conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
                                                           color_mode='RGB',
                                                           min_filters=32, max_filters=128,
-                                                          kernel_size=[3, 3], conv_strides=[1, 1],
-                                                          pool_size=[2, 2], pool_strides=[2, 2],
+                                                          kernel_size=[[3, 3], [1, 1], [5, 5], [7, 7]],
+                                                          conv_strides=[[1, 1]],
+                                                          pool_size=[[2, 2]], pool_strides=[[2, 2]],
                                                           pool_types=['max_pool2d', 'average_pool2d'])
     fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
                                                                   max_number_of_neurons=128)
@@ -71,8 +72,8 @@ def build_butterfly_cls(save_path=None):
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),
-                                                           pop_size=1,
-                                                           num_of_generations=1)
+                                                           pop_size=3,
+                                                           num_of_generations=3)
 
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
                  MutationTypesEnum.single_change, MutationTypesEnum.simple]
@@ -95,7 +96,7 @@ def build_butterfly_cls(save_path=None):
     builder = ComposerBuilder(task).with_composer(NNComposer).with_optimiser(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimiser_params(optimizer_parameters). \
         with_initial_pipelines_generation_function(graph_generation_function.create_nas_graph). \
-        with_graph_generation_param(graph_generation_parameters).with_history('../_results/debug/master')
+        with_graph_generation_param(graph_generation_parameters).with_history('../_results/debug/master_2')
     composer = builder.build()
 
     transformations = [tf.convert_to_tensor]
@@ -128,6 +129,6 @@ def build_butterfly_cls(save_path=None):
 
 
 if __name__ == '__main__':
-    path = f'_results/debug/master/{datetime.datetime.now().date()}'
+    path = f'_results/debug/master_2/{datetime.datetime.now().date()}'
     print(tf.config.list_physical_devices('GPU'))
     build_butterfly_cls(path)
