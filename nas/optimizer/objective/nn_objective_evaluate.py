@@ -34,6 +34,8 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         self._log = default_log(self)
 
     def evaluate_objective(self, graph: NNGraph, data: InputData, fold_id: Optional[int] = None) -> None:
+        # TODO
+        # First converts InputData to Generator format (TEMPORARY)
         shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
         data_to_train, data_to_validate = train_test_data_setup(data, shuffle_flag=True)
 
@@ -41,12 +43,13 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                                      'train', DataGenerator, shuffle)
         validation_generator = setup_data(data_to_validate, self._requirements.nn_requirements.batch_size,
                                           self._preprocessor, 'train', DataGenerator, shuffle)
-        graph.fit(train_generator, validation_generator, self._requirements, data.num_classes, self._preprocessor,
+        graph.fit(train_generator, validation_generator, self._requirements, data.num_classes,
                   shuffle=shuffle)
 
     def calculate_objective(self, graph: NNGraph, reference_data: InputData, fold_id: Optional[int] = None):
-        # TODO
+
         test_generator = setup_data(reference_data, 1, self._preprocessor, 'test', DataGenerator, False)
+
         return self._objective(graph, reference_data=test_generator)
 
     def evaluate(self, graph: NNGraph) -> Fitness:
@@ -62,13 +65,19 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 self.evaluate_objective(graph, train_data, fold_id)
             except Exception as ex:
                 self._log.warning(f'Continuing after graph fit error {ex}\nfor graph: {graph_id}')
+                clear_session()
+                gc.collect()
+                graph.model = None
                 continue
-            evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
 
+            evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
             if evaluated_fitness.valid:
                 folds_metrics.append(evaluated_fitness.values)
             else:
                 self._log.warning(f'Continuing after objective evaluation error for graph: {graph_id}')
+                clear_session()
+                gc.collect()
+                graph.model = None
                 continue
 
             clear_session()
@@ -81,3 +90,11 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         else:
             folds_metrics = None
         return to_fitness(folds_metrics, self._objective.is_multi_objective)
+
+    def calculate_objective_with_cache(self, graph, train_data, fold_id=None, n_jobs=-1):
+        graph.try_load_from_cache()  # Load layer weights if ``cache`` is provided and if there are already
+        # fitted layers in individual history
+        graph.fit()
+
+        if self._pipeline_cache is not None:
+            self._pipeline_cache.save()

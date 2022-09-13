@@ -52,18 +52,18 @@ def build_butterfly_cls(save_path=None):
     data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': cv_folds})
     conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
                                                           color_mode='RGB',
-                                                          min_filters=32, max_filters=128,
+                                                          min_filters=32, max_filters=64,
                                                           kernel_size=[[3, 3], [1, 1], [5, 5], [7, 7]],
                                                           conv_strides=[[1, 1]],
                                                           pool_size=[[2, 2]], pool_strides=[[2, 2]],
                                                           pool_types=['max_pool2d', 'average_pool2d'])
     fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
-                                                                  max_number_of_neurons=128)
+                                                                  max_number_of_neurons=64)
     nn_requirements = nas_requirements.NNRequirements(conv_requirements=conv_requirements,
                                                       fc_requirements=fc_requirements,
                                                       primary=['conv2d'], secondary=['dense'],
                                                       epochs=epochs, batch_size=batch_size,
-                                                      max_nn_depth=3, max_num_of_conv_layers=10,
+                                                      max_nn_depth=2, max_num_of_conv_layers=5,
                                                       has_skip_connection=True
                                                       )
     optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
@@ -72,11 +72,13 @@ def build_butterfly_cls(save_path=None):
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),
-                                                           pop_size=3,
-                                                           num_of_generations=3)
+                                                           pop_size=10,
+                                                           num_of_generations=10)
 
-    mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
-                 MutationTypesEnum.single_change, MutationTypesEnum.simple]
+    # mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
+    #              MutationTypesEnum.single_change, MutationTypesEnum.simple]
+
+    mutations = [MutationTypesEnum.simple]
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
                         has_no_cycle, has_no_self_cycled_nodes, unique_node_types]
