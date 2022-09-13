@@ -75,10 +75,10 @@ def build_butterfly_cls(save_path=None):
                                                            pop_size=10,
                                                            num_of_generations=10)
 
-    # mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
-    #              MutationTypesEnum.single_change, MutationTypesEnum.simple]
+    mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
+                 MutationTypesEnum.single_change]
 
-    mutations = [MutationTypesEnum.simple]
+    # mutations = [MutationTypesEnum.simple]
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
                         has_no_cycle, has_no_self_cycled_nodes, unique_node_types]
