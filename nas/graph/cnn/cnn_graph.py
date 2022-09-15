@@ -13,10 +13,10 @@ from tensorflow.python.keras.engine.functional import Functional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.cnn.cnn_graph_node import NNNode
-from nas.model.nn.keras_graph_converter import build_nn_from_graph
-from nas.utils.utils import set_root, seed_all, project_root
+from nas.nn.keras_graph_converter import build_nn_from_graph
 # hotfix
 from nas.utils.default_parameters import default_nodes_params
+from nas.utils.utils import set_root, seed_all, project_root
 
 set_root(project_root())
 seed_all(1)

@@ -1,8 +1,8 @@
 import datetime
 
 from nas.composer import nn_composer_requirements as nas_requirements
-from nas.graph.cnn.cnn_builder import CNNBuilder
-from nas.graph.nn_graph_builder import NNGraphBuilder
+from nas.graph.cnn.cnn_builder import CNNGenerator
+from nas.graph.graph_builder import NNGraphBuilder
 
 
 def get_requirements():
@@ -34,7 +34,7 @@ def get_requirements():
 def get_graph():
     requirements = get_requirements()
     builder = NNGraphBuilder()
-    cnn_builder = CNNBuilder(requirements=requirements)
+    cnn_builder = CNNGenerator(requirements=requirements)
     builder.set_builder(cnn_builder)
 
     return builder.create_nas_graph()

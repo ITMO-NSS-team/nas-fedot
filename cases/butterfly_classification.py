@@ -21,9 +21,9 @@ from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import DataGenerator
 from nas.data.data_generator import Preprocessor
 from nas.data.setup_data import setup_data
-from nas.graph.cnn.cnn_builder import CNNBuilder
+from nas.graph.cnn.cnn_builder import CNNGenerator
 from nas.graph.cnn.cnn_graph import NNGraph, NNNode
-from nas.graph.nn_graph_builder import NNGraphBuilder
+from nas.graph.graph_builder import NNGraphBuilder
 from nas.graph.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_count, \
@@ -63,7 +63,7 @@ def build_butterfly_cls(save_path=None):
                                                       fc_requirements=fc_requirements,
                                                       primary=['conv2d'], secondary=['dense'],
                                                       epochs=epochs, batch_size=batch_size,
-                                                      max_nn_depth=2, max_num_of_conv_layers=5,
+                                                      max_nn_depth=2, max_num_of_conv_layers=15,
                                                       has_skip_connection=True
                                                       )
     optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
@@ -93,7 +93,7 @@ def build_butterfly_cls(save_path=None):
         rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements, DefaultChangeAdvisor()))
 
     graph_generation_function = NNGraphBuilder()
-    graph_generation_function.set_builder(CNNBuilder(requirements=requirements))
+    graph_generation_function.set_builder(CNNGenerator(requirements=requirements))
 
     builder = ComposerBuilder(task).with_composer(NNComposer).with_optimiser(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimiser_params(optimizer_parameters). \

@@ -4,7 +4,7 @@ from typing import (Optional)
 from fedot.core.optimisers.opt_node_factory import OptNodeFactory
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.cnn.cnn_builder import get_layer_params
+# from nas.graph.cnn.cnn_builder import get_layer_params
 from nas.graph.cnn.cnn_graph_node import NNNode
 
 

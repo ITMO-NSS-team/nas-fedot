@@ -1,11 +1,11 @@
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Any
 
 from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements, \
     MutationStrengthEnum
 
-from nas.model.nn.layers_keras import activation_types
+from nas.nn.layers_keras import ActivationTypesIdsEnum
 
 _possible_color_modes = {'RGB': 3, 'Gray': 1}
 
@@ -54,8 +54,8 @@ class ConvRequirements:
     input_shape: Optional[List[float]] = None
     color_mode: Optional[str] = None
 
-    cnn_secondary: List[str] = None  # Additional node type that can be placed in conv part of the graph
-
+    cnn_secondary: List[Any] = None  # Additional node type that can be placed in conv part of the graph
+    dilation_rate: List[List[int]] = None
     min_filters: int = 32
     max_filters: int = 128
     kernel_size: List[List[int]] = None
@@ -66,6 +66,8 @@ class ConvRequirements:
     pool_types: Optional[List[str]] = None
 
     def __post_init__(self):
+        if not self.dilation_rate:
+            self.dilation_rate = [[2, 2]]
         if not self.color_mode:
             self.color_mode = 'RGB'
         if not self.input_shape:
@@ -112,10 +114,10 @@ class NNRequirements:
     fc_requirements: FullyConnectedRequirements = FullyConnectedRequirements()
     conv_requirements: ConvRequirements = ConvRequirements()
 
-    primary: Optional[List[str]] = None
-    secondary: Optional[List[str]] = None
+    primary: Optional[List[Any]] = None
+    secondary: Optional[List[Any]] = None
 
-    activation_types = activation_types
+    activation_types = [activation_func for activation_func in ActivationTypesIdsEnum]
     epochs: int = 1
     batch_size: int = 12
 

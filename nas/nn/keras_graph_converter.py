@@ -30,13 +30,13 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
                 skip_connection_destination_dict[skip_connection_id] = [in_layer]
             else:
                 skip_connection_destination_dict[skip_connection_id].append(in_layer)
-        in_layer = nas.model.nn.layers_keras.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
-                                                                        layers_dict=skip_connection_destination_dict)
+        in_layer = nas.nn.layers_keras.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
+                                                                  layers_dict=skip_connection_destination_dict)
         if layer_type == 'conv2d':
-            in_layer = nas.model.nn.layers_keras.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
-                                                                 is_free_node=is_free_node)
+            in_layer = nas.nn.layers_keras.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
+                                                           is_free_node=is_free_node)
         elif layer_type == 'dense':
-            in_layer = nas.model.nn.layers_keras.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
+            in_layer = nas.nn.layers_keras.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
         elif layer_type == 'flatten':
             flatten = layers.Flatten()
             in_layer = flatten(in_layer)

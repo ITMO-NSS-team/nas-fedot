@@ -22,9 +22,6 @@ class ActivationTypesIdsEnum(Enum):
     linear = 'linear'
 
 
-activation_types = [type_ for type_ in ActivationTypesIdsEnum]
-
-
 @dataclass
 class LayerParams:
     layer_type: str
@@ -150,3 +147,15 @@ def _add_batch_norm(input_layer: Any, layer_params):
     batch_norm_layer = layers.BatchNormalization(momentum=layer_params['momentum'],
                                                  epsilon=layer_params['epsilon'])(input_layer)
     return batch_norm_layer
+
+
+class KerasLayerBuilder:
+    def __init__(self):
+        self._builder_function = None
+
+    def with_builder_function(self, layer_func):
+        self._builder_function = layer_func
+        return self
+
+    def build(self, idx, input_layer, current_node, **kwargs):
+        self._builder_function(idx, input_layer, current_node, **kwargs)
