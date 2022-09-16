@@ -69,12 +69,16 @@ def _add_skip_connections(graph: NNGraph, params):
     skip_connections_id = params[0]
     shortcut_len = params[1]
     for current_node in skip_connections_id:
-        is_first_conv = current_node <= graph.cnn_depth
-        is_second_conv = current_node + shortcut_len < graph.cnn_depth
-        if is_first_conv == is_second_conv and (current_node + shortcut_len) < len(graph.nodes):
+        if (current_node + shortcut_len) < len(graph.nodes):
             graph.nodes[current_node + shortcut_len].nodes_from.append(graph.nodes[current_node])
         else:
             print('Wrong connection. Connection dropped.')
+        # is_first_conv = current_node <= graph.cnn_depth
+        # is_second_conv = current_node + shortcut_len < graph.cnn_depth
+        # if is_first_conv == is_second_conv and (current_node + shortcut_len) < len(graph.nodes):
+        #     graph.nodes[current_node + shortcut_len].nodes_from.append(graph.nodes[current_node])
+        # else:
+        #     print('Wrong connection. Connection dropped.')
 
 
 class CNNGenerator(GraphGenerator):
@@ -229,7 +233,7 @@ if __name__ == '__main__':
                                                       primary=[LayersPoolEnum.conv2d, LayersPoolEnum.dilation_conv2d],
                                                       secondary=[LayersPoolEnum.dense],
                                                       epochs=epochs, batch_size=batch_size,
-                                                      max_nn_depth=2, max_num_of_conv_layers=15,
+                                                      max_nn_depth=2, max_num_of_conv_layers=30,
                                                       has_skip_connection=True
                                                       )
     optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
