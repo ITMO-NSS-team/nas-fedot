@@ -5,7 +5,7 @@ from typing import Tuple, List, Any
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 from tensorflow.keras import layers
 
-from nas.graph.cnn.cnn_graph_node import NNNode
+from nas.graph.node.nn_graph_node import NNNode
 from nas.utils.default_parameters import default_nodes_params
 
 
@@ -94,15 +94,16 @@ def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_
     kernel_size = layer_params['kernel_size']
     conv_strides = layer_params['conv_strides'] if is_free_node else [1, 1]
     filters_num = layer_params['num_of_filters']
+    dilation_rate = layer_params.get('dilation_rate', 1)
     activation = layers.Activation(layer_params['activation'])
     conv_layer = layers.Conv2D(filters=filters_num, kernel_size=kernel_size, strides=conv_strides,
-                               name=f'conv_layer_{idx}', padding='same')(input_layer)
+                               name=f'conv_layer_{idx}', padding='same', dilation_rate=dilation_rate)(input_layer)
     if 'momentum' in layer_params:
         conv_layer = _add_batch_norm(input_layer=conv_layer, layer_params=layer_params)
     conv_layer = activation(conv_layer)
     # Add pooling
     if is_free_node:
-        if layer_params['pool_size']:
+        if layer_params.get('pool_size'):
             pool_size = layer_params['pool_size']
             pool_strides = layer_params['pool_strides']
             if layer_params['pool_type'] == 'max_pool2d':

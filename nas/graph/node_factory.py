@@ -4,13 +4,13 @@ from typing import (Optional)
 from fedot.core.optimisers.opt_node_factory import OptNodeFactory
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-# from nas.graph.cnn.cnn_builder import get_layer_params
-from nas.graph.cnn.cnn_graph_node import NNNode
+from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 
 
 class NNNodeFactory(OptNodeFactory):
-    def __init__(self, requirements: NNComposerRequirements, advisor):
-        super().__init__(requirements, advisor)
+    def __init__(self, requirements: NNComposerRequirements.nn_requirements, advisor):
+        self.requirements = requirements
+        self.advisor = advisor
         self._pool_conv_nodes = self.requirements.primary
         self._pool_fc_nodes = self.requirements.secondary
 
@@ -47,6 +47,6 @@ class NNNodeFactory(OptNodeFactory):
         if not candidates:
             return None
         layer_name = choice(candidates)
-        layer_params = get_layer_params(layer_name, self.requirements)
+        layer_params = get_node_params_by_type(layer_name, self.requirements)
         return NNNode(content={'name': layer_name,
                                'params': layer_params})

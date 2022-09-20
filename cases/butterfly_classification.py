@@ -7,8 +7,9 @@ from fedot.core.composer.composer_builder import ComposerBuilder
 from fedot.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.adapters import DirectAdapter
-from fedot.core.optimisers.gp_comp.gp_optimizer import GPGraphOptimizerParameters, GeneticSchemeTypesEnum
+from fedot.core.optimisers.gp_comp.gp_optimizer import GPGraphOptimizerParameters
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
+from fedot.core.optimisers.gp_comp.operators.inheritance import GeneticSchemeTypesEnum
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
 from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
 from fedot.core.optimisers.optimizer import GraphGenerationParams
@@ -21,7 +22,7 @@ from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import DataGenerator
 from nas.data.data_generator import Preprocessor
 from nas.data.setup_data import setup_data
-from nas.graph.cnn.cnn_builder import CNNGenerator
+from nas.graph.cnn.cnn_builder import ConvGraphMaker
 from nas.graph.cnn.cnn_graph import NNGraph, NNNode
 from nas.graph.graph_builder import NNGraphBuilder
 from nas.graph.node_factory import NNNodeFactory
@@ -29,6 +30,7 @@ from nas.operations.evaluation.metrics.metrics import calculate_validation_metri
 from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_count, \
     graph_has_several_starts, graph_has_wrong_structure, unique_node_types
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
+from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
 
 set_root(project_root())
@@ -46,6 +48,10 @@ def build_butterfly_cls(save_path=None):
     batch_size = 8
     epochs = 1
     optimization_epochs = 1
+    conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
+                        LayersPoolEnum.conv2d_7x7]
+    mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
+                 MutationTypesEnum.single_change]
 
     train_data, test_data = train_test_data_setup(data, shuffle_flag=True)
 
@@ -61,9 +67,10 @@ def build_butterfly_cls(save_path=None):
                                                                   max_number_of_neurons=64)
     nn_requirements = nas_requirements.NNRequirements(conv_requirements=conv_requirements,
                                                       fc_requirements=fc_requirements,
-                                                      primary=['conv2d'], secondary=['dense'],
+                                                      primary=conv_layers_pool,
+                                                      secondary=[LayersPoolEnum.dense],
                                                       epochs=epochs, batch_size=batch_size,
-                                                      max_nn_depth=2, max_num_of_conv_layers=15,
+                                                      max_nn_depth=2, max_num_of_conv_layers=10,
                                                       has_skip_connection=True
                                                       )
     optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
@@ -75,11 +82,6 @@ def build_butterfly_cls(save_path=None):
                                                            pop_size=10,
                                                            num_of_generations=10)
 
-    mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
-                 MutationTypesEnum.single_change]
-
-    # mutations = [MutationTypesEnum.simple]
-
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
                         has_no_cycle, has_no_self_cycled_nodes, unique_node_types]
 
@@ -90,14 +92,15 @@ def build_butterfly_cls(save_path=None):
 
     graph_generation_parameters = GraphGenerationParams(
         adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
-        rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements, DefaultChangeAdvisor()))
+        rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements.nn_requirements,
+                                                                          DefaultChangeAdvisor()))
 
     graph_generation_function = NNGraphBuilder()
-    graph_generation_function.set_builder(CNNGenerator(requirements=requirements))
+    graph_generation_function.set_builder(ConvGraphMaker(all_possible_params=requirements.nn_requirements))
 
-    builder = ComposerBuilder(task).with_composer(NNComposer).with_optimiser(NNGraphOptimiser). \
-        with_requirements(requirements).with_metrics(objective_function).with_optimiser_params(optimizer_parameters). \
-        with_initial_pipelines_generation_function(graph_generation_function.create_nas_graph). \
+    builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
+        with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
+        with_initial_pipelines_generation_function(graph_generation_function.build). \
         with_graph_generation_param(graph_generation_parameters).with_history('../_results/debug/master_2')
     composer = builder.build()
 

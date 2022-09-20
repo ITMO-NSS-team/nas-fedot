@@ -1,9 +1,11 @@
+import gc
 import json
 import os
 import pathlib
 from typing import List, Union
 
 import numpy as np
+import tensorflow as tf
 from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
@@ -12,13 +14,15 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.python.keras.engine.functional import Functional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.cnn.cnn_graph_node import NNNode
+from nas.graph.node.nn_graph_node import NNNode
 from nas.nn.keras_graph_converter import build_nn_from_graph
+from nas.repository.layer_types_enum import LayersPoolEnum
 # hotfix
 from nas.utils.default_parameters import default_nodes_params
 from nas.utils.utils import set_root, seed_all, project_root
 
 set_root(project_root())
+convolutional_types = (LayersPoolEnum.conv2d, LayersPoolEnum.dilation_conv2d)
 seed_all(1)
 
 
@@ -43,7 +47,7 @@ class NNGraph(OptGraph):
         self._model = model
 
     def __repr__(self):
-        return f"{self.depth}:{self.length}:{self.cnn_depth}"
+        return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
 
     def __eq__(self, other) -> bool:
         return self is other
@@ -55,6 +59,11 @@ class NNGraph(OptGraph):
     @model.setter
     def model(self, value: Union[Functional]):
         self._model = value
+
+    @model.deleter
+    def model(self):
+        del self._model
+        self._model = None
 
     @property
     def free_nodes(self):
@@ -76,12 +85,13 @@ class NNGraph(OptGraph):
 
     @property
     def cnn_depth(self):
-        for idx, node in enumerate(self.graph_struct):
-            if node.content['name'] == 'flatten':
-                return idx
+        flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
+        return flatten_id
 
     def fit(self, train_generator, val_generator, requirements: NNComposerRequirements, num_classes: int,
             verbose='auto', optimization: bool = True, shuffle: bool = False):
+
+        # self.release_memory(self)
 
         epochs = requirements.optimizer_requirements.opt_epochs if optimization else requirements.nn_requirements.epochs
         batch_size = requirements.nn_requirements.batch_size
@@ -146,7 +156,13 @@ class NNGraph(OptGraph):
 
     @property
     def graph_struct(self) -> List:
-        if self.nodes[0].content['name'] != 'conv2d':
-            return self.nodes[::-1]
-        else:
+        if 'conv' in self.nodes[0].content['name']:
             return self.nodes
+        else:
+            return self.nodes[::-1]
+
+    @staticmethod
+    def release_memory(graph):
+        del graph.model
+        tf.keras.backend.clear_session()
+        gc.collect()

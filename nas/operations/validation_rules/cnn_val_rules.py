@@ -11,8 +11,7 @@ def unique_node_types(graph: NNGraph):
 
 
 def flatten_count(graph: NNGraph):
-    nodes_counter = Counter(list(map(str, graph.nodes)))
-    if nodes_counter['flatten'] != 1:
+    if len(graph.cnn_depth) != 1:
         raise ValueError(f'{ERROR_PREFIX} wrong number of flatten layer in CNN')
 
 
@@ -34,7 +33,7 @@ def graph_has_several_starts(graph: NNGraph):
 
 
 def graph_has_wrong_structure(graph: NNGraph):
-    nodes_after_flatten = [str(node) for node in graph.graph_struct[graph.cnn_depth:]]
-    if 'conv2d' in nodes_after_flatten:
+    nodes_after_flatten = [str(node) for node in graph.graph_struct[graph.cnn_depth[0]:] if 'conv' in str(node)]
+    if len(nodes_after_flatten) != 0:
         raise ValueError(f'{ERROR_PREFIX} Graph has wrong structure')
     return True

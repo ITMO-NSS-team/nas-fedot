@@ -7,5 +7,5 @@ class NNGraphBuilder:
     def set_builder(self, builder: GraphGenerator):
         self._builder = builder
 
-    def create_nas_graph(self):
-        return self._builder.build_graph()
+    def build(self):
+        return self._builder.build()

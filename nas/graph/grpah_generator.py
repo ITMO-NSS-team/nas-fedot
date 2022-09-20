@@ -7,5 +7,5 @@ class GraphGenerator(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def build_graph(self):
+    def build(self):
         raise NotImplementedError

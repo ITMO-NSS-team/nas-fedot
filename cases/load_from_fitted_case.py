@@ -9,7 +9,7 @@ from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 import nas.composer.nn_composer_requirements as nas_requirements
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.graph.cnn.cnn_graph_node import NNNode
+from nas.graph.node.nn_graph_node import NNNode
 from nas.graph.node_factory import NNNodeFactory
 from nas.utils.utils import project_root, set_root
 

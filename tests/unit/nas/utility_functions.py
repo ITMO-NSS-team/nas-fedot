@@ -37,4 +37,4 @@ def get_graph():
     cnn_builder = CNNGenerator(requirements=requirements)
     builder.set_builder(cnn_builder)
 
-    return builder.create_nas_graph()
+    return builder.build()

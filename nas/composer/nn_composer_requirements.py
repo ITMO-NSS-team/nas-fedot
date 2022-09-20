@@ -1,11 +1,12 @@
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional
 
-from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements, \
-    MutationStrengthEnum
+from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements
+from fedot.core.optimisers.gp_comp.operators.mutation import MutationStrengthEnum
 
 from nas.nn.layers_keras import ActivationTypesIdsEnum
+from nas.repository.layer_types_enum import LayersPoolEnum
 
 _possible_color_modes = {'RGB': 3, 'Gray': 1}
 
@@ -54,8 +55,8 @@ class ConvRequirements:
     input_shape: Optional[List[float]] = None
     color_mode: Optional[str] = None
 
-    cnn_secondary: List[Any] = None  # Additional node type that can be placed in conv part of the graph
-    dilation_rate: List[List[int]] = None
+    cnn_secondary: List[LayersPoolEnum] = None  # Additional node type that can be placed in conv part of the graph
+    dilation_rate: List[int] = None
     min_filters: int = 32
     max_filters: int = 128
     kernel_size: List[List[int]] = None
@@ -67,7 +68,7 @@ class ConvRequirements:
 
     def __post_init__(self):
         if not self.dilation_rate:
-            self.dilation_rate = [[2, 2]]
+            self.dilation_rate = [2]
         if not self.color_mode:
             self.color_mode = 'RGB'
         if not self.input_shape:
@@ -114,8 +115,8 @@ class NNRequirements:
     fc_requirements: FullyConnectedRequirements = FullyConnectedRequirements()
     conv_requirements: ConvRequirements = ConvRequirements()
 
-    primary: Optional[List[Any]] = None
-    secondary: Optional[List[Any]] = None
+    primary: Optional[List[LayersPoolEnum]] = None
+    secondary: Optional[List[LayersPoolEnum]] = None
 
     activation_types = [activation_func for activation_func in ActivationTypesIdsEnum]
     epochs: int = 1
@@ -148,10 +149,10 @@ class NNRequirements:
             raise ValueError('Epoch number must be at least 1 or greater')
         if self.max_drop_size >= 1:
             raise ValueError(f'max_drop_size value {self.max_drop_size} is unacceptable')
-        if not self.primary:
-            self.primary = ['conv2d']
-        if not self.secondary:
-            self.secondary = ['dense']
+        # if not self.primary:
+        #     self.primary = ['conv2d']
+        # if not self.secondary:
+        #     self.secondary = ['dense']
 
     @property
     def max_possible_depth(self):

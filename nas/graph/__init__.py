@@ -1,1 +1,2 @@
-from .cnn import cnn_builder, cnn_graph, cnn_graph_node
+from .cnn import cnn_builder, cnn_graph
+from .node import nn_graph_node

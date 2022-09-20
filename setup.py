@@ -8,11 +8,11 @@ HERE = Path(__file__).parent.resolve()
 
 # The text of the README file
 NAME = 'nas-fedot'
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 AUTHOR = 'NSS Lab'
 SHORT_DESCRIPTION = 'Neural architecture search'
 README = Path(HERE, 'README.md').read_text(encoding='utf-8')
-URL = 'https://github.com/ITMO-NSS-team/nas-fedot/archive/core-upgrade.zip'
+URL = 'https://github.com/ITMO-NSS-team/nas-fedot/archive/refactoring.zip'
 REQUIRES_PYTHON = '>=3.9'
 LICENSE = 'BSD 3-Clause'
 
