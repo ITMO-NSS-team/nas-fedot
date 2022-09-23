@@ -3,8 +3,8 @@ from typing import List, Optional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.graph.grpah_generator import GraphGenerator
+from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 random.seed(1)
@@ -23,18 +23,18 @@ def _add_skip_connections(graph: NNGraph, params):
 
 
 class ConvGraphMaker(GraphGenerator):
-    def __init__(self, all_possible_params: NNComposerRequirements.nn_requirements,
+    def __init__(self, param_restrictions: NNComposerRequirements.nn_requirements,
                  initial_struct: Optional[List] = None):
         self._initial_struct = initial_struct
-        self._all_possible_params = all_possible_params
+        self._param_restrictions = param_restrictions
 
     @property
     def initial_struct(self):
         return self._initial_struct
 
     @property
-    def all_possible_params(self):
-        return self._all_possible_params
+    def param_restrictions(self):
+        return self._param_restrictions
 
     @staticmethod
     def _get_skip_connection_params(graph):
@@ -48,35 +48,45 @@ class ConvGraphMaker(GraphGenerator):
         return connections, skips_len
 
     def _generate_from_scratch(self):
-        total_conv_nodes = random.randint(self.all_possible_params.min_num_of_conv_layers,
-                                          self.all_possible_params.max_num_of_conv_layers)
-        total_fc_nodes = random.randint(self.all_possible_params.min_nn_depth,
-                                        self.all_possible_params.max_nn_depth)
+        total_conv_nodes = random.randint(self.param_restrictions.min_num_of_conv_layers,
+                                          self.param_restrictions.max_num_of_conv_layers)
+        total_fc_nodes = random.randint(self.param_restrictions.min_nn_depth,
+                                        self.param_restrictions.max_nn_depth)
         # hotfix
-        zero_node = random.choice(self.all_possible_params.primary)
+        zero_node = random.choice(self.param_restrictions.primary)
         graph_nodes = [zero_node]
         for i in range(1, total_conv_nodes + total_fc_nodes):
             if i < total_conv_nodes:
-                node = random.choice(self.all_possible_params.primary) \
+                node = random.choice(self.param_restrictions.primary) \
                     if i != total_conv_nodes - 1 else LayersPoolEnum.flatten
             else:
-                node = random.choice(self.all_possible_params.secondary)
+                node = random.choice(self.param_restrictions.secondary)
             graph_nodes.append(node)
         return graph_nodes
 
+    def _set_input_shape(self, graph, input_shape) -> NNGraph:
+        graph.input_shape = input_shape
+        return graph
+
     def _add_node(self, node_to_add, parent_node):
-        node_params = get_node_params_by_type(node_to_add, self.all_possible_params)
+        node_params = get_node_params_by_type(node_to_add, self.param_restrictions)
         node = NNNode(content={'name': node_to_add, 'params': node_params}, nodes_from=parent_node)
         return node
 
     def build(self) -> NNGraph:
-        graph = NNGraph()
-        parent_node = None
-        graph_nodes = self.initial_struct if self.initial_struct else self._generate_from_scratch()
-        for node in graph_nodes:
-            node = self._add_node(node, parent_node)
-            parent_node = [node]
-            graph.add_node(node)
-        if self.all_possible_params.has_skip_connection:
-            _add_skip_connections(graph, self._get_skip_connection_params(graph))
+        is_correct_graph = False
+        while not is_correct_graph:
+            graph = NNGraph()
+            parent_node = None
+            graph_nodes = self.initial_struct if self.initial_struct else self._generate_from_scratch()
+            for node in graph_nodes:
+                node = self._add_node(node, parent_node)
+                parent_node = [node]
+                graph.add_node(node)
+            if self.param_restrictions.has_skip_connection:
+                _add_skip_connections(graph, self._get_skip_connection_params(graph))
+            graph = self._set_input_shape(graph, self.param_restrictions.conv_requirements.input_shape)
+            total_params = graph.get_trainable_params()
+            if total_params < self.param_restrictions.max_possible_parameters:
+                is_correct_graph = True
         return graph

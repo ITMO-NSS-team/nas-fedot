@@ -45,12 +45,21 @@ class NNGraph(OptGraph):
     def __init__(self, nodes=(), model=None):
         super().__init__(nodes)
         self._model = model
+        self._input_shape = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
 
     def __eq__(self, other) -> bool:
         return self is other
+
+    @property
+    def input_shape(self):
+        return self._input_shape
+
+    @input_shape.setter
+    def input_shape(self, val):
+        self._input_shape = val
 
     @property
     def model(self) -> Functional:
@@ -87,6 +96,13 @@ class NNGraph(OptGraph):
     def cnn_depth(self):
         flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
         return flatten_id
+
+    def get_trainable_params(self):
+        total_params = 0
+        for node in self.graph_struct:
+            input_shape = self._input_shape if not node.nodes_from else node.nodes_from[0]
+            total_params += node.get_number_of_trainable_params(input_shape)
+        return total_params
 
     def fit(self, train_generator, val_generator, requirements: NNComposerRequirements, num_classes: int,
             verbose='auto', optimization: bool = True, shuffle: bool = False):

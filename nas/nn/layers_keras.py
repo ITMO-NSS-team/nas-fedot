@@ -92,7 +92,7 @@ def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_
     # Conv layer params
     layer_params = _get_layer_params(current_node)
     kernel_size = layer_params['kernel_size']
-    conv_strides = layer_params['conv_strides'] if is_free_node else [1, 1]
+    conv_strides = layer_params['conv_strides']
     filters_num = layer_params['num_of_filters']
     dilation_rate = layer_params.get('dilation_rate', 1)
     activation = layers.Activation(layer_params['activation'])

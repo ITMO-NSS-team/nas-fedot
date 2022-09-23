@@ -5,6 +5,12 @@ from fedot.core.dag.verification_rules import ERROR_PREFIX
 from nas.graph.cnn.cnn_graph import NNGraph
 
 
+def parameters_check(graph: NNGraph):
+    total_params = graph.get_trainable_params()
+    if total_params > 1e8:
+        raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters')
+
+
 def unique_node_types(graph: NNGraph):
     if len(set(map(str, graph.nodes))) < 3:
         raise ValueError(f'{ERROR_PREFIX} CNN should has at least 3 unique layer types')

@@ -28,7 +28,7 @@ from nas.graph.graph_builder import NNGraphBuilder
 from nas.graph.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_count, \
-    graph_has_several_starts, graph_has_wrong_structure, unique_node_types
+    graph_has_several_starts, graph_has_wrong_structure, unique_node_types, parameters_check
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
@@ -44,7 +44,7 @@ def build_butterfly_cls(save_path=None):
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     cv_folds = 3
-    image_side_size = 20
+    image_side_size = 224
     batch_size = 8
     epochs = 1
     optimization_epochs = 1
@@ -58,19 +58,19 @@ def build_butterfly_cls(save_path=None):
     data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': cv_folds})
     conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
                                                           color_mode='RGB',
-                                                          min_filters=32, max_filters=64,
-                                                          kernel_size=[[3, 3], [1, 1], [5, 5], [7, 7]],
+                                                          min_filters=32, max_filters=256,
+                                                          # kernel_size=[[3, 3], [1, 1], [5, 5], [7, 7]],
                                                           conv_strides=[[1, 1]],
                                                           pool_size=[[2, 2]], pool_strides=[[2, 2]],
                                                           pool_types=['max_pool2d', 'average_pool2d'])
     fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
-                                                                  max_number_of_neurons=64)
+                                                                  max_number_of_neurons=256)
     nn_requirements = nas_requirements.NNRequirements(conv_requirements=conv_requirements,
                                                       fc_requirements=fc_requirements,
                                                       primary=conv_layers_pool,
                                                       secondary=[LayersPoolEnum.dense],
                                                       epochs=epochs, batch_size=batch_size,
-                                                      max_nn_depth=2, max_num_of_conv_layers=10,
+                                                      max_nn_depth=2, max_num_of_conv_layers=50,
                                                       has_skip_connection=True
                                                       )
     optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
@@ -79,15 +79,15 @@ def build_butterfly_cls(save_path=None):
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),
-                                                           pop_size=10,
                                                            num_of_generations=10)
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
-                        has_no_cycle, has_no_self_cycled_nodes, unique_node_types]
+                        has_no_cycle, has_no_self_cycled_nodes, unique_node_types, parameters_check]
 
     optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                       mutation_types=mutations,
                                                       crossover_types=[CrossoverTypesEnum.subtree],
+                                                      pop_size=100,
                                                       regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
@@ -96,7 +96,7 @@ def build_butterfly_cls(save_path=None):
                                                                           DefaultChangeAdvisor()))
 
     graph_generation_function = NNGraphBuilder()
-    graph_generation_function.set_builder(ConvGraphMaker(all_possible_params=requirements.nn_requirements))
+    graph_generation_function.set_builder(ConvGraphMaker(param_restrictions=requirements.nn_requirements))
 
     builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \

@@ -59,7 +59,7 @@ class ConvRequirements:
     dilation_rate: List[int] = None
     min_filters: int = 32
     max_filters: int = 128
-    kernel_size: List[List[int]] = None
+    # kernel_size: List[List[int]] = None
     conv_strides: List[List[int]] = None
     pool_size: List[List[int]] = None
     pool_strides: List[List[int]] = None
@@ -79,8 +79,8 @@ class ConvRequirements:
             raise ValueError(f'min_filters value {self.min_filters} is unacceptable')
         if self.max_filters < 2:
             raise ValueError(f'max_filters value {self.max_filters} is unacceptable')
-        if not self.kernel_size:
-            self.kernel_size = [[3, 3]]
+        # if not self.kernel_size:
+        #     self.kernel_size = [[3, 3]]
         if not self.conv_strides:
             self.conv_strides = [[1, 1]]
         if not self.pool_size:
@@ -93,7 +93,7 @@ class ConvRequirements:
             raise ValueError(f'Specified image size is unacceptable')
 
         # TODO Extend checker method. Current one doesn't fit it's name.
-        permissible_kernel_parameters_correct(self.input_shape, self.kernel_size, self.conv_strides, False)
+        # permissible_kernel_parameters_correct(self.input_shape, self.kernel_size, self.conv_strides, False)
         permissible_kernel_parameters_correct(self.input_shape, self.pool_size, self.pool_strides, True)
 
     @property
@@ -117,6 +117,8 @@ class NNRequirements:
 
     primary: Optional[List[LayersPoolEnum]] = None
     secondary: Optional[List[LayersPoolEnum]] = None
+
+    max_possible_parameters: int = 1e8
 
     activation_types = [activation_func for activation_func in ActivationTypesIdsEnum]
     epochs: int = 1
@@ -185,7 +187,7 @@ class NNComposerRequirements(PipelineComposerRequirements):
     optimizer_requirements: OptimizerRequirements = OptimizerRequirements()
     nn_requirements: NNRequirements = NNRequirements()
     max_pipeline_fit_time: Optional[datetime.timedelta] = datetime.timedelta(hours=1)
-    pop_size: Optional[int] = 10
+    # pop_size: Optional[int] = 10
     num_of_gens: Optional[int] = 15
     default_parameters: Optional[dict] = None
 
