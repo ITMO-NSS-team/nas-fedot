@@ -65,9 +65,7 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 self.evaluate_objective(graph, train_data, fold_id)
             except Exception as ex:
                 self._log.warning(f'Continuing after graph fit error {ex}\nfor graph: {graph_id}')
-                clear_session()
-                gc.collect()
-                graph.model = None
+                NNGraph.release_memory(graph)
                 continue
 
             evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
@@ -75,14 +73,10 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 folds_metrics.append(evaluated_fitness.values)
             else:
                 self._log.warning(f'Continuing after objective evaluation error for graph: {graph_id}')
-                clear_session()
-                gc.collect()
-                graph.model = None
+                NNGraph.release_memory(graph)
                 continue
 
-            clear_session()
-            gc.collect()
-            graph.model = None
+            NNGraph.release_memory(graph)
 
         if folds_metrics:
             folds_metrics = tuple(np.mean(folds_metrics, axis=0))
