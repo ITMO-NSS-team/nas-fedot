@@ -6,8 +6,11 @@ from nas.graph.cnn.cnn_graph import NNGraph
 
 
 def parameters_check(graph: NNGraph):
-    total_params = graph.get_trainable_params()
-    if total_params > 1e8:
+    try:
+        total_params = graph.get_trainable_params()
+        if total_params > 1e8:
+            raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters')
+    except Exception as ex:
         raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters')
 
 
@@ -41,5 +44,12 @@ def graph_has_several_starts(graph: NNGraph):
 def graph_has_wrong_structure(graph: NNGraph):
     nodes_after_flatten = [str(node) for node in graph.graph_struct[graph.cnn_depth[0]:] if 'conv' in str(node)]
     if len(nodes_after_flatten) != 0:
+        raise ValueError(f'{ERROR_PREFIX} Graph has wrong structure')
+    return True
+
+
+def graph_has_wrong_structure_tmp(graph: NNGraph):
+    nodes_before_flatten = [str(node) for node in graph.graph_struct[:graph.cnn_depth[0]] if 'dense' in str(node)]
+    if len(nodes_before_flatten) != 0:
         raise ValueError(f'{ERROR_PREFIX} Graph has wrong structure')
     return True

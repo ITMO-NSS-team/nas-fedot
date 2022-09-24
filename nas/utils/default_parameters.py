@@ -4,7 +4,7 @@ batch_norm_probability = 0.4
 
 default_nodes_params = {
     'conv2d': {'layer_type': 'conv2d', 'activation': 'relu', 'kernel_size': [3, 3],
-               'conv_strides': [2, 2], 'num_of_filters': 16, 'pool_size': [2, 2],
+               'conv_strides': [2, 2], 'neurons': 16, 'pool_size': [2, 2],
                'pool_strides': [2, 2], 'pool_type': 'max_pool2d'},
     'dropout': {'drop': 0.2},
     'batch_normalization': {'epsilon': 0.001, 'momentum': 0.99},

@@ -99,9 +99,12 @@ class NNGraph(OptGraph):
 
     def get_trainable_params(self):
         total_params = 0
+        output_shape = self.input_shape
         for node in self.graph_struct:
-            input_shape = self._input_shape if not node.nodes_from else node.nodes_from[0]
-            total_params += node.get_number_of_trainable_params(input_shape)
+            node.input_shape = output_shape
+            layer_params = node.node_params
+            total_params += layer_params
+            output_shape = node.output_shape
         return total_params
 
     def fit(self, train_generator, val_generator, requirements: NNComposerRequirements, num_classes: int,

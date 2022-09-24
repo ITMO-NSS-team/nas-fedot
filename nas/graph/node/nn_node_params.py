@@ -25,7 +25,7 @@ class GraphLayers:
         # layer_parameters['name'] = LayersPoolEnum.conv2d
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['conv_strides'] = random.choice(requirements.conv_requirements.conv_strides)
-        layer_parameters['num_of_filters'] = random.choice(requirements.conv_requirements.filters)
+        layer_parameters['neurons'] = random.choice(requirements.conv_requirements.neurons)
         layer_parameters['pool_size'] = random.choice(requirements.conv_requirements.pool_size)
         layer_parameters['pool_strides'] = random.choice(requirements.conv_requirements.pool_strides)
         layer_parameters['pool_type'] = random.choice(requirements.conv_requirements.pool_types)

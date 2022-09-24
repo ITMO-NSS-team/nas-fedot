@@ -33,7 +33,6 @@ class LayerParams:
     kernel_size: Tuple[int, int] = None
     conv_strides: Tuple[int, int] = None
     pool_strides: Tuple[int, int] = None
-    num_of_filters: int = None
     output_shape: List[float] = None
     momentum: float = None
     epsilon: float = None
@@ -93,7 +92,7 @@ def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_
     layer_params = _get_layer_params(current_node)
     kernel_size = layer_params['kernel_size']
     conv_strides = layer_params['conv_strides']
-    filters_num = layer_params['num_of_filters']
+    filters_num = layer_params['neurons']
     dilation_rate = layer_params.get('dilation_rate', 1)
     activation = layers.Activation(layer_params['activation'])
     conv_layer = layers.Conv2D(filters=filters_num, kernel_size=kernel_size, strides=conv_strides,

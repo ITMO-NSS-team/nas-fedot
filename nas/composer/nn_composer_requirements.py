@@ -101,13 +101,13 @@ class ConvRequirements:
         return _possible_color_modes.get(self.color_mode)
 
     @property
-    def filters(self):
-        filters = [self.min_filters]
+    def neurons(self):
+        neurons = [self.min_filters]
         i = self.min_filters
         while i < self.max_filters:
             i = i * 2
-            filters.append(i)
-        return filters
+            neurons.append(i)
+        return neurons
 
 
 @dataclass

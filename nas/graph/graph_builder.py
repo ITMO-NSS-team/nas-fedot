@@ -1,3 +1,4 @@
+from typing import Sequence, List
 from nas.graph.grpah_generator import GraphGenerator
 
 
@@ -9,3 +10,6 @@ class NNGraphBuilder:
 
     def build(self):
         return self._builder.build()
+
+    def set_initial_graph(self, graph_to_set):
+        pass

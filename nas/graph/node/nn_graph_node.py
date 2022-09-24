@@ -10,17 +10,36 @@ def get_node_params_by_type(node, requirements):
     return GraphLayers().layer_by_type(node, requirements)
 
 
-def count_conv_layer_params(node, input_shape):
+def calculate_output_shape(node) -> Callable:
+    """Returns input shape of node"""
+    # define node type
+    is_conv = 'conv' in node.content['name']
+    is_flatten = 'flatten' in node.content['name']
+    if is_conv:
+        return count_conv_layer_params(node)
+    if is_flatten:
+        return count_flatten_layer_params(node)
+    else:
+        return count_fc_layer_params(node)
+
+
+def count_conv_layer_params(node):
+    input_shape = node.input_shape
+    input_filters = input_shape[-1]
     kernel_size = node.content['params'].get('kernel_size')
-    stride = node.content['params'].get('conv_strides')
-    num_of_filters = node.content['params'].get('num_of_filters')
-    params = (np.dot(*kernel_size)*input_shape + 1) * num_of_filters
+    neurons = node.content['params'].get('neurons')
+    params = (np.dot(*kernel_size) * input_filters + 1) * neurons
     return params
 
 
-def count_fc_layer_params(node, input_shape):
-    out_shape = node.content['params'].get('neurons')
-    return (input_shape * out_shape) + 1
+def count_flatten_layer_params(node):
+    parent_node = node.nodes_from[0]
+    return np.prod(node.input_shape)
+    # return parent_node.content['params'].get('neurons') * np.prod(parent_node.content['params'].get('kernel_size'))
+
+
+def count_fc_layer_params(node):
+    return np.prod(node.output_shape) + 1
 
 
 class NNNode(OptNode):
@@ -28,6 +47,7 @@ class NNNode(OptNode):
                  input_shape: Union[List[float], Tuple[float]] = None):
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from
+        self._input_shape = None
         if 'params' in content:
             self.content = content
             self.content['name'] = self.content['name'].value
@@ -40,31 +60,24 @@ class NNNode(OptNode):
 
     @property
     def input_shape(self):
-        return None
+        return self._input_shape
 
-    # TODO fix
-    def get_number_of_trainable_params(self, input_shape) -> Callable:
+    @input_shape.setter
+    def input_shape(self, val):
+        self._input_shape = val
+
+    @property
+    def output_shape(self) -> List:
         is_conv = 'conv' in self.content['name']
-        if isinstance(input_shape, NNNode):
-            number_of_filters = input_shape.content['params'].get('num_of_filters')
-            number_of_neurons = input_shape.content['params'].get('neurons')
-        else:
-            number_of_filters = input_shape[-1]
-            number_of_neurons = input_shape[0] * input_shape[1]
-        params = 0
+        is_flatten = 'flatten' in self.content['name']
         if is_conv:
-            params = count_conv_layer_params(self, number_of_filters)
-        elif 'dense' in self.content['name']:
-            if input_shape.content['name'] == 'flatten':
-                parent = input_shape.nodes_from[0]
-                number_of_filters = parent.content['params'].get('num_of_filters')
-                number_of_neurons = number_of_filters * np.dot(*parent.content['params'].get('kernel_size'))
-            else:
-                number_of_filters = input_shape.content['params'].get('num_of_filters')
-                number_of_neurons = input_shape.content['params'].get('neurons')
-            params = count_fc_layer_params(self, number_of_neurons)
+            return [*self.content['params'].get('kernel_size'), self.content['params'].get('neurons')]
+        if is_flatten:
+            parent_node = self.nodes_from[0]
+            return [np.prod(parent_node.output_shape)]
         else:
-            number_of_filters = input_shape.content['params'].get('num_of_filters')
-            number_of_neurons = input_shape.content['params'].get('neurons')
-            params = number_of_filters * np.dot(*input_shape.content['params'].get('kernel_size'))
-        return params
+            return [*self.input_shape, self.content['params'].get('neurons')]
+
+    @property
+    def node_params(self):
+        return calculate_output_shape(self)
