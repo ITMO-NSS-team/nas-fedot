@@ -60,7 +60,6 @@ def build_butterfly_cls(save_path=None):
     conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
                                                           color_mode='RGB',
                                                           min_filters=32, max_filters=64,
-                                                          # kernel_size=[[3, 3], [1, 1], [5, 5], [7, 7]],
                                                           conv_strides=[[1, 1]],
                                                           pool_size=[[2, 2]], pool_strides=[[2, 2]],
                                                           pool_types=['max_pool2d', 'average_pool2d'])
@@ -80,7 +79,7 @@ def build_butterfly_cls(save_path=None):
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),
-                                                           num_of_generations=10)
+                                                           num_of_generations=1)
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
                         has_no_cycle, has_no_self_cycled_nodes, unique_node_types, parameters_check,
@@ -89,7 +88,7 @@ def build_butterfly_cls(save_path=None):
     optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                       mutation_types=mutations,
                                                       crossover_types=[CrossoverTypesEnum.subtree],
-                                                      pop_size=5,
+                                                      pop_size=1,
                                                       regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(

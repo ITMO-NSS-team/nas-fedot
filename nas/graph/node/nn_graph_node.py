@@ -10,7 +10,7 @@ def get_node_params_by_type(node, requirements):
     return GraphLayers().layer_by_type(node, requirements)
 
 
-def calculate_output_shape(node) -> Callable:
+def calculate_output_shape(node) -> np.ndarray:
     """Returns input shape of node"""
     # define node type
     is_conv = 'conv' in node.content['name']
@@ -33,9 +33,7 @@ def count_conv_layer_params(node):
 
 
 def count_flatten_layer_params(node):
-    parent_node = node.nodes_from[0]
     return np.prod(node.input_shape)
-    # return parent_node.content['params'].get('neurons') * np.prod(parent_node.content['params'].get('kernel_size'))
 
 
 def count_fc_layer_params(node):
@@ -50,7 +48,7 @@ class NNNode(OptNode):
         self._input_shape = None
         if 'params' in content:
             self.content = content
-            self.content['name'] = self.content['name'].value
+            # self.content['name'] = self.content['params']['name']
 
     def __str__(self):
         return str(self.content['name'])
@@ -74,7 +72,7 @@ class NNNode(OptNode):
             return [*self.content['params'].get('kernel_size'), self.content['params'].get('neurons')]
         if is_flatten:
             parent_node = self.nodes_from[0]
-            return [np.prod(parent_node.output_shape)]
+            return [np.prod(parent_node.output_shape).tolist()]
         else:
             return [*self.input_shape, self.content['params'].get('neurons')]
 

@@ -22,7 +22,6 @@ class GraphLayers:
         """Returns dictionary with particular layer parameters as NNGraph"""
         layer_parameters = dict()
 
-        # layer_parameters['name'] = LayersPoolEnum.conv2d
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['conv_strides'] = random.choice(requirements.conv_requirements.conv_strides)
         layer_parameters['neurons'] = random.choice(requirements.conv_requirements.neurons)
@@ -34,24 +33,28 @@ class GraphLayers:
     def _conv2d_1x1(self, requirements):
         """Returns dictionary with particular layer parameters as NNGraph"""
         layer_parameters = self._base_conv2d(requirements)
+        # layer_parameters['name'] = LayersPoolEnum.conv2d_1x1.value
         layer_parameters['kernel_size'] = [1, 1]
         return layer_parameters
 
     def _conv2d_3x3(self, requirements):
         """Returns dictionary with particular layer parameters as NNGraph"""
         layer_parameters = self._base_conv2d(requirements)
+        # layer_parameters['name'] = LayersPoolEnum.conv2d_3x3.value
         layer_parameters['kernel_size'] = [3, 3]
         return layer_parameters
 
     def _conv2d_5x5(self, requirements):
         """Returns dictionary with particular layer parameters as NNGraph"""
         layer_parameters = self._base_conv2d(requirements)
+        # layer_parameters['name'] = LayersPoolEnum.conv2d_5x5.value
         layer_parameters['kernel_size'] = [5, 5]
         return layer_parameters
 
     def _conv2d_7x7(self, requirements):
         """Returns dictionary with particular layer parameters as NNGraph"""
         layer_parameters = self._base_conv2d(requirements)
+        # layer_parameters['name'] = LayersPoolEnum.conv2d_7x7.value
         layer_parameters['kernel_size'] = [7, 7]
         return layer_parameters
 
@@ -65,6 +68,7 @@ class GraphLayers:
     @staticmethod
     def _dense(requirements):
         layer_parameters = dict()
+        # layer_parameters['name'] = LayersPoolEnum.dense.value
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['neurons'] = random.choice(requirements.fc_requirements.neurons_num)
         return layer_parameters

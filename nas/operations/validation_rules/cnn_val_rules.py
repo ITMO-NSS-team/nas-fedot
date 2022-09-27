@@ -1,5 +1,3 @@
-from collections import Counter
-
 from fedot.core.dag.verification_rules import ERROR_PREFIX
 
 from nas.graph.cnn.cnn_graph import NNGraph
@@ -8,10 +6,10 @@ from nas.graph.cnn.cnn_graph import NNGraph
 def parameters_check(graph: NNGraph):
     try:
         total_params = graph.get_trainable_params()
-        if total_params > 1e8:
+        if total_params > 8e7:
             raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters')
     except Exception as ex:
-        raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters')
+        raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters.')
 
 
 def unique_node_types(graph: NNGraph):
@@ -53,3 +51,8 @@ def graph_has_wrong_structure_tmp(graph: NNGraph):
     if len(nodes_before_flatten) != 0:
         raise ValueError(f'{ERROR_PREFIX} Graph has wrong structure')
     return True
+
+
+def graph_has_several_root_nodes(graph: NNGraph):
+    if len(graph.root_node) > 1:
+        raise ValueError(f'{ERROR_PREFIX} Graph has several root nodes')

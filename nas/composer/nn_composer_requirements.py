@@ -118,7 +118,7 @@ class NNRequirements:
     primary: Optional[List[LayersPoolEnum]] = None
     secondary: Optional[List[LayersPoolEnum]] = None
 
-    max_possible_parameters: int = 1e8
+    max_possible_parameters: int = 8e7
 
     activation_types = [activation_func for activation_func in ActivationTypesIdsEnum]
     epochs: int = 1

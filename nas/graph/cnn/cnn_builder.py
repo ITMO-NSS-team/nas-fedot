@@ -70,7 +70,7 @@ class ConvGraphMaker(GraphGenerator):
 
     def _add_node(self, node_to_add, parent_node):
         node_params = get_node_params_by_type(node_to_add, self.param_restrictions)
-        node = NNNode(content={'name': node_to_add, 'params': node_params}, nodes_from=parent_node)
+        node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
     def build(self) -> NNGraph:

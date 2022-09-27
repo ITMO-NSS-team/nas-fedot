@@ -1,6 +1,8 @@
 import datetime
 import pathlib
+import os
 
+import tensorflow as tf
 from fedot.core.composer.advisor import DefaultChangeAdvisor
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.gp_comp.individual import Individual
@@ -20,8 +22,11 @@ def from_fitted():
     # path_to_model = pathlib.Path('../_results/debug/master/2022-09-05/fitted_model.h5')
     # # model = tf.keras.models.load_model(path_to_model)
     # model = tf.keras.applications.resnet.ResNet152()
-    # graph = NNGraph.load('/home/staeros/_results/debug/master/2022-09-06/graph.json')
-    #
+    graph_path = os.path.join('/home/staeros/_results/debug/master_2/2022-09-26/graph.json')
+    model_path = os.path.join('/home/staeros/_results/debug/master_2/2022-09-26/fitted_model.h5')
+    model = tf.keras.models.load_model(model_path)
+    graph = NNGraph.load(str(graph_path))
+    graph.model = model
     # # history = OptHistory.load('/home/staeros/_results/2022-09-02/history.json')
     # # history.show(per_time=False)
     # history = OptHistory.load('/home/staeros/_results/debug/master_2/2022-09-07/history.json')
@@ -37,7 +42,6 @@ def from_fitted():
     conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
                                                           color_mode='RGB',
                                                           min_filters=32, max_filters=64,
-                                                          kernel_size=[[3, 3], [1, 1], [5, 5], [7, 7]],
                                                           conv_strides=[[1, 1]],
                                                           pool_size=[[2, 2]], pool_strides=[[2, 2]],
                                                           pool_types=['max_pool2d', 'average_pool2d'])
