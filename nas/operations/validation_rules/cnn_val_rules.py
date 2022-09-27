@@ -9,7 +9,7 @@ def parameters_check(graph: NNGraph):
         if total_params > 8e7:
             raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters')
     except Exception as ex:
-        raise ValueError(f'{ERROR_PREFIX} Neural network has too many trainable parameters.')
+        raise ValueError(f'{ERROR_PREFIX} Cannot count trainable parameters due exception {ex}.')
 
 
 def unique_node_types(graph: NNGraph):
