@@ -131,6 +131,7 @@ def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_
     if current_node in layers_dict:
         tmp = layers_dict.pop(current_node)
         start_layer = tmp.pop(0)
+        # if start layer has stride 2 => create conv 1x1 layer in shortcut
         input_layer = layers.concatenate([start_layer, input_layer],
                                          axis=-1, name=f'residual_end_{idx}')
         input_layer = layers.Activation('relu')(input_layer)

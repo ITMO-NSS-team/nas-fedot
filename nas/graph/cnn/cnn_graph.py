@@ -6,6 +6,7 @@ from typing import List, Union
 
 import numpy as np
 import tensorflow as tf
+from fedot.core.dag.graph_node import GraphNode
 from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
@@ -174,7 +175,7 @@ class NNGraph(OptGraph):
             return json.loads(json_data, cls=Serializer)
 
     @property
-    def graph_struct(self) -> List:
+    def graph_struct(self) -> List[GraphNode]:
         if 'conv' in self.nodes[0].content['name']:
             return self.nodes
         else:

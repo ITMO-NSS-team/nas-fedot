@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import List
+from functools import reduce, partial
 
 from nas.composer.nn_composer_requirements import ConvRequirements, NNRequirements
 from nas.graph.cnn.cnn_builder import ConvGraphMaker
@@ -7,23 +8,35 @@ from nas.graph.cnn.cnn_graph import NNGraph
 from nas.nn import ActivationTypesIdsEnum
 from nas.repository.existing_cnn_enum import CNNEnum
 from nas.repository.layer_types_enum import LayersPoolEnum
+from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 
 
-def concat_graphs(*graph_list: NNGraph):
-    def _concat_nn_graphs(graph_1: NNGraph, graph_2: NNGraph):
-        nodes_to_add = graph_2.graph_struct
-        for node in nodes_to_add:
-            prev_node = graph_1.graph_struct[-1]
-            node.nodes_from.append(prev_node)
-            graph_1.add_node(node)
-        return graph_1
+# def concat_graphs(*graph_list: NNGraph):
+#     def _concat_nn_graphs(graph_1: NNGraph, graph_2: NNGraph):
+#         nodes_to_add = graph_2.graph_struct
+#         for node in nodes_to_add:
+#             prev_node = graph_1.graph_struct[-1]
+#             node.nodes_from.append(prev_node)
+#             graph_1.add_node(node)
+#         return graph_1
+#
+#     result_graph = graph_list[0]
+#     graph_iterator = iter(graph_list)
+#     next(graph_iterator)
+#     for graph in graph_iterator:
+#         result_graph = _concat_nn_graphs(result_graph, graph)
+#     return result_graph
 
-    result_graph = graph_list[0]
-    graph_iterator = iter(graph_list)
-    next(graph_iterator)
-    for graph in graph_iterator:
-        result_graph = _concat_nn_graphs(result_graph, graph)
-    return result_graph
+def concat_graphs(graph_1, graph_2):
+    nodes_to_add = graph_2.graph_struct
+    skip_connection_start = graph_1.graph_struct[-1]
+    for node in nodes_to_add:
+        prev_node = graph_1.graph_struct[-1]
+        node.nodes_from.append(prev_node)
+        graph_1.add_node(node)
+
+    graph_1.graph_struct[-1].nodes_from.append(skip_connection_start)
+    return graph_1
 
 
 class CNNRepository:
@@ -58,21 +71,27 @@ class ResNetBuilder:
         self._requirements.conv_requirements.pool_strides = stride
         return self._requirements
 
-    def _build_resnet_block(self, output_shape: int) -> NNGraph:
+    def _build_resnet_block(self,input_block: NNGraph, output_shape: int, flag: int) -> NNGraph:
         '''conv2d
         batch_norm
         relu
         conv2d
         batch_norm
         relu'''
-        max_possible_nodes = {64: 3, 128: 4, 256: 6, 512: 3}
+        shortcut_node = False
         initial_struct = [LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_3x3]  # * max_possible_nodes[output_shape]
 
         block_requirements = self.set_output_shape(output_shape).set_conv_params(1)
 
         resnet_block = ConvGraphMaker(initial_struct=initial_struct,
-                                      param_restrictions=block_requirements)
-        return resnet_block.build()
+                                      param_restrictions=block_requirements).build()
+        if not flag and output_shape != 64:
+            resnet_block.graph_struct[0].content['params']['conv_strides'] = [2, 2]
+            # shortcut_node_name = LayersPoolEnum.conv2d_1x1
+            # shortcut_node = get_node_params_by_type(shortcut_node_name, block_requirements.set_conv_params(2))
+            # shortcut_node = NNNode(content={'name': shortcut_node_name.value, 'params': shortcut_node}, nodes_from=None)
+
+        return concat_graphs(input_block, resnet_block)
 
     def build34(self, input_shape: float = 20, mode: str = 'RGB'):
 
@@ -89,22 +108,21 @@ class ResNetBuilder:
 
         resnet_graph = graph_builder.build()
 
-        block_64 = [self._build_resnet_block(64) for _ in range(2)]
-        block_128 = [self._build_resnet_block(128) for _ in range(4)]
-        block_256 = [self._build_resnet_block(256) for _ in range(6)]
-        for block in range(2):
-            block = self._build_resnet_block(64)
-            resnet_graph = concat_graphs(resnet_graph, block)
-        for block in range(4):
-            block = self._build_resnet_block(128)
-            resnet_graph = concat_graphs(resnet_graph, block)
-        for block in range(6):
-            block = self._build_resnet_block(256)
-            resnet_graph = concat_graphs(resnet_graph, block)
+        for i in range(2):
+            resnet_graph = self._build_resnet_block(resnet_graph, 64, i)
+        for i in range(4):
+            resnet_graph = self._build_resnet_block(resnet_graph, 128, i)
+        for i in range(6):
+            resnet_graph = self._build_resnet_block(resnet_graph, 256, i)
+        for i in range(3):
+            resnet_graph = self._build_resnet_block(resnet_graph, 512, i)
 
-        for block in range(3):
-            block = self._build_resnet_block(512)
-            resnet_graph = concat_graphs(resnet_graph, block)
+        # block_64 = [self._build_resnet_block(resnet_graph, 64, i) for i in range(2)]
+        # block_128 = [self._build_resnet_block(128, i) for i in range(4)]
+        # block_256 = [self._build_resnet_block(256, i) for i in range(6)]
+        # block_512 = [self._build_resnet_block(512, i) for i in range(3)]
+        #
+        # resnet_graph = concat_graphs(resnet_graph, *block_64, *block_128, *block_256, *block_512)
 
         return resnet_graph
 
