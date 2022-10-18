@@ -7,6 +7,7 @@ from nas.data.data_generator import DataGenerator
 from nas.data.setup_data import setup_data
 
 
+
 # Hotfix
 def get_predictions(graph, data: InputData, data_preprocessor) -> Tuple[OutputData, OutputData]:
     multiclass = data.num_classes > 2

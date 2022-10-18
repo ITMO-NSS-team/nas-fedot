@@ -2,8 +2,8 @@ import datetime
 from dataclasses import dataclass
 from typing import List, Optional
 
-from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationStrengthEnum
+from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements
 
 from nas.nn.layers_keras import ActivationTypesIdsEnum
 from nas.repository.layer_types_enum import LayersPoolEnum
@@ -79,22 +79,21 @@ class ConvRequirements:
             raise ValueError(f'min_filters value {self.min_filters} is unacceptable')
         if self.max_filters < 2:
             raise ValueError(f'max_filters value {self.max_filters} is unacceptable')
-        # if not self.kernel_size:
-        #     self.kernel_size = [[3, 3]]
         if not self.conv_strides:
             self.conv_strides = [[1, 1]]
-        if not self.pool_size:
-            self.pool_size = [[2, 2]]
-        if not self.pool_strides:
-            self.pool_strides = [[2, 2]]
-        if not self.pool_types:
-            self.pool_types = ['max_pool2d', 'average_pool2d']
+        # if not self.pool_size:
+        #     self.pool_size = [[2, 2]]
+        # if not self.pool_strides:
+        #     self.pool_strides = [[2, 2]]
+        # if not self.pool_types:
+        #     self.pool_types = ['max_pool2d', 'average_pool2d']
         if not all([side_size >= 3 for side_size in self.input_shape]):
             raise ValueError(f'Specified image size is unacceptable')
 
         # TODO Extend checker method. Current one doesn't fit it's name.
         # permissible_kernel_parameters_correct(self.input_shape, self.kernel_size, self.conv_strides, False)
-        permissible_kernel_parameters_correct(self.input_shape, self.pool_size, self.pool_strides, True)
+        if self.pool_types:
+            permissible_kernel_parameters_correct(self.input_shape, self.pool_size, self.pool_strides, True)
 
     @property
     def num_of_channels(self):
@@ -120,7 +119,7 @@ class NNRequirements:
 
     max_possible_parameters: int = 8e7
 
-    activation_types = [activation_func for activation_func in ActivationTypesIdsEnum]
+    activation_types: List[ActivationTypesIdsEnum] = None
     epochs: int = 1
     batch_size: int = 12
 
@@ -137,6 +136,8 @@ class NNRequirements:
     has_skip_connection: Optional[bool] = False
 
     def __post_init__(self):
+        if not self.activation_types:
+            self.activation_types = [activation_func for activation_func in ActivationTypesIdsEnum]
         if not self.max_num_of_conv_layers:
             self.max_num_of_conv_layers = 4
         if self.max_drop_size > 1:
@@ -151,14 +152,30 @@ class NNRequirements:
             raise ValueError('Epoch number must be at least 1 or greater')
         if self.max_drop_size >= 1:
             raise ValueError(f'max_drop_size value {self.max_drop_size} is unacceptable')
-        # if not self.primary:
-        #     self.primary = ['conv2d']
-        # if not self.secondary:
-        #     self.secondary = ['dense']
 
     @property
     def max_possible_depth(self):
         return self.max_nn_depth + self.max_num_of_conv_layers
+
+    def set_output_shape(self, output_shape: int):
+        # TODO add output shape check
+        self.conv_requirements.max_filters = output_shape
+        self.conv_requirements.min_filters = output_shape
+        return self
+
+    def set_conv_params(self, stride: int):
+        self.conv_requirements.conv_strides = [[stride, stride]]
+        return self
+
+    def set_pooling_params(self, pool_type: List[str], stride: int = 2, size: int = 2):
+        self.conv_requirements.pool_types = pool_type
+        self.conv_requirements.pool_size = [[size, size]]
+        self.conv_requirements.pool_strides = [[stride, stride]]
+        return self
+
+    def set_batch_norm_prob(self, prob: float):
+        self.batch_norm_prob = prob
+        return self
 
 
 @dataclass
@@ -190,6 +207,7 @@ class NNComposerRequirements(PipelineComposerRequirements):
     # pop_size: Optional[int] = 10
     num_of_gens: Optional[int] = 15
     default_parameters: Optional[dict] = None
+    _max_depth = 0
 
     def __post_init__(self):
         if self.data_requirements.split_params.get('cv_folds'):
@@ -199,3 +217,11 @@ class NNComposerRequirements(PipelineComposerRequirements):
         self.max_depth = self.nn_requirements.max_possible_depth
 
         self.mutation_strength = MutationStrengthEnum.strong
+
+    @property
+    def max_depth(self):
+        return self.nn_requirements.max_possible_depth
+
+    @max_depth.setter
+    def max_depth(self, value):
+        self._max_depth = value

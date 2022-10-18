@@ -90,3 +90,8 @@ class ConvGraphMaker(GraphGenerator):
             if total_params < self.param_restrictions.max_possible_parameters:
                 is_correct_graph = True
         return graph
+
+    @staticmethod
+    def load_graph(path) -> NNGraph:
+        graph = NNGraph.load(path)
+        return graph

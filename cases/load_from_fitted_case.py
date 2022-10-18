@@ -7,6 +7,7 @@ from fedot.core.composer.advisor import DefaultChangeAdvisor
 from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.gp_comp.individual import Individual
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum, Mutation
+from fedot.core.optimisers.opt_history import OptHistory
 from fedot.core.optimisers.optimizer import GraphGenerationParams
 
 import nas.composer.nn_composer_requirements as nas_requirements
@@ -22,13 +23,13 @@ def from_fitted():
     # path_to_model = pathlib.Path('../_results/debug/master/2022-09-05/fitted_model.h5')
     # # model = tf.keras.models.load_model(path_to_model)
     # model = tf.keras.applications.resnet.ResNet152()
-    graph_path = os.path.join('/home/staeros/_results/debug/master_2/2022-09-26/graph.json')
-    model_path = os.path.join('/home/staeros/_results/debug/master_2/2022-09-26/fitted_model.h5')
+    graph_path = os.path.join('/home/staeros/_results/resnet_comp/2/2022-10-04/graph.json')
+    model_path = os.path.join('/home/staeros/_results/resnet_comp/2/2022-10-04/fitted_model.h5')
     model = tf.keras.models.load_model(model_path)
     graph = NNGraph.load(str(graph_path))
     graph.model = model
-    # # history = OptHistory.load('/home/staeros/_results/2022-09-02/history.json')
-    # # history.show(per_time=False)
+    history = OptHistory.load('/home/staeros/_results/resnet_comp/2/2022-10-04/history.json')
+    history.show(per_time=False)
     # history = OptHistory.load('/home/staeros/_results/debug/master_2/2022-09-07/history.json')
     # history.show.fitness_line_interactive(per_time=False)
 

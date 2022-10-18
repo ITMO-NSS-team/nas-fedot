@@ -41,7 +41,8 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
+    # dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
+    dataset_path = pathlib.Path('../datasets/CXR8_short')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     cv_folds = 2
@@ -70,7 +71,7 @@ def build_butterfly_cls(save_path=None):
                                                       primary=conv_layers_pool,
                                                       secondary=[LayersPoolEnum.dense],
                                                       epochs=epochs, batch_size=batch_size,
-                                                      max_nn_depth=2, max_num_of_conv_layers=10,
+                                                      max_nn_depth=1, max_num_of_conv_layers=10,
                                                       has_skip_connection=True
                                                       )
     optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)

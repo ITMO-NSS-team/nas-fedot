@@ -1,5 +1,6 @@
 from typing import Sequence, List
 from nas.graph.grpah_generator import GraphGenerator
+from nas.graph.cnn.cnn_graph import NNGraph
 
 
 class NNGraphBuilder:
@@ -13,3 +14,6 @@ class NNGraphBuilder:
 
     def set_initial_graph(self, graph_to_set):
         pass
+
+    def build_from_existed_graph(self, path):
+        return self._builder.load_graph(path)

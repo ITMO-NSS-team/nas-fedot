@@ -10,13 +10,20 @@ import tensorflow as tf
 
 from nas.repository.layer_types_enum import LayersPoolEnum
 
-
 if TYPE_CHECKING:
-    from nas.composer.nn_composer_requirements import NNComposerRequirements
+    from nas.composer.nn_composer_requirements import NNComposerRequirements, NNRequirements
 
 
 @dataclass
 class GraphLayers:
+    # TODO remade as decorator
+    @staticmethod
+    def _batch_normalization(requirements: NNRequirements, layer_params: dict):
+        if random.uniform(0, 1) < requirements.batch_norm_prob:
+            layer_params['momentum'] = 0.99  # random.uniform(0, 1)
+            layer_params['epsilon'] = 0.001
+        return layer_params
+
     @staticmethod
     def _base_conv2d(requirements):
         """Returns dictionary with particular layer parameters as NNGraph"""
@@ -25,10 +32,11 @@ class GraphLayers:
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['conv_strides'] = random.choice(requirements.conv_requirements.conv_strides)
         layer_parameters['neurons'] = random.choice(requirements.conv_requirements.neurons)
-        layer_parameters['pool_size'] = random.choice(requirements.conv_requirements.pool_size)
-        layer_parameters['pool_strides'] = random.choice(requirements.conv_requirements.pool_strides)
-        layer_parameters['pool_type'] = random.choice(requirements.conv_requirements.pool_types)
-        return layer_parameters
+        if requirements.conv_requirements.pool_types:
+            layer_parameters['pool_size'] = random.choice(requirements.conv_requirements.pool_size)
+            layer_parameters['pool_strides'] = random.choice(requirements.conv_requirements.pool_strides)
+            layer_parameters['pool_type'] = random.choice(requirements.conv_requirements.pool_types)
+        return GraphLayers._batch_normalization(requirements, layer_parameters)
 
     def _conv2d_1x1(self, requirements):
         """Returns dictionary with particular layer parameters as NNGraph"""
@@ -71,7 +79,7 @@ class GraphLayers:
         # layer_parameters['name'] = LayersPoolEnum.dense.value
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['neurons'] = random.choice(requirements.fc_requirements.neurons_num)
-        return layer_parameters
+        return GraphLayers._batch_normalization(requirements, layer_parameters)
 
     @staticmethod
     def _dropout(requirements):
