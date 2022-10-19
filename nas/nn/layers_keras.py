@@ -8,6 +8,8 @@ from tensorflow.keras import layers
 from nas.graph.node.nn_graph_node import NNNode
 from nas.utils.default_parameters import default_nodes_params
 
+from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
+
 
 class ActivationTypesIdsEnum(Enum):
     softmax = 'softmax'
@@ -118,6 +120,13 @@ def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_
     return conv_layer
 
 
+def _add_shortcut_conv(input_layer, out_shape: int):
+    """Adds to skip connection's shortcut a conv 1x1 layer to fix dimension difference"""
+    layer_to_add = layers.Conv2D(out_shape, 1, 2, padding='same')(input_layer)
+    layer_to_add = layers.BatchNormalization()(layer_to_add)
+    return layers.Activation('relu')(layer_to_add)
+
+
 def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_dict: dict):
     """
     This function implements skip connection if current node has any.
@@ -131,9 +140,15 @@ def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_
     if current_node in layers_dict:
         tmp = layers_dict.pop(current_node)
         start_layer = tmp.pop(0)
-        # if start layer has stride 2 => create conv 1x1 layer in shortcut
-        input_layer = layers.concatenate([start_layer, input_layer],
-                                         axis=-1, name=f'residual_end_{idx}')
+        # TODO extend to different strides
+        if not start_layer.shape[-1] == input_layer.shape[-1]:
+        # if current_node.nodes_from[0].content['params']['conv_strides'] != [1, 1]:
+            out_shape = input_layer.shape[-1]
+            start_layer = _add_shortcut_conv(input_layer=start_layer, out_shape=out_shape)
+        input_layer = layers.add([start_layer, input_layer])
+        # else:# if start layer has stride 2 => create conv 1x1 layer in shortcut
+        #     input_layer = layers.concatenate([start_layer, input_layer],
+        #                                      axis=-1, name=f'residual_end_{idx}')
         input_layer = layers.Activation('relu')(input_layer)
         layers_dict[current_node] = tmp
     return input_layer

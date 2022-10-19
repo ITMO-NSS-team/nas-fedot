@@ -225,3 +225,7 @@ class NNComposerRequirements(PipelineComposerRequirements):
     @max_depth.setter
     def max_depth(self, value):
         self._max_depth = value
+
+    @staticmethod
+    def get_default_requirements(**specified_parameters):
+        pass

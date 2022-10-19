@@ -9,11 +9,12 @@ import nas
 
 def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     def _get_skip_connection_list(graph_structure):
+        """Returns dictionary where key is node where skip connection is started and value is destination"""
         sc_layers = {}
-        for destination_node in graph_structure.nodes:
+        for destination_node in graph_structure.graph_struct:
             if len(destination_node.nodes_from) > 1:
                 for source_node in destination_node.nodes_from[1:]:
-                    sc_layers[source_node] = source_node
+                    sc_layers[source_node] = destination_node
         return sc_layers
 
     nn_structure = graph.graph_struct
@@ -24,15 +25,9 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     for i, layer in enumerate(nn_structure):
         layer_type = layer.content['name']
         is_free_node = layer in graph.free_nodes
-        if layer in skip_connection_nodes_dict:
-            skip_connection_id = skip_connection_nodes_dict.pop(layer)
-            if skip_connection_id not in skip_connection_destination_dict:
-                skip_connection_destination_dict[skip_connection_id] = [in_layer]
-            else:
-                skip_connection_destination_dict[skip_connection_id].append(in_layer)
-        in_layer = nas.nn.layers_keras.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
-                                                                  layers_dict=skip_connection_destination_dict)
         if 'conv' in layer_type:
+            if layer.content['params']['conv_strides'] != [1, 1]:
+                print(1)
             in_layer = nas.nn.layers_keras.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
                                                            is_free_node=is_free_node)
         elif layer_type == 'dense':
@@ -40,6 +35,16 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
         elif layer_type == 'flatten':
             flatten = layers.Flatten()
             in_layer = flatten(in_layer)
+
+        in_layer = nas.nn.layers_keras.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
+                                                                  layers_dict=skip_connection_destination_dict)
+
+        if layer in skip_connection_nodes_dict:
+            skip_connection_end_id = skip_connection_nodes_dict.pop(layer)
+            if skip_connection_end_id not in skip_connection_destination_dict:
+                skip_connection_destination_dict[skip_connection_end_id] = [in_layer]
+            else:
+                skip_connection_destination_dict[skip_connection_end_id].append(in_layer)
 
     # Output
     output_shape = 1 if classes == 2 else classes
