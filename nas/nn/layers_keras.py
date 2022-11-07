@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from enum import Enum
+import math
 from typing import Tuple, List, Any
 
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 from tensorflow.keras import layers
 
 from nas.graph.node.nn_graph_node import NNNode
+from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.default_parameters import default_nodes_params
-
-from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 
 
 class ActivationTypesIdsEnum(Enum):
@@ -80,6 +80,18 @@ def _make_dropout_layer(input_layer: Any, params):
     return dropout_layer
 
 
+def make_pooling_layer(idx: int, input_layer: Any, current_node: NNNode, is_free_node: bool):
+    layer_params = _get_layer_params(current_node)
+    pool_size = layer_params.get('pool_size', [2, 2])
+    pool_strides = layer_params.get('pool_strides')
+    # hotfix 
+    if current_node.content['name'] == LayersPoolEnum.max_pool2d.value:
+        pool_layer = layers.MaxPooling2D(pool_size, pool_strides)(input_layer)
+    else:
+        pool_layer = layers.AveragePooling2D(pool_size, pool_strides)(input_layer)
+    return pool_layer
+
+
 def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_free_node: bool = False):
     """
     This function generates convolutional layer from given node and adds pooling layer if node doesn't belong to any of
@@ -122,9 +134,10 @@ def make_conv_layer(idx: int, input_layer: Any, current_node: NNNode = None, is_
 
 def _add_shortcut_conv(input_layer, out_shape: int):
     """Adds to skip connection's shortcut a conv 1x1 layer to fix dimension difference"""
-    layer_to_add = layers.Conv2D(out_shape, 1, 2, padding='same')(input_layer)
+    stride = math.ceil(out_shape/input_layer.shape[-1])
+    layer_to_add = layers.Conv2D(out_shape, 1, stride, padding='valid')(input_layer)
     layer_to_add = layers.BatchNormalization()(layer_to_add)
-    return layers.Activation('relu')(layer_to_add)
+    return layer_to_add
 
 
 def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_dict: dict):
@@ -142,7 +155,7 @@ def make_skip_connection_block(idx: int, input_layer: Any, current_node, layers_
         start_layer = tmp.pop(0)
         # TODO extend to different strides
         if not start_layer.shape[-1] == input_layer.shape[-1]:
-        # if current_node.nodes_from[0].content['params']['conv_strides'] != [1, 1]:
+            # if current_node.nodes_from[0].content['params']['conv_strides'] != [1, 1]:
             out_shape = input_layer.shape[-1]
             start_layer = _add_shortcut_conv(input_layer=start_layer, out_shape=out_shape)
         input_layer = layers.add([start_layer, input_layer])

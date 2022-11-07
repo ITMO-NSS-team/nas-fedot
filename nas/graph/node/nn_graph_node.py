@@ -1,4 +1,5 @@
-from typing import Optional, List, Tuple, Union, Callable
+from __future__ import annotations
+from typing import Optional, List, Tuple, Union
 
 import numpy as np
 from fedot.core.optimisers.graph import OptNode
@@ -10,7 +11,7 @@ def get_node_params_by_type(node, requirements):
     return GraphLayers().layer_by_type(node, requirements)
 
 
-def calculate_output_shape(node) -> np.ndarray:
+def calculate_output_shape(node: NNNode) -> np.ndarray:
     """Returns input shape of node"""
     # define node type
     is_conv = 'conv' in node.content['name']
@@ -23,7 +24,7 @@ def calculate_output_shape(node) -> np.ndarray:
         return count_fc_layer_params(node)
 
 
-def count_conv_layer_params(node):
+def count_conv_layer_params(node: NNNode):
     input_shape = node.input_shape
     input_filters = input_shape[-1]
     kernel_size = node.content['params'].get('kernel_size')

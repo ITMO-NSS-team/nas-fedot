@@ -1,6 +1,6 @@
 import datetime
-import pathlib
 import os
+import pathlib
 
 import tensorflow as tf
 from fedot.core.composer.advisor import DefaultChangeAdvisor

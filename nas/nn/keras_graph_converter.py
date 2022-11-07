@@ -7,7 +7,7 @@ from tensorflow.keras import layers, optimizers
 import nas
 
 
-def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
+def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     def _get_skip_connection_list(graph_structure):
         """Returns dictionary where key is node where skip connection is started and value is destination"""
         sc_layers = {}
@@ -16,6 +16,9 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
                 for source_node in destination_node.nodes_from[1:]:
                     sc_layers[source_node] = destination_node
         return sc_layers
+
+    import GPUtil
+    GPUtil.showUtilization()
 
     nn_structure = graph.graph_struct
     inputs = keras.Input(shape=input_shape, name='input_0')
@@ -26,10 +29,8 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
         layer_type = layer.content['name']
         is_free_node = layer in graph.free_nodes
         if 'conv' in layer_type:
-            if layer.content['params']['conv_strides'] != [1, 1]:
-                print(1)
             in_layer = nas.nn.layers_keras.make_conv_layer(idx=i, input_layer=in_layer, current_node=layer,
-                                                           is_free_node=is_free_node)
+                                                           is_free_node=False)
         elif layer_type == 'dense':
             in_layer = nas.nn.layers_keras.make_dense_layer(idx=i, input_layer=in_layer, current_node=layer)
         elif layer_type == 'flatten':
@@ -38,6 +39,9 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
 
         in_layer = nas.nn.layers_keras.make_skip_connection_block(idx=i, input_layer=in_layer, current_node=layer,
                                                                   layers_dict=skip_connection_destination_dict)
+        if 'pool' in layer_type:
+            in_layer = nas.nn.layers_keras.make_pooling_layer(idx=i, input_layer=in_layer, current_node=layer,
+                                                              is_free_node=False)
 
         if layer in skip_connection_nodes_dict:
             skip_connection_end_id = skip_connection_nodes_dict.pop(layer)
@@ -45,6 +49,7 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
                 skip_connection_destination_dict[skip_connection_end_id] = [in_layer]
             else:
                 skip_connection_destination_dict[skip_connection_end_id].append(in_layer)
+
 
     # Output
     output_shape = 1 if classes == 2 else classes
@@ -54,15 +59,22 @@ def _create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     outputs = dense(in_layer)
     model = keras.Model(inputs=inputs, outputs=outputs, name='custom_model')
     model.compile(loss=loss_func, optimizer=optimizers.RMSprop(learning_rate=1e-4), metrics=['acc'])
+    import GPUtil
+    GPUtil.showUtilization()
+
+
     return model
 
 
 def build_nn_from_graph(graph, n_classes, requirements):
     input_shape = requirements.nn_requirements.conv_requirements.input_shape
     classes_num = n_classes
-    graph.model = _create_nn_model(graph, input_shape, classes_num)
+    try:
+        graph.model = create_nn_model(graph, input_shape, classes_num)
+    except Exception as e:
+        print(e)
 
     # restrictions for large number of trainable parameters
-    total_trainable_params = count_params(graph.model.trainable_weights)
-    if total_trainable_params > 1e8:
-        raise MemoryError('Model has too many trainable parameters. Fit operation has been cancelled')
+    # total_trainable_params = count_params(graph.model.trainable_weights)
+    # if total_trainable_params > 1e8:
+    #     raise MemoryError('Model has too many trainable parameters. Fit operation has been cancelled')

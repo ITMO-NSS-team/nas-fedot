@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class GraphGenerator(ABC):
     @abstractmethod
-    def _add_node(self, node_type, node_from):
+    def _add_node(self, *args, **kwargs):
         raise NotImplementedError
 
     @abstractmethod

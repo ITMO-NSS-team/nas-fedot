@@ -11,17 +11,36 @@ import tensorflow as tf
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 if TYPE_CHECKING:
-    from nas.composer.nn_composer_requirements import NNComposerRequirements, NNRequirements
+    from nas.composer.nn_composer_requirements import NNRequirements
 
 
 @dataclass
 class GraphLayers:
     # TODO remade as decorator
     @staticmethod
-    def _batch_normalization(requirements: NNRequirements, layer_params: dict):
+    def _batch_normalization(requirements: NNRequirements, layer_params: dict) -> dict:
         if random.uniform(0, 1) < requirements.batch_norm_prob:
             layer_params['momentum'] = 0.99  # random.uniform(0, 1)
             layer_params['epsilon'] = 0.001
+        return layer_params
+
+    @staticmethod
+    def _get_pool_params(requirements: NNRequirements) -> dict:
+        layer_params = dict()
+        layer_params['pool_size'] = random.choice(requirements.conv_requirements.pool_size)
+        layer_params['pool_strides'] = random.choice(requirements.conv_requirements.pool_strides)
+        return layer_params
+
+    @staticmethod
+    def _max_pool2d(requirements: NNRequirements) -> dict:
+        layer_params = GraphLayers._get_pool_params(requirements)
+        # layer_params['pool_type'] = LayersPoolEnum.max_pool2d.value
+        return layer_params
+
+    @staticmethod
+    def _average_pool2d(requirements: NNRequirements) -> dict:
+        layer_params = GraphLayers._get_pool_params(requirements)
+        # layer_params['pool_type'] = LayersPoolEnum.average_poold2.value
         return layer_params
 
     @staticmethod
@@ -32,67 +51,64 @@ class GraphLayers:
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['conv_strides'] = random.choice(requirements.conv_requirements.conv_strides)
         layer_parameters['neurons'] = random.choice(requirements.conv_requirements.neurons)
-        if requirements.conv_requirements.pool_types:
-            layer_parameters['pool_size'] = random.choice(requirements.conv_requirements.pool_size)
-            layer_parameters['pool_strides'] = random.choice(requirements.conv_requirements.pool_strides)
-            layer_parameters['pool_type'] = random.choice(requirements.conv_requirements.pool_types)
         return GraphLayers._batch_normalization(requirements, layer_parameters)
 
-    def _conv2d_1x1(self, requirements):
+    @staticmethod
+    def _conv2d_1x1(requirements: NNRequirements) -> dict:
         """Returns dictionary with particular layer parameters as NNGraph"""
-        layer_parameters = self._base_conv2d(requirements)
-        # layer_parameters['name'] = LayersPoolEnum.conv2d_1x1.value
+        layer_parameters = GraphLayers._base_conv2d(requirements)
         layer_parameters['kernel_size'] = [1, 1]
         return layer_parameters
 
-    def _conv2d_3x3(self, requirements):
+    @staticmethod
+    def _conv2d_3x3(requirements: NNRequirements) -> dict:
         """Returns dictionary with particular layer parameters as NNGraph"""
-        layer_parameters = self._base_conv2d(requirements)
-        # layer_parameters['name'] = LayersPoolEnum.conv2d_3x3.value
-        layer_parameters['kernel_size'] = [3, 3]
-        return layer_parameters
-
-    def _conv2d_5x5(self, requirements):
-        """Returns dictionary with particular layer parameters as NNGraph"""
-        layer_parameters = self._base_conv2d(requirements)
-        # layer_parameters['name'] = LayersPoolEnum.conv2d_5x5.value
-        layer_parameters['kernel_size'] = [5, 5]
-        return layer_parameters
-
-    def _conv2d_7x7(self, requirements):
-        """Returns dictionary with particular layer parameters as NNGraph"""
-        layer_parameters = self._base_conv2d(requirements)
-        # layer_parameters['name'] = LayersPoolEnum.conv2d_7x7.value
-        layer_parameters['kernel_size'] = [7, 7]
-        return layer_parameters
-
-    def _dilation_conv2d(self, requirements):
-        layer_parameters = self._base_conv2d(requirements)
-
-        layer_parameters['dilation_rate'] = random.choice(requirements.conv_requirements.dilation_rate)
+        layer_parameters = GraphLayers._base_conv2d(requirements)
         layer_parameters['kernel_size'] = [3, 3]
         return layer_parameters
 
     @staticmethod
-    def _dense(requirements):
+    def _conv2d_5x5(requirements: NNRequirements) -> dict:
+        """Returns dictionary with particular layer parameters as NNGraph"""
+        layer_parameters = GraphLayers._base_conv2d(requirements)
+        layer_parameters['kernel_size'] = [5, 5]
+        return layer_parameters
+
+    @staticmethod
+    def _conv2d_7x7(requirements: NNRequirements) -> dict:
+        """Returns dictionary with particular layer parameters as NNGraph"""
+        layer_parameters = GraphLayers._base_conv2d(requirements)
+        layer_parameters['kernel_size'] = [7, 7]
+        return layer_parameters
+
+    @staticmethod
+    def _dilation_conv2d(requirements: NNRequirements) -> dict:
+        pass
+        #
+        # layer_parameters = GraphLayers._base_conv2d(requirements)
+        # layer_parameters['dilation_rate'] = random.choice(requirements.conv_requirements.dilation_rate)
+        # layer_parameters['kernel_size'] = [3, 3]
+        # return layer_parameters
+
+    @staticmethod
+    def _dense(requirements: NNRequirements):
         layer_parameters = dict()
-        # layer_parameters['name'] = LayersPoolEnum.dense.value
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['neurons'] = random.choice(requirements.fc_requirements.neurons_num)
         return GraphLayers._batch_normalization(requirements, layer_parameters)
 
     @staticmethod
-    def _dropout(requirements):
+    def _dropout(requirements: NNRequirements) -> dict:
         layer_parameters = dict()
 
         layer_parameters['drop'] = random.randint(1, requirements.max_drop_size * 10) / 10
         return layer_parameters
 
     @staticmethod
-    def _flatten(*args):
+    def _flatten(*args) -> dict:
         return {'n_jobs': 1}
 
-    def layer_by_type(self, layer_type: LayersPoolEnum, requirements: NNComposerRequirements.nn_requirements):
+    def layer_by_type(self, layer_type: LayersPoolEnum, requirements: NNRequirements) -> dict:
         layers = {
             LayersPoolEnum.conv2d_1x1: self._conv2d_1x1(requirements),
             LayersPoolEnum.conv2d_3x3: self._conv2d_3x3(requirements),
@@ -101,7 +117,9 @@ class GraphLayers:
             LayersPoolEnum.dilation_conv2d: self._dilation_conv2d(requirements),
             LayersPoolEnum.flatten: self._flatten(requirements),
             LayersPoolEnum.dense: self._dense(requirements),
-            LayersPoolEnum.dropout: self._dropout(requirements)
+            LayersPoolEnum.dropout: self._dropout(requirements),
+            LayersPoolEnum.max_pool2d: self._max_pool2d(requirements),
+            LayersPoolEnum.average_poold2: self._average_pool2d(requirements)
         }
 
         if layer_type in layers:

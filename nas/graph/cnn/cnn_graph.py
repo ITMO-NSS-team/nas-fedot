@@ -2,16 +2,19 @@ import gc
 import json
 import os
 import pathlib
-from typing import List, Union
+from typing import List, Union, Optional
 
+import keras.backend
 import numpy as np
 import tensorflow as tf
+import tensorflow.python.framework.config
 from fedot.core.dag.graph_node import GraphNode
 from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from fedot.core.visualisation.graph_viz import NodeColorType
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.python.keras.engine.functional import Functional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
@@ -20,7 +23,7 @@ from nas.nn.keras_graph_converter import build_nn_from_graph
 from nas.repository.layer_types_enum import LayersPoolEnum
 # hotfix
 from nas.utils.default_parameters import default_nodes_params
-from nas.utils.utils import set_root, seed_all, project_root
+from nas.utils.utils import set_root, seed_all, project_root, clear_keras_session
 
 set_root(project_root())
 convolutional_types = (LayersPoolEnum.conv2d, LayersPoolEnum.dilation_conv2d)
@@ -53,6 +56,11 @@ class NNGraph(OptGraph):
 
     def __eq__(self, other) -> bool:
         return self is other
+
+    def show(self, save_path: Optional[Union[os.PathLike, str]] = None, engine: str = 'matplotlib',
+             node_color: Optional[NodeColorType] = None, dpi: int = 100,
+             node_size_scale: float = 1.0, font_size_scale: float = 1.0, edge_curvature_scale: float = 1.0):
+        super().show(save_path, 'pyvis', node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
 
     @property
     def input_shape(self):
@@ -175,14 +183,17 @@ class NNGraph(OptGraph):
             return json.loads(json_data, cls=Serializer)
 
     @property
-    def graph_struct(self) -> List[GraphNode]:
+    def graph_struct(self) -> List[Union[NNNode, GraphNode]]:
         if 'conv' in self.nodes[0].content['name']:
             return self.nodes
         else:
             return self.nodes[::-1]
 
     @staticmethod
-    def release_memory(graph):
+    def release_memory(graph, **kwargs):
         del graph.model
-        tf.keras.backend.clear_session()
         gc.collect()
+
+        # if tensorflow.config.list_physical_devices('GPU'):
+        #     tensorflow.config.experimental.reset_memory_stats('GPU:0')
+        clear_keras_session(**kwargs)

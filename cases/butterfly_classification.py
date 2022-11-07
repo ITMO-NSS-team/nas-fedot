@@ -1,12 +1,12 @@
 import datetime
 import pathlib
 
-import tensorflow as tf
+import tensorflow
+from fedot.core.adapter.adapter import DirectAdapter
 from fedot.core.composer.advisor import DefaultChangeAdvisor
 from fedot.core.composer.composer_builder import ComposerBuilder
 from fedot.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.data.data_split import train_test_data_setup
-from fedot.core.optimisers.adapters import DirectAdapter
 from fedot.core.optimisers.gp_comp.gp_optimizer import GPGraphOptimizerParameters
 from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
 from fedot.core.optimisers.gp_comp.operators.inheritance import GeneticSchemeTypesEnum
@@ -22,17 +22,20 @@ from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import DataGenerator
 from nas.data.data_generator import Preprocessor
 from nas.data.setup_data import setup_data
-from nas.graph.cnn.cnn_builder import ConvGraphMaker
 from nas.graph.cnn.cnn_graph import NNGraph, NNNode
+from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.graph_builder import NNGraphBuilder
 from nas.graph.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import has_no_flatten_skip, flatten_count, \
-    graph_has_several_starts, graph_has_wrong_structure, unique_node_types, parameters_check, \
-    graph_has_wrong_structure_tmp
+    graph_has_several_starts, graph_has_wrong_structure, unique_node_types, graph_has_wrong_structure_tmp
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
+
+gpus = tensorflow.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    tensorflow.config.experimental.set_memory_growth(gpu, True)
 
 set_root(project_root())
 
@@ -41,12 +44,12 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    # dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    dataset_path = pathlib.Path('../datasets/CXR8_short')
+    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
+    # dataset_path = pathlib.Path('../datasets/CXR8_5')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     cv_folds = 2
-    image_side_size = 20
+    image_side_size = 256
     batch_size = 8
     epochs = 1
     optimization_epochs = 1
@@ -63,7 +66,8 @@ def build_butterfly_cls(save_path=None):
                                                           min_filters=32, max_filters=64,
                                                           conv_strides=[[1, 1]],
                                                           pool_size=[[2, 2]], pool_strides=[[2, 2]],
-                                                          pool_types=['max_pool2d', 'average_pool2d'])
+                                                          cnn_secondary=[LayersPoolEnum.max_pool2d,
+                                                                         LayersPoolEnum.average_poold2])
     fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
                                                                   max_number_of_neurons=64)
     nn_requirements = nas_requirements.NNRequirements(conv_requirements=conv_requirements,
@@ -80,16 +84,16 @@ def build_butterfly_cls(save_path=None):
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),
-                                                           num_of_generations=1)
+                                                           num_of_generations=2)
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
-                        has_no_cycle, has_no_self_cycled_nodes, unique_node_types, parameters_check,
+                        has_no_cycle, has_no_self_cycled_nodes, unique_node_types,
                         graph_has_wrong_structure_tmp]
 
     optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                       mutation_types=mutations,
                                                       crossover_types=[CrossoverTypesEnum.subtree],
-                                                      pop_size=1,
+                                                      pop_size=5,
                                                       regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
@@ -98,15 +102,16 @@ def build_butterfly_cls(save_path=None):
                                                                           DefaultChangeAdvisor()))
 
     graph_generation_function = NNGraphBuilder()
-    graph_generation_function.set_builder(ConvGraphMaker(param_restrictions=requirements.nn_requirements))
+    graph_generation_function.set_builder(ResNetGenerator(param_restrictions=requirements.nn_requirements))
 
     builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
-        with_initial_pipelines_generation_function(graph_generation_function.build). \
-        with_graph_generation_param(graph_generation_parameters).with_history('../_results/debug/master_2')
+        with_initial_pipelines(graph_generation_function.build()). \
+        with_graph_generation_param(graph_generation_parameters)
+    # with_initial_pipelines_generation_function(graph_generation_function.build). \
     composer = builder.build()
 
-    transformations = [tf.convert_to_tensor]
+    transformations = [tensorflow.convert_to_tensor]
     data_preprocessor = Preprocessor()
     data_preprocessor.set_image_size((image_side_size, image_side_size)).set_features_transformations(transformations)
     composer.set_preprocessor(data_preprocessor)
@@ -137,5 +142,5 @@ def build_butterfly_cls(save_path=None):
 
 if __name__ == '__main__':
     path = f'_results/debug/master_2/{datetime.datetime.now().date()}'
-    print(tf.config.list_physical_devices('GPU'))
+    print(tensorflow.config.list_physical_devices('GPU'))
     build_butterfly_cls(path)

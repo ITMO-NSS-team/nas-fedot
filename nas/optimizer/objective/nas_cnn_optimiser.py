@@ -3,22 +3,24 @@ from typing import List
 
 import numpy as np
 from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
+from fedot.core.optimisers.gp_comp.gp_params import GPGraphOptimizerParameters
+from fedot.core.optimisers.optimizer import GraphGenerationParams
 from tensorflow.keras.backend import clear_session
 
+from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.utils.utils import seed_all
-
 
 seed_all(1)
 
 
 class NNGraphOptimiser(EvoGraphOptimizer):
-    def __init__(self, initial_graphs, requirements, graph_generation_params,
-                 objective, parameters, verbose=0):
+    def __init__(self, initial_graphs: List[NNGraph], requirements: NNComposerRequirements,
+                 graph_generation_params: GraphGenerationParams, graph_optimizer_params: GPGraphOptimizerParameters,
+                 objective, verbose=0):
         super().__init__(initial_graphs=initial_graphs, requirements=requirements,
                          graph_generation_params=graph_generation_params,
-                         objective=objective,
-                         parameters=parameters)
+                         objective=objective, graph_optimizer_params=graph_optimizer_params)
         self.save_path = None
         self.verbose = verbose
         self.metrics = objective

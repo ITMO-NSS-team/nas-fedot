@@ -1,9 +1,12 @@
 from copy import deepcopy
+from typing import Union
+
+from fedot.core.dag.graph_node import GraphNode
 
 from nas.composer.nn_composer_requirements import *
-from nas.graph.cnn.cnn_builder import ConvGraphMaker
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.nn import ActivationTypesIdsEnum, build_nn_from_graph
+from nas.graph.grpah_generator import GraphGenerator
+from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.existing_cnn_enum import CNNEnum
 from nas.repository.layer_types_enum import LayersPoolEnum
 
@@ -46,88 +49,161 @@ class CNNRepository:
         }
 
 
-class ResNetBuilder:
-    _requirements: NNRequirements = None
+# class ResNetBuilder:
+#     _requirements: NNRequirements = None
+#
+#     def set_requirements_for_resnet(self, requirements: NNRequirements):
+#         self._requirements = requirements
+#
+#     def set_output_shape(self, output_shape: int) -> NNRequirements:
+#         # TODO add output shape check
+#         self._requirements.conv_requirements.max_filters = output_shape
+#         self._requirements.conv_requirements.min_filters = output_shape
+#         return self._requirements
+#
+#     def set_conv_params(self, stride: int) -> NNRequirements:
+#         self._requirements.conv_requirements.conv_strides = [[stride, stride]]
+#         return self._requirements
+#
+#     def set_pooling_params(self, pool_type: List[str], stride: int = 2, size: int = 2) -> NNRequirements:
+#         self._requirements.conv_requirements.pool_types = pool_type
+#         self._requirements.conv_requirements.pool_size = [size, size]
+#         self._requirements.conv_requirements.pool_strides = stride
+#         return self._requirements
+#
+#     def _build_resnet_block(self, input_block: NNGraph, output_shape: int, flag: int) -> NNGraph:
+#         '''conv2d
+#         batch_norm
+#         relu
+#         conv2d
+#         batch_norm
+#         relu'''
+#         shortcut_node = False
+#         initial_struct = [LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_3x3]  # * max_possible_nodes[output_shape]
+#
+#         block_requirements = deepcopy(self._requirements)
+#         block_requirements.set_output_shape(output_shape).set_conv_params(1).set_pooling_params(None, None, None)
+#
+#         resnet_block = ConvGraphMaker(initial_struct=initial_struct,
+#                                       param_restrictions=block_requirements).build()
+#         if not flag and output_shape != 64:
+#             resnet_block.graph_struct[0].content['params']['conv_strides'] = [2, 2]
+#             # shortcut_node_name = LayersPoolEnum.conv2d_1x1
+#             # shortcut_node = get_node_params_by_type(shortcut_node_name, block_requirements.set_conv_params(2))
+#             # shortcut_node = NNNode(content={'name': shortcut_node_name.value, 'params': shortcut_node}, nodes_from=None)
+#
+#         return concat_graphs(input_block, resnet_block)
+#
+#     def build34(self, input_shape: float = 20, mode: str = 'RGB'):
+#
+#         conv_req = ConvRequirements(input_shape=[input_shape, input_shape], color_mode=mode)
+#
+#         self.set_requirements_for_resnet(
+#             NNRequirements(conv_requirements=conv_req, activation_types=[ActivationTypesIdsEnum.relu]))
+#         self._requirements.set_batch_norm_prob(1)
+#
+#         input_node_params = deepcopy(self._requirements)
+#         input_node_params.set_pooling_params(['max_pool2d'], 2, 3).set_conv_params(2)
+#
+#         graph_builder = ConvGraphMaker(initial_struct=[LayersPoolEnum.conv2d_7x7],
+#                                        param_restrictions=input_node_params)
+#
+#         resnet_graph = graph_builder.build()
+#
+#         for i in range(2):
+#             resnet_graph = self._build_resnet_block(resnet_graph, 64, i)
+#         for i in range(4):
+#             resnet_graph = self._build_resnet_block(resnet_graph, 128, i)
+#         for i in range(6):
+#             resnet_graph = self._build_resnet_block(resnet_graph, 256, i)
+#         for i in range(3):
+#             resnet_graph = self._build_resnet_block(resnet_graph, 512, i)
+#
+#         # TODO make a function to generate one layer on node_requirements
+#         resnet_graph.graph_struct[-1].content['params']['pool_type'] = 'average_pool2d'
+#         resnet_graph.graph_struct[-1].content['params']['pool_strides'] = None
+#         resnet_graph.graph_struct[-1].content['params']['pool_size'] = [2, 2]
+#
+#         return resnet_graph
 
-    def set_requirements_for_resnet(self, requirements: NNRequirements):
-        self._requirements = requirements
 
-    def set_output_shape(self, output_shape: int) -> NNRequirements:
-        # TODO add output shape check
-        self._requirements.conv_requirements.max_filters = output_shape
-        self._requirements.conv_requirements.min_filters = output_shape
-        return self._requirements
+class ResNetGenerator(GraphGenerator):
+    def __init__(self, param_restrictions: NNRequirements):
+        self._parameters_restrictions = param_restrictions
+        self._parameters_restrictions.set_batch_norm_prob(1).set_output_shape(64)
 
-    def set_conv_params(self, stride: int) -> NNRequirements:
-        self._requirements.conv_requirements.conv_strides = [[stride, stride]]
-        return self._requirements
+    def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: NNRequirements,
+                  parent_node: List[NNNode] = None, stride: int = None, pool_size: int = None,
+                  pool_stride: int = None) -> NNNode:
+        layer_requirements = deepcopy(node_requirements)
+        if stride:
+            layer_requirements.set_conv_params(stride)
+        elif pool_size or pool_stride:
+            layer_requirements.set_pooling_params(pool_size, pool_stride)
 
-    def set_pooling_params(self, pool_type: List[str], stride: int = 2, size: int = 2) -> NNRequirements:
-        self._requirements.conv_requirements.pool_types = pool_type
-        self._requirements.conv_requirements.pool_size = [size, size]
-        self._requirements.conv_requirements.pool_strides = stride
-        return self._requirements
+        node_params = get_node_params_by_type(node_to_add, layer_requirements)
+        node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
+        return node
 
-    def _build_resnet_block(self, input_block: NNGraph, output_shape: int, flag: int) -> NNGraph:
-        '''conv2d
-        batch_norm
-        relu
-        conv2d
-        batch_norm
-        relu'''
-        shortcut_node = False
-        initial_struct = [LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_3x3]  # * max_possible_nodes[output_shape]
+    def _add_to_block(self, block: NNGraph, node_to_add, requirements: NNRequirements,
+                      parent_node: List[Union[GraphNode, NNNode]], stride: int):
+        node_to_add = self._add_node(node_to_add, parent_node=parent_node, node_requirements=requirements,
+                                     stride=stride)
+        block.add_node(node_to_add)
 
-        block_requirements = deepcopy(self._requirements)
-        block_requirements.set_output_shape(output_shape).set_conv_params(1).set_pooling_params(None, None, None)
+    def _growth_one_block(self, graph: NNGraph, output_shape: int, number_of_sub_blocks: int):
+        for i in range(number_of_sub_blocks):
+            stride = 2 if (i == 0 and output_shape != 64) else 1
+            block_to_add = self._generate_sub_block(output_shape, stride)
+            nodes_to_add = block_to_add.graph_struct
+            skip_connection_start = graph.graph_struct[-1]
+            for node in nodes_to_add:
+                prev_node = graph.graph_struct[-1]
+                node.nodes_from.append(prev_node)
+                graph.add_node(node)
+            graph.graph_struct[-1].nodes_from.append(skip_connection_start)
 
-        resnet_block = ConvGraphMaker(initial_struct=initial_struct,
-                                      param_restrictions=block_requirements).build()
-        if not flag and output_shape != 64:
-            resnet_block.graph_struct[0].content['params']['conv_strides'] = [2, 2]
-            # shortcut_node_name = LayersPoolEnum.conv2d_1x1
-            # shortcut_node = get_node_params_by_type(shortcut_node_name, block_requirements.set_conv_params(2))
-            # shortcut_node = NNNode(content={'name': shortcut_node_name.value, 'params': shortcut_node}, nodes_from=None)
+    def _generate_sub_block(self, output_shape: int, stride: int) -> NNGraph:
+        res_block = NNGraph()
+        block_requirements = deepcopy(self._parameters_restrictions)
+        block_requirements.set_output_shape(output_shape)
 
-        return concat_graphs(input_block, resnet_block)
+        self._add_to_block(res_block, LayersPoolEnum.conv2d_3x3, block_requirements, None, stride)
+        self._add_to_block(res_block, LayersPoolEnum.conv2d_3x3, block_requirements, [res_block.graph_struct[-1]],
+                           1)
+        return res_block
 
-    def build34(self, input_shape: float = 20, mode: str = 'RGB'):
+    def build(self) -> NNGraph:
+        self._parameters_restrictions.max_num_of_conv_layers = 35
+        self._parameters_restrictions.max_nn_depth = 3
 
-        conv_req = ConvRequirements(input_shape=[input_shape, input_shape], color_mode=mode)
+        resnet = NNGraph()
 
-        self.set_requirements_for_resnet(
-            NNRequirements(conv_requirements=conv_req, activation_types=[ActivationTypesIdsEnum.relu]))
-        self._requirements.set_batch_norm_prob(1)
+        node = self._add_node(LayersPoolEnum.conv2d_7x7, node_requirements=self._parameters_restrictions, stride=2)
+        resnet.add_node(node)
 
-        input_node_params = deepcopy(self._requirements)
-        input_node_params.set_pooling_params(['max_pool2d'], 2, 3).set_conv_params(2)
+        pooling = self._add_node(LayersPoolEnum.max_pool2d, node_requirements=self._parameters_restrictions,
+                                 pool_size=3, pool_stride=2, parent_node=[node])
+        resnet.add_node(pooling)
+        self._growth_one_block(resnet, 64, 3)
+        self._growth_one_block(resnet, 128, 4)
+        self._growth_one_block(resnet, 256, 6)
+        self._growth_one_block(resnet, 512, 3)
+        pooling = self._add_node(LayersPoolEnum.average_poold2, node_requirements=self._parameters_restrictions,
+                                 parent_node=[resnet.graph_struct[-1]])
+        resnet.add_node(pooling)
+        flatten = self._add_node(LayersPoolEnum.flatten, node_requirements=self._parameters_restrictions,
+                                 parent_node=[pooling])
+        resnet.add_node(flatten)
+        resnet.input_shape = self._parameters_restrictions.conv_requirements.input_shape
+        # total_params = resnet.get_trainable_params()
 
-        graph_builder = ConvGraphMaker(initial_struct=[LayersPoolEnum.conv2d_7x7],
-                                       param_restrictions=input_node_params)
-
-        resnet_graph = graph_builder.build()
-
-        for i in range(2):
-            resnet_graph = self._build_resnet_block(resnet_graph, 64, i)
-        for i in range(4):
-            resnet_graph = self._build_resnet_block(resnet_graph, 128, i)
-        for i in range(6):
-            resnet_graph = self._build_resnet_block(resnet_graph, 256, i)
-        for i in range(3):
-            resnet_graph = self._build_resnet_block(resnet_graph, 512, i)
-
-        resnet_graph.graph_struct[-1].content['params']['pool_type'] = 'average_pool2d'
-        resnet_graph.graph_struct[-1].content['params']['pool_strides'] = None
-        resnet_graph.graph_struct[-1].content['params']['pool_size'] = [2, 2]
-
-        return resnet_graph
+        return resnet
 
 
 if __name__ == '__main__':
-    graph = ResNetBuilder().build34()
-
     cv_folds = 2
-    image_side_size = 20
+    image_side_size = 256
     batch_size = 8
     epochs = 1
     optimization_epochs = 1
@@ -135,11 +211,11 @@ if __name__ == '__main__':
 
     data_requirements = DataRequirements(split_params={'cv_folds': cv_folds})
     conv_requirements = ConvRequirements(input_shape=[image_side_size, image_side_size],
+                                         cnn_secondary=[LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2],
                                          color_mode='RGB',
                                          min_filters=32, max_filters=64,
                                          conv_strides=[[1, 1]],
-                                         pool_size=[[2, 2]], pool_strides=[[2, 2]],
-                                         pool_types=['max_pool2d', 'average_pool2d'])
+                                         pool_size=[[2, 2]], pool_strides=[[2, 2]])
     fc_requirements = FullyConnectedRequirements(min_number_of_neurons=32,
                                                  max_number_of_neurons=64)
     nn_requirements = NNRequirements(conv_requirements=conv_requirements,
@@ -148,7 +224,7 @@ if __name__ == '__main__':
                                      secondary=[LayersPoolEnum.dense],
                                      epochs=epochs, batch_size=batch_size,
                                      max_nn_depth=1, max_num_of_conv_layers=10,
-                                     has_skip_connection=True
+                                     has_skip_connection=True, activation_types=[ActivationTypesIdsEnum.relu]
                                      )
     optimizer_requirements = OptimizerRequirements(opt_epochs=optimization_epochs)
 
@@ -157,6 +233,7 @@ if __name__ == '__main__':
                                           nn_requirements=nn_requirements,
                                           timeout=datetime.timedelta(hours=200),
                                           num_of_generations=1)
+    graph = ResNetGenerator(requirements.nn_requirements).build()
 
-    build_nn_from_graph(graph, 75, requirements)
+
     print('Done!')

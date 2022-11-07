@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass
 from typing import List, Optional
@@ -41,7 +43,7 @@ class FullyConnectedRequirements:
             raise ValueError(f'max_num_of_neurons value {self.max_number_of_neurons} is unacceptable')
 
     @property
-    def neurons_num(self):
+    def neurons_num(self) -> List[int]:
         neurons = [self.min_number_of_neurons]
         i = self.min_number_of_neurons
         while i < self.max_number_of_neurons:
@@ -59,12 +61,12 @@ class ConvRequirements:
     dilation_rate: List[int] = None
     min_filters: int = 32
     max_filters: int = 128
-    # kernel_size: List[List[int]] = None
     conv_strides: List[List[int]] = None
     pool_size: List[List[int]] = None
     pool_strides: List[List[int]] = None
     conv_layer: Optional[List[str]] = None
-    pool_types: Optional[List[str]] = None
+
+    # pool_types: Optional[List[str]] = None
 
     def __post_init__(self):
         if not self.dilation_rate:
@@ -92,8 +94,13 @@ class ConvRequirements:
 
         # TODO Extend checker method. Current one doesn't fit it's name.
         # permissible_kernel_parameters_correct(self.input_shape, self.kernel_size, self.conv_strides, False)
-        if self.pool_types:
+        if self._has_pooling():
             permissible_kernel_parameters_correct(self.input_shape, self.pool_size, self.pool_strides, True)
+
+    def _has_pooling(self) -> bool:
+        has_pooling = LayersPoolEnum.max_pool2d or LayersPoolEnum.average_poold2 in self.cnn_secondary
+        has_pool_params = self.pool_size and self.pool_strides is not None
+        return has_pooling and has_pool_params
 
     @property
     def num_of_channels(self):
@@ -167,8 +174,7 @@ class NNRequirements:
         self.conv_requirements.conv_strides = [[stride, stride]]
         return self
 
-    def set_pooling_params(self, pool_type: List[str], stride: int = 2, size: int = 2):
-        self.conv_requirements.pool_types = pool_type
+    def set_pooling_params(self, stride: int, size: int) -> NNRequirements:
         self.conv_requirements.pool_size = [[size, size]]
         self.conv_requirements.pool_strides = [[stride, stride]]
         return self

@@ -1,4 +1,5 @@
 from typing import List
+
 import tensorflow as tf
 
 from nas.graph.cnn.cnn_graph import NNGraph

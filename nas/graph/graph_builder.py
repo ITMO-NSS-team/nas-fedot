@@ -1,6 +1,4 @@
-from typing import Sequence, List
 from nas.graph.grpah_generator import GraphGenerator
-from nas.graph.cnn.cnn_graph import NNGraph
 
 
 class NNGraphBuilder:

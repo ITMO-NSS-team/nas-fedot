@@ -34,7 +34,7 @@ def _get_requirements(req_name: str):
 
 
 setuptools.setup(
-    install_requires=_get_requirements('requirements.txt'),
+    install_requires=_get_requirements('node_requirements.txt'),
     name=NAME,
     version=VERSION,
     packages=setuptools.find_packages(exclude=['tests*']),
