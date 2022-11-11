@@ -24,6 +24,10 @@ def project_root() -> Path:
     """Returns NAS project root folder."""
     return Path(__file__).parent.parent.parent
 
+def clear_session():
+    session = tensorflow.compat.v1.Session()
+
+
 
 def log_gpu_memory(func):
     def memory_logger(*args, **kwargs):
@@ -37,9 +41,9 @@ def log_gpu_memory(func):
 
         info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
         if log:
-            log.info(f'Total memory\t\t{info.total}')
-            log.info(f'Used memory \t\t{info.used}')
-            log.info(f'Free memory \t\t{info.free}')
+            log.info(f'Total memory\t\t{float(info.total) / 1024 ** 3:.5f} GiB')
+            log.info(f'Used memory \t\t{float(info.used) / 1024 ** 3:.5f} GiB')
+            log.info(f'Free memory \t\t{float(info.free) / 1024 ** 3:.5f} GiB')
         return result
     return memory_logger
 

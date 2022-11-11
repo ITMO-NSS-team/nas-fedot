@@ -17,7 +17,7 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 #         for node in nodes_to_add:
 #             prev_node = graph_1.graph_struct[-1]
 #             node.nodes_from.append(prev_node)
-#             graph_1.add_node(node)
+#             graph_1._add_node_recursive(node)
 #         return graph_1
 #
 #     result_graph = graph_list[0]
@@ -33,7 +33,7 @@ def concat_graphs(graph_1, graph_2):
     for node in nodes_to_add:
         prev_node = graph_1.graph_struct[-1]
         node.nodes_from.append(prev_node)
-        graph_1.add_node(node)
+        graph_1._add_node_recursive(node)
 
     graph_1.graph_struct[-1].nodes_from.append(skip_connection_start)
     return graph_1

@@ -1,8 +1,7 @@
 from typing import Any, List
 
-from keras.utils.layer_utils import count_params
+from keras import layers, optimizers
 from tensorflow import keras
-from tensorflow.keras import layers, optimizers
 
 import nas
 
@@ -16,9 +15,6 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
                 for source_node in destination_node.nodes_from[1:]:
                     sc_layers[source_node] = destination_node
         return sc_layers
-
-    import GPUtil
-    GPUtil.showUtilization()
 
     nn_structure = graph.graph_struct
     inputs = keras.Input(shape=input_shape, name='input_0')
@@ -50,7 +46,6 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
             else:
                 skip_connection_destination_dict[skip_connection_end_id].append(in_layer)
 
-
     # Output
     output_shape = 1 if classes == 2 else classes
     activation_func = 'sigmoid' if classes == 2 else 'softmax'
@@ -58,10 +53,7 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     dense = layers.Dense(output_shape, activation=activation_func)
     outputs = dense(in_layer)
     model = keras.Model(inputs=inputs, outputs=outputs, name='custom_model')
-    model.compile(loss=loss_func, optimizer=optimizers.RMSprop(learning_rate=1e-4), metrics=['acc'])
-    import GPUtil
-    GPUtil.showUtilization()
-
+    model.compile(loss=loss_func, optimizer=optimizers.RMSprop(learning_rate=1e-4), metrics=['acc'], run_eagerly=True)
 
     return model
 

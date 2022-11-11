@@ -1,7 +1,11 @@
 import datetime
 import pathlib
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow
+import logging
+
 from fedot.core.adapter.adapter import DirectAdapter
 from fedot.core.composer.advisor import DefaultChangeAdvisor
 from fedot.core.composer.composer_builder import ComposerBuilder
@@ -33,6 +37,7 @@ from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
 
+tensorflow.get_logger().setLevel(logging.ERROR)
 gpus = tensorflow.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
     tensorflow.config.experimental.set_memory_growth(gpu, True)
