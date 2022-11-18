@@ -18,7 +18,7 @@ def test_load_images_from_folder():
 
 
 def test_load_images_from_csv():
-    # TODO find small csv dataset and update this test
+    # TODO find small csv dataset and _update this test
     path = 'example_datasets/butterfly_cls'
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path(path)

@@ -1,199 +1,19 @@
 import datetime
-from typing import Callable, List, Iterable
+from typing import Callable
 
 import tensorflow
-from fedot.core.utils import DEFAULT_PARAMS_STUB
+from fedot.core.pipelines.convert import graph_structure_as_nx_graph
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements, OptimizerRequirements, DataRequirements, \
     ConvRequirements, FullyConnectedRequirements, NNRequirements
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.node.nn_graph_node import NNNode
-from nas.nn import converter, ActivationTypesIdsEnum
+from nas.model.layers.keras_layers import KerasLayers
+from nas.nn import ActivationTypesIdsEnum
+from nas.model import converter
+from nas.model.branch_manager import GraphBranchManager
 from nas.repository.layer_types_enum import LayersPoolEnum
-from nas.utils.default_parameters import default_nodes_params
-
-
-def _get_layer_params(current_node: NNNode) -> dict:
-    if current_node.content['params'] == DEFAULT_PARAMS_STUB:
-        layer_params = default_nodes_params[current_node.content['name']]
-    else:
-        layer_params = current_node.content.get('params')
-    return layer_params
-
-
-def with_skip_connections(layer_func):
-    def wrapper(*args, **kwargs):
-        branch_manager: GraphBranchManager = kwargs.get('branch_manager')
-        # node and it's layer representation
-        current_node = kwargs.get('node')
-        input_layer = layer_func(*args, **kwargs)
-
-        # add to active branches new branches
-        branch_manager.add_branch(current_node, input_layer)
-
-        if len(current_node.nodes_from) > 1:
-            # for cases where len(current_node.nodes_from) > 1 add skip connection
-            # also add dimension equalizer for cases which have different dimensions
-            # layer_to_add = branch_manager.get_last_layer(current_node)
-            layers_to_add = branch_manager.get_last_layer(current_node.nodes_from)
-            # dimensions check. add conv to equalize dimensions in shortcuts if different
-            input_layer = tensorflow.keras.layers.Add([layers_to_add, input_layer])
-
-        # update active branches
-        branch_manager.update_branch(current_node, input_layer)
-        return layer_func(*args, **kwargs)
-
-    return wrapper
-
-
-def with_activation(layer_func):
-    def add_activation_to_layer(*args, **kwargs):
-        layer_params = _get_layer_params(kwargs.get('node'))
-        activation_type = layer_params.get('activation')
-        input_layer = layer_func(*args, **kwargs)
-        if activation_type:
-            activation = tensorflow.keras.layers.Activation(activation_type)
-            input_layer = activation(input_layer)
-        return input_layer
-
-    return add_activation_to_layer
-
-
-def with_batch_norm(layer_func):
-    def add_batch_norm_to_layer(*args, **kwargs):
-        layer_params = _get_layer_params(kwargs.get('node'))
-        momentum = layer_params.get('momentum')
-        input_layer = layer_func(*args, **kwargs)
-        if momentum:
-            epsilon = layer_params.get('epsilon')
-            batch_norm = tensorflow.keras.layers.BatchNormalization(momentum=momentum, epsilon=epsilon)
-            input_layer = batch_norm(input_layer)
-        return input_layer
-
-    return add_batch_norm_to_layer
-
-
-def with_dropout(layer_func):
-    def add_dropout_to_layer(*args, **kwargs):
-        layer_params = _get_layer_params(kwargs.get('node'))
-        drop = layer_params.get('drop')
-        input_layer = layer_func(*args, **kwargs)
-        if drop:
-            dropout = tensorflow.keras.layers.Dropout(drop)
-            input_layer = dropout(input_layer)
-        return input_layer
-
-    return add_dropout_to_layer
-
-
-class GraphBranchManager:
-    def __init__(self):
-        self._streams = dict()
-
-    @property
-    def streams(self):
-        return self._streams
-
-    def add_branch(self, node: NNNode, layer):
-        key = len(self._streams.keys())
-        self._streams[key] = {'node': node, 'layer': layer}
-        # self._streams[node] = layer
-        return self
-
-    def update_branch(self, current_node: NNNode, layer):
-        # for cases where number of parents > 1 should be added skip connections
-        number_of_parents = len(current_node.nodes_from)
-        for i in range(len(self._streams.keys())):
-            if i > number_of_parents or number_of_parents == 0:
-                # exit loop for cases where connection id greater than number of parents
-                # number of updated connections is equal to number of current node parents
-                break
-            if self._streams[i]['node'] == current_node.nodes_from[i]:
-                self._streams[i] = {'node': current_node, 'layer': layer}
-
-    def get_last_layer(self, parents: List[NNNode]) -> Iterable:
-        """Returns all layers from active branches except main branch (0)"""
-        list_to_return = {self._streams[i]['layer'] for i in self._streams.keys()
-                          if self._streams[i]['node'] == parents[i % len(parents) and i != 0]}
-        return list_to_return
-        # for i in self._streams.keys():
-        #     if self._streams[i]['node'] == parents[i % len(parents)]:
-        #         return self._streams[i]['layer']
-
-
-class KerasLayers:
-    @with_batch_norm
-    @with_skip_connections
-    @with_activation
-    @with_dropout
-    def conv2d(self, node: NNNode, input: tensorflow.Tensor, *args, **kwargs):
-        layer_params = _get_layer_params(node)
-
-        kernel_size = layer_params['kernel_size']
-        strides = layer_params['conv_strides']
-        filters = layer_params['neurons']
-
-        conv2d_layer = tensorflow.keras.layers.Conv2D(filters=filters, kernel_size=kernel_size, strides=strides,
-                                                      padding='same')
-        return conv2d_layer(input)
-
-    @with_batch_norm
-    @with_skip_connections
-    @with_activation
-    @with_dropout
-    def pool(self, node: NNNode, input, *args, **kwargs):
-        layer_params = _get_layer_params(current_node=node)
-        pool_size = layer_params.get('pool_size', [2, 2])
-        pool_strides = layer_params.get('pool_strides')
-        # hotfix
-        if node.content['name'] == LayersPoolEnum.max_pool2d.value:
-            pool_layer = tensorflow.keras.layers.MaxPooling2D(pool_size, pool_strides)(input)
-        else:
-            pool_layer = tensorflow.keras.layers.AveragePooling2D(pool_size, pool_strides)(input)
-        return pool_layer
-
-    @with_batch_norm
-    @with_skip_connections
-    @with_activation
-    @with_dropout
-    def dense(self, node: NNNode, input: tensorflow.Tensor, *args, **kwargs):
-        layer_params = _get_layer_params(node)
-        units = layer_params['neurons']
-
-        dense_layer = tensorflow.keras.layers.Dense(units=units)
-
-        return dense_layer(input)
-
-    @with_batch_norm
-    @with_skip_connections
-    @with_activation
-    @with_dropout
-    def flatten(self, node: NNNode, input: tensorflow.Tensor, *args, **kwargs):
-        return tensorflow.keras.layers.Flatten()(input)
-
-
-
-    @staticmethod
-    def _get_node_type(node: NNNode) -> str:
-        node_type = node.content['name']
-        if 'conv2d' in node_type:
-            return 'conv2d'
-        elif 'pool' in node_type:
-            return 'pool'
-        return node_type
-
-    @classmethod
-    def convert_by_node_type(cls, node: NNNode, input: tensorflow.Tensor, branch_manager: GraphBranchManager):
-        layer_types = {
-            'conv2d': cls.conv2d,
-            'dense': cls.dense,
-            'flatten': cls.flatten,
-            'pool': cls.pool
-        }
-        node_type = cls._get_node_type(node)
-
-        return layer_types[node_type](cls, node=node, input=input, branch_manager=branch_manager)
 
 
 class ModelNas(tensorflow.keras.Model):
@@ -204,11 +24,62 @@ class ModelNas(tensorflow.keras.Model):
         self._branch_manager = GraphBranchManager()
         # self._classifier = tensorflow.keras.layers.Dense(num_classes, activation='softmax')
 
+    def _add_layer_recursive(self, inputs, branch_manager, node: NNNode = None):
+        node = self.network_struct[0] if not node else node
+        layer = KerasLayers().convert_by_node_type(node, input_layer=inputs, branch_manager=branch_manager)
+
+        try:
+            children_nodes = next(self.network_struct)
+        except StopIteration:
+            return
+
+        # number_of_new_connections - is difference between sets of children_nodes parents.
+        # i.e. child_1.nodes_from = [conv2, max_pool], child_2.nodes_from = [max_pool] -> conv2 - new connection
+        number_of_new_connections = self._branch_manager.number_of_new_connections(children_nodes)
+
+        if self._branch_manager.streams:
+            self._branch_manager.update_keys(1)
+            self._branch_manager.update_branch(node, layer)
+
+        for _ in range(len(number_of_new_connections)):
+            self._branch_manager._add_branch(node, layer)
+
+        # self._branch_manager.update_branch(node, layer)
+
+        for node in children_nodes:
+            return self._add_layer_recursive(inputs=layer, branch_manager=branch_manager, node=node)
+
+        return
+
+    @staticmethod
+    def _make_one_layer(input_layer, node: NNNode, branch_manager: GraphBranchManager, downsample: Callable):
+        layer = KerasLayers().convert_by_node_type(node=node, input_layer=input_layer, branch_manager=branch_manager)
+        layer = KerasLayers.batch_norm(node=node, input_layer=layer)
+
+        if len(node.nodes_from) > 1:
+            # return
+            parent_layer = branch_manager.get_parent_layer(node=node.nodes_from[1])['layer']
+            if downsample and parent_layer.shape != layer.shape:
+                parent_layer = downsample(parent_layer, layer.shape, node)
+            layer = tensorflow.keras.layers.Add()([layer, parent_layer])
+
+        layer = KerasLayers.activation(node=node, input_layer=layer)
+        layer = KerasLayers.dropout(node=node, input_layer=layer)
+        return layer
+
     def call(self, inputs, **kwargs):
+        self.network_struct.reset()
         x = tensorflow.keras.layers.Input(shape=inputs)
-        for layer in self.network_struct:
-            x = KerasLayers().convert_by_node_type(layer[0], input=x, branch_manager=self._branch_manager)
-            print('HOLD')
+        x = self._make_one_layer(x, self.network_struct.head, self._branch_manager, None)
+        for node in self.network_struct:
+            # for node in nodes:
+                x = self._make_one_layer(input_layer=x, node=node, branch_manager=self._branch_manager,
+                                         downsample=KerasLayers.downsample_block)  # create layer with batch_norm
+                # _update active nn branches after each layer creation
+                self._branch_manager.add_and_update(node, x, self.network_struct.get_children(node))
+
+                print('HOLD')
+
         classifier = tensorflow.keras.layers.Dense(units=self.num_classes, activation='softmax')(x)
         return classifier
 
@@ -220,6 +91,8 @@ if __name__ == '__main__':
     epochs = 1
     optimization_epochs = 1
     # conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
+
+
 
     data_requirements = DataRequirements(split_params={'cv_folds': cv_folds})
     conv_requirements = ConvRequirements(input_shape=[image_side_size, image_side_size],

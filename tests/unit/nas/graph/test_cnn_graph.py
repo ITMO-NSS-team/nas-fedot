@@ -1,5 +1,5 @@
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.nn.keras_graph_converter import build_nn_from_graph
+from nas.model.nn.keras_graph_converter import build_nn_from_graph
 from tests.unit.nas.utility_functions import get_requirements, get_graph
 
 

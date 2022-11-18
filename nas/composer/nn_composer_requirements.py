@@ -16,7 +16,7 @@ _possible_color_modes = {'RGB': 3, 'Gray': 1}
 def permissible_kernel_parameters_correct(image_size: List[float], kernel_sizes: List[List[int]],
                                           strides: List[List[int]],
                                           pooling: bool):
-    # TODO update parameters checker
+    # TODO _update parameters checker
     for i, kernel_size in enumerate(kernel_sizes):
         for j, stride in enumerate(strides):
             is_strides_permissible = all([stride[i] < kernel_size[i] for i in range(len(stride))])

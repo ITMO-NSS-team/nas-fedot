@@ -4,10 +4,7 @@ import os
 import pathlib
 from typing import List, Union, Optional
 
-import keras.backend
 import numpy as np
-import tensorflow as tf
-import tensorflow.python.framework.config
 from fedot.core.dag.graph_node import GraphNode
 from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
@@ -19,7 +16,7 @@ from tensorflow.python.keras.engine.functional import Functional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.node.nn_graph_node import NNNode
-from nas.nn.keras_graph_converter import build_nn_from_graph
+from nas.model.nn.keras_graph_converter import build_nn_from_graph
 from nas.repository.layer_types_enum import LayersPoolEnum
 # hotfix
 from nas.utils.default_parameters import default_nodes_params

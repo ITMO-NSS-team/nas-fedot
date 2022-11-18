@@ -158,8 +158,9 @@ class ResNetGenerator(GraphGenerator):
             nodes_to_add = block_to_add.graph_struct
             skip_connection_start = graph.graph_struct[-1]
             for node in nodes_to_add:
-                prev_node = graph.graph_struct[-1]
-                node.nodes_from.append(prev_node)
+                if not node.nodes_from:
+                    prev_node = graph.graph_struct[-1]
+                    node.nodes_from.append(prev_node)
                 graph.add_node(node)
             graph.graph_struct[-1].nodes_from.append(skip_connection_start)
 

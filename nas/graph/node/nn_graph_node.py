@@ -12,7 +12,7 @@ def get_node_params_by_type(node, requirements):
 
 
 def calculate_output_shape(node: NNNode) -> np.ndarray:
-    """Returns input shape of node"""
+    """Returns input_layer shape of node"""
     # define node type
     is_conv = 'conv' in node.content['name']
     is_flatten = 'flatten' in node.content['name']

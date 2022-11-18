@@ -1,15 +1,9 @@
 from __future__ import annotations
 
-import datetime
 from typing import Callable
 
-from nas.composer.nn_composer_requirements import DataRequirements, ConvRequirements, FullyConnectedRequirements, \
-    NNRequirements, OptimizerRequirements, NNComposerRequirements
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.node.nn_graph_node import NNNode
-from nas.nn import ActivationTypesIdsEnum
-from nas.repository.layer_types_enum import LayersPoolEnum
 
 
 # import tensorflow
@@ -42,19 +36,29 @@ class Struct:
     def __init__(self, graph: NNGraph):
         self.head = graph.graph_struct[0]
         self.graph = graph
+        self._iterator = 0
         self.skip_connections_list = None
 
     def __len__(self):
         return len(self.graph.nodes)
 
     def __getitem__(self, item):
-        if item > 0:
-            node = self.graph.graph_struct[item]
-            node = self.graph.node_children(node)
-        else:
-            node = [self.graph.graph_struct[item]]
+        """returns all children nodes of node by it's id"""
+        return self.graph.graph_struct[item]
+        # node = self.graph.graph_struct[item]
+        # return self.get_children(node)
+        # if item == 0:
+        #     node = [self.head]
+        # else:
+        #     node = self.graph.graph_struct[item - 1]
+        #     node = self.graph.node_children(node)
+        # return node
 
-        return node
+    def get_children(self, node: NNNode):
+        return self.graph.node_children(node)
+
+    def reset(self):
+        self._iterator = 0
 
 
 if __name__ == '__main__':
