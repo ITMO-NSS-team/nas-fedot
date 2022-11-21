@@ -4,38 +4,22 @@ from typing import Union
 from fedot.core.dag.graph_node import GraphNode
 
 from nas.composer.nn_composer_requirements import *
-from nas.graph.cnn.cnn_graph import NNGraph
 from nas.graph.grpah_generator import GraphGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.existing_cnn_enum import CNNEnum
 from nas.repository.layer_types_enum import LayersPoolEnum
+from nas.graph.cnn.cnn_graph import NNGraph
 
-
-# def concat_graphs(*graph_list: NNGraph):
-#     def _concat_nn_graphs(graph_1: NNGraph, graph_2: NNGraph):
-#         nodes_to_add = graph_2.graph_struct
-#         for node in nodes_to_add:
-#             prev_node = graph_1.graph_struct[-1]
-#             node.nodes_from.append(prev_node)
-#             graph_1._add_node_recursive(node)
-#         return graph_1
-#
-#     result_graph = graph_list[0]
-#     graph_iterator = iter(graph_list)
-#     next(graph_iterator)
-#     for graph in graph_iterator:
-#         result_graph = _concat_nn_graphs(result_graph, graph)
-#     return result_graph
 
 def concat_graphs(graph_1, graph_2):
-    nodes_to_add = graph_2.graph_struct
-    skip_connection_start = graph_1.graph_struct[-1]
+    nodes_to_add = graph_2._graph_struct
+    skip_connection_start = graph_1._graph_struct[-1]
     for node in nodes_to_add:
-        prev_node = graph_1.graph_struct[-1]
+        prev_node = graph_1._graph_struct[-1]
         node.nodes_from.append(prev_node)
         graph_1._add_node_recursive(node)
 
-    graph_1.graph_struct[-1].nodes_from.append(skip_connection_start)
+    graph_1._graph_struct[-1].nodes_from.append(skip_connection_start)
     return graph_1
 
 
@@ -87,7 +71,7 @@ class CNNRepository:
 #         resnet_block = ConvGraphMaker(initial_struct=initial_struct,
 #                                       param_restrictions=block_requirements).build()
 #         if not flag and output_shape != 64:
-#             resnet_block.graph_struct[0].content['params']['conv_strides'] = [2, 2]
+#             resnet_block._graph_struct[0].content['params']['conv_strides'] = [2, 2]
 #             # shortcut_node_name = LayersPoolEnum.conv2d_1x1
 #             # shortcut_node = get_node_params_by_type(shortcut_node_name, block_requirements.set_conv_params(2))
 #             # shortcut_node = NNNode(content={'name': shortcut_node_name.value, 'params': shortcut_node}, nodes_from=None)
@@ -120,9 +104,9 @@ class CNNRepository:
 #             resnet_graph = self._build_resnet_block(resnet_graph, 512, i)
 #
 #         # TODO make a function to generate one layer on node_requirements
-#         resnet_graph.graph_struct[-1].content['params']['pool_type'] = 'average_pool2d'
-#         resnet_graph.graph_struct[-1].content['params']['pool_strides'] = None
-#         resnet_graph.graph_struct[-1].content['params']['pool_size'] = [2, 2]
+#         resnet_graph._graph_struct[-1].content['params']['pool_type'] = 'average_pool2d'
+#         resnet_graph._graph_struct[-1].content['params']['pool_strides'] = None
+#         resnet_graph._graph_struct[-1].content['params']['pool_size'] = [2, 2]
 #
 #         return resnet_graph
 

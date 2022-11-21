@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
-from nas.graph.cnn.cnn_graph import NNGraph
-from nas.graph.node.nn_graph_node import NNNode
+if TYPE_CHECKING:
+    from nas.graph.cnn.cnn_graph import NNGraph
+    from nas.graph.node.nn_graph_node import NNNode
 
 
 # import tensorflow
@@ -45,12 +46,12 @@ class Struct:
     def __getitem__(self, item):
         """returns all children nodes of node by it's id"""
         return self.graph.graph_struct[item]
-        # node = self.graph.graph_struct[item]
+        # node = self.graph._graph_struct[item]
         # return self.get_children(node)
         # if item == 0:
         #     node = [self.head]
         # else:
-        #     node = self.graph.graph_struct[item - 1]
+        #     node = self.graph._graph_struct[item - 1]
         #     node = self.graph.node_children(node)
         # return node
 
@@ -59,15 +60,3 @@ class Struct:
 
     def reset(self):
         self._iterator = 0
-
-
-if __name__ == '__main__':
-
-    secondary_nodes = []
-    for i in range(len(s)):
-        nodes = s[i]
-        if nodes[0] in secondary_nodes:
-            print(2)
-        secondary_nodes.extend(nodes[1::])
-
-    print(1)

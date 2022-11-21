@@ -15,8 +15,8 @@ from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.data_generator import Preprocessor, DataGenerator
 from nas.data.setup_data import setup_data
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.nn import build_nn_from_graph
-from nas.utils.utils import clear_keras_session
+from nas.model import converter
+from nas.model.nn.tf_model import ModelMaker
 
 G = TypeVar('G', Graph, OptGraph)
 
@@ -47,6 +47,9 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                                      'train', DataGenerator, shuffle)
         validation_generator = setup_data(data_to_validate, self._requirements.nn_requirements.batch_size,
                                           self._preprocessor, 'train', DataGenerator, shuffle)
+        if not graph.model:
+            graph.model = ModelMaker(self._requirements.nn_requirements.conv_requirements.input_shape,
+                                     graph, converter.Struct, data.num_classes).build()
         graph.fit(train_generator, validation_generator, self._requirements, data.num_classes,
                   shuffle=shuffle)
 
@@ -65,7 +68,7 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         folds_metrics = []
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
             try:
-                # TODO add cache support.
+                # TODO add cache support. RESET WEIGHTS FOR EACH FOLD
                 # build_nn_from_graph(graph, train_data.num_classes, self._requirements)
                 self.evaluate_objective(graph, train_data, fold_id, log=self._log)
             except Exception as ex:

@@ -10,13 +10,13 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
     def _get_skip_connection_list(graph_structure):
         """Returns dictionary where key is node where skip connection is started and value is destination"""
         sc_layers = {}
-        for destination_node in graph_structure.graph_struct:
+        for destination_node in graph_structure._graph_struct:
             if len(destination_node.nodes_from) > 1:
                 for source_node in destination_node.nodes_from[1:]:
                     sc_layers[source_node] = destination_node
         return sc_layers
 
-    nn_structure = graph.graph_struct
+    nn_structure = graph._graph_struct
     inputs = keras.Input(shape=input_shape, name='input_0')
     in_layer = inputs
     skip_connection_nodes_dict = _get_skip_connection_list(graph)
@@ -61,12 +61,5 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
 def build_nn_from_graph(graph, n_classes, requirements):
     input_shape = requirements.nn_requirements.conv_requirements.input_shape
     classes_num = n_classes
-    try:
-        graph.model = create_nn_model(graph, input_shape, classes_num)
-    except Exception as e:
-        print(e)
 
-    # restrictions for large number of trainable parameters
-    # total_trainable_params = count_params(graph.model.trainable_weights)
-    # if total_trainable_params > 1e8:
-    #     raise MemoryError('Model has too many trainable parameters. Fit operation has been cancelled')
+    graph.model = create_nn_model(graph, input_shape, classes_num)

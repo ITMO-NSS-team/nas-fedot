@@ -1,13 +1,16 @@
+from __future__ import annotations
 import math
-from typing import List
+from enum import Enum
+from typing import List, TYPE_CHECKING
 
 import tensorflow
 from fedot.core.utils import DEFAULT_PARAMS_STUB
-
-from nas.graph.node.nn_graph_node import NNNode
-from nas.model.branch_manager import GraphBranchManager
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.default_parameters import default_nodes_params
+
+if TYPE_CHECKING:
+    from nas.graph.node.nn_graph_node import NNNode
+    from nas.model.branch_manager import GraphBranchManager
 
 
 def _get_layer_params(current_node: NNNode) -> dict:
@@ -18,80 +21,17 @@ def _get_layer_params(current_node: NNNode) -> dict:
     return layer_params
 
 
-def with_skip_connections(layer_func):
-    def _add_equalize_conv(list_of_layers: List, input_layer):
-        for i in range(len(list_of_layers)):
-            if list_of_layers[i].shape[-1] != input_layer.shape[-1]:
-                out_shape = input_layer.shape[-1]
-                list_of_layers[i] = KerasLayers().add_shortcut_conv(list_of_layers[i], out_shape)
-
-    def wrapper(*args, **kwargs):
-        branch_manager: GraphBranchManager = kwargs.get('../model/branch_manager.py')
-        # node and it's layer representation
-        current_node = kwargs.get('node')
-        input_layer = layer_func(*args, **kwargs)
-
-        # add to active branches new branches
-        # branch_manager.py.add_and_update(current_node, input_layer)
-        # branch_manager.py._add_branch(current_node, input_layer)
-
-        if len(current_node.nodes_from) > 1:
-            # for cases where len(current_node.nodes_from) > 1 add skip connection
-            # also add dimension equalizer for cases which have different dimensions
-            # layer_to_add = branch_manager.py.get_last_layer(current_node)
-            layers_to_add = branch_manager.get_last_layer(current_node.nodes_from[1:])
-            if len(layers_to_add) > 2:
-                pass
-            _add_equalize_conv(layers_to_add, input_layer)
-            layers_to_add.append(input_layer)
-            # dimensions check. add conv to equalize dimensions in shortcuts if different
-            input_layer = tensorflow.keras.layers.Add()(layers_to_add)
-
-        # _update active branches
-        # branch_manager.py.update_branch(current_node, input_layer)
-        return input_layer
-
-    return wrapper
-
-
-def with_activation(layer_func):
-    def add_activation_to_layer(*args, **kwargs):
-        layer_params = _get_layer_params(kwargs.get('node'))
-        activation_type = layer_params.get('activation')
-        input_layer = layer_func(*args, **kwargs)
-        if activation_type:
-            activation = tensorflow.keras.layers.Activation(activation_type)
-            input_layer = activation(input_layer)
-        return input_layer
-
-    return add_activation_to_layer
-
-
-def with_batch_norm(layer_func):
-    def add_batch_norm_to_layer(*args, **kwargs):
-        layer_params = _get_layer_params(kwargs.get('node'))
-        momentum = layer_params.get('momentum')
-        input_layer = layer_func(*args, **kwargs)
-        if momentum:
-            epsilon = layer_params.get('epsilon')
-            batch_norm = tensorflow.keras.layers.BatchNormalization(momentum=momentum, epsilon=epsilon)
-            input_layer = batch_norm(input_layer)
-        return input_layer
-
-    return add_batch_norm_to_layer
-
-
-def with_dropout(layer_func):
-    def add_dropout_to_layer(*args, **kwargs):
-        layer_params = _get_layer_params(kwargs.get('node'))
-        drop = layer_params.get('drop')
-        input_layer = layer_func(*args, **kwargs)
-        if drop:
-            dropout = tensorflow.keras.layers.Dropout(drop)
-            input_layer = dropout(input_layer)
-        return input_layer
-
-    return add_dropout_to_layer
+class ActivationTypesIdsEnum(Enum):
+    softmax = 'softmax'
+    elu = 'elu'
+    selu = 'selu'
+    softplus = 'softplus'
+    relu = 'relu'
+    softsign = 'softsign'
+    tanh = 'tanh'
+    hard_sigmoid = 'hard_sigmoid'
+    sigmoid = 'sigmoid'
+    linear = 'linear'
 
 
 class KerasLayers:
@@ -179,7 +119,8 @@ class KerasLayers:
         return node_type
 
     @classmethod
-    def convert_by_node_type(cls, node: NNNode, input_layer: tensorflow.Tensor, branch_manager: GraphBranchManager, **kwargs):
+    def convert_by_node_type(cls, node: NNNode, input_layer: tensorflow.Tensor, branch_manager: GraphBranchManager,
+                             **kwargs):
         layer_types = {
             'conv2d': cls.conv2d,
             'dense': cls.dense,

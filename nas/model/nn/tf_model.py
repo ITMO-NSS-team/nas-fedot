@@ -1,58 +1,38 @@
 import datetime
-from typing import Callable
+from typing import Callable, Optional, List
 
 import tensorflow
-from fedot.core.pipelines.convert import graph_structure_as_nx_graph
+from keras import optimizers
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements, OptimizerRequirements, DataRequirements, \
     ConvRequirements, FullyConnectedRequirements, NNRequirements
-from nas.graph.cnn.cnn_graph import NNGraph
-from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.node.nn_graph_node import NNNode
-from nas.model.layers.keras_layers import KerasLayers
-from nas.nn import ActivationTypesIdsEnum
 from nas.model import converter
 from nas.model.branch_manager import GraphBranchManager
+from nas.model.layers.keras_layers import KerasLayers
+from nas.model.layers.keras_layers import ActivationTypesIdsEnum
 from nas.repository.layer_types_enum import LayersPoolEnum
 
+from nas.graph.cnn.cnn_graph import NNGraph
 
-class ModelNas(tensorflow.keras.Model):
-    def __init__(self, graph: NNGraph, converter: Callable, num_classes=None):
+
+class ModelMaker:
+    def __init__(self, input_shape: List, graph: NNGraph, converter: Callable, num_classes=None):
         super().__init__()
         self.num_classes = num_classes
-        self.network_struct = converter(graph)
+        self._graph_struct = converter(graph)
         self._branch_manager = GraphBranchManager()
-        # self._classifier = tensorflow.keras.layers.Dense(num_classes, activation='softmax')
 
-    def _add_layer_recursive(self, inputs, branch_manager, node: NNNode = None):
-        node = self.network_struct[0] if not node else node
-        layer = KerasLayers().convert_by_node_type(node, input_layer=inputs, branch_manager=branch_manager)
+        self._output_shape = 1 if num_classes == 2 else num_classes
+        self._activation_func = 'sigmoid' if num_classes == 2 else 'softmax'
+        self._loss_func = 'binary_crossentropy' if num_classes == 2 else 'categorical_crossentropy'
 
-        try:
-            children_nodes = next(self.network_struct)
-        except StopIteration:
-            return
-
-        # number_of_new_connections - is difference between sets of children_nodes parents.
-        # i.e. child_1.nodes_from = [conv2, max_pool], child_2.nodes_from = [max_pool] -> conv2 - new connection
-        number_of_new_connections = self._branch_manager.number_of_new_connections(children_nodes)
-
-        if self._branch_manager.streams:
-            self._branch_manager.update_keys(1)
-            self._branch_manager.update_branch(node, layer)
-
-        for _ in range(len(number_of_new_connections)):
-            self._branch_manager._add_branch(node, layer)
-
-        # self._branch_manager.update_branch(node, layer)
-
-        for node in children_nodes:
-            return self._add_layer_recursive(inputs=layer, branch_manager=branch_manager, node=node)
-
-        return
+        self._input = tensorflow.keras.layers.Input(shape=input_shape)
+        self._body = self._make_body
+        self._classifier = tensorflow.keras.layers.Dense(self._output_shape, activation=self._activation_func)
 
     @staticmethod
-    def _make_one_layer(input_layer, node: NNNode, branch_manager: GraphBranchManager, downsample: Callable):
+    def _make_one_layer(input_layer, node: NNNode, branch_manager: GraphBranchManager, downsample: Optional[Callable]):
         layer = KerasLayers().convert_by_node_type(node=node, input_layer=input_layer, branch_manager=branch_manager)
         layer = KerasLayers.batch_norm(node=node, input_layer=layer)
 
@@ -67,32 +47,34 @@ class ModelNas(tensorflow.keras.Model):
         layer = KerasLayers.dropout(node=node, input_layer=layer)
         return layer
 
-    def call(self, inputs, **kwargs):
-        self.network_struct.reset()
-        x = tensorflow.keras.layers.Input(shape=inputs)
-        x = self._make_one_layer(x, self.network_struct.head, self._branch_manager, None)
-        for node in self.network_struct:
+    def _make_body(self, inputs, **kwargs):
+        x = self._make_one_layer(inputs, self._graph_struct.head, self._branch_manager, None)
+        for node in self._graph_struct:
             # for node in nodes:
-                x = self._make_one_layer(input_layer=x, node=node, branch_manager=self._branch_manager,
-                                         downsample=KerasLayers.downsample_block)  # create layer with batch_norm
-                # _update active nn branches after each layer creation
-                self._branch_manager.add_and_update(node, x, self.network_struct.get_children(node))
+            x = self._make_one_layer(input_layer=x, node=node, branch_manager=self._branch_manager,
+                                     downsample=KerasLayers.downsample_block)  # create layer with batch_norm
+            # _update active deprecated branches after each layer creation
+            self._branch_manager.add_and_update(node, x, self._graph_struct.get_children(node))
+        return x
 
-                print('HOLD')
+    def build(self):
+        inputs = self._input
+        body = self._body(inputs)
+        output = self._classifier(body)
+        model = tensorflow.keras.Model(inputs=inputs, outputs=output, name='nas_model')
 
-        classifier = tensorflow.keras.layers.Dense(units=self.num_classes, activation='softmax')(x)
-        return classifier
+        model.compile(loss=self._loss_func, optimizer=optimizers.RMSprop(learning_rate=1e-4), metrics=['acc'])
 
+        return model
 
 if __name__ == '__main__':
+    from nas.graph.cnn.resnet_builder import ResNetGenerator
     cv_folds = 2
     image_side_size = 256
     batch_size = 8
     epochs = 1
     optimization_epochs = 1
     # conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
-
-
 
     data_requirements = DataRequirements(split_params={'cv_folds': cv_folds})
     conv_requirements = ConvRequirements(input_shape=[image_side_size, image_side_size],
@@ -120,9 +102,26 @@ if __name__ == '__main__':
                                           num_of_generations=1)
     graph = ResNetGenerator(requirements.nn_requirements).build()
 
-    # print(tensorflow.config.list_physical_devices('GPU'))
-    s = ModelNas(graph, converter.Struct, 75)
+    print(tensorflow.config.list_physical_devices('GPU'))
+    dataset = tensorflow.keras.datasets.cifar10.load_data()
+    (x_train, y_train), (x_test, y_test) = dataset
+    x_train = x_train.astype("float32") / 255
+    x_test = x_test.astype("float32") / 255
+    # Make sure images have shape (28, 28, 1)
+    # x_train = np.expand_dims(x_train, -1)
+    # x_test = np.expand_dims(x_test, -1)
+    print("x_train shape:", x_train.shape)
+    print(x_train.shape[0], "train samples")
+    print(x_test.shape[0], "test samples")
 
-    s.call((224, 224, 3))
+    # convert class vectors to binary class matrices
+    y_train = tensorflow.keras.utils.to_categorical(y_train, 10)
+    y_test = tensorflow.keras.utils.to_categorical(y_test, 10)
+
+    s = ModelMaker(x_train.shape[1:], graph, converter.Struct, 10).build()
+
+    print(s.summary())
+
+    s.fit(x_train, y_train, epochs=2)
 
     print(1)

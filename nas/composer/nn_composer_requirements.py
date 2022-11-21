@@ -7,7 +7,7 @@ from typing import List, Optional
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationStrengthEnum
 from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements
 
-from nas.nn.layers_keras import ActivationTypesIdsEnum
+from nas.model.layers.keras_layers import ActivationTypesIdsEnum
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 _possible_color_modes = {'RGB': 3, 'Gray': 1}

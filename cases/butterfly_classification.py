@@ -1,7 +1,12 @@
 import datetime
-import pathlib
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import pathlib
+
+from nas.model import converter
+from nas.model.nn.tf_model import ModelMaker
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ.pop("TF_CONFIG", None)
 
 import tensorflow
 import logging
@@ -130,6 +135,8 @@ def build_butterfly_cls(save_path=None):
     val_generator = setup_data(val_data, requirements.nn_requirements.batch_size, data_preprocessor, 'train',
                                DataGenerator, True)
 
+    optimized_network.model = ModelMaker(requirements.nn_requirements.conv_requirements.input_shape,
+                                         optimized_network, converter.Struct, data.num_classes).build()
     optimized_network.fit(train_generator, val_generator, requirements=requirements, num_classes=train_data.num_classes,
                           verbose=1, optimization=False, shuffle=True)
 

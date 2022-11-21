@@ -16,7 +16,6 @@ from tensorflow.python.keras.engine.functional import Functional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.node.nn_graph_node import NNNode
-from nas.model.nn.keras_graph_converter import build_nn_from_graph
 from nas.repository.layer_types_enum import LayersPoolEnum
 # hotfix
 from nas.utils.default_parameters import default_nodes_params
@@ -117,7 +116,7 @@ class NNGraph(OptGraph):
             verbose='auto', optimization: bool = True, shuffle: bool = False):
 
         # self.release_memory(self)
-
+        # TODO add memory logging
         epochs = requirements.optimizer_requirements.opt_epochs if optimization else requirements.nn_requirements.epochs
         batch_size = requirements.nn_requirements.batch_size
 
@@ -125,9 +124,6 @@ class NNGraph(OptGraph):
         reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                            verbose=1, min_delta=1e-4, mode='min')
         callbacks_list = [early_stopping, reduce_lr_loss]
-
-        if not self.model:
-            build_nn_from_graph(self, num_classes, requirements)
 
         self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,
                        validation_data=val_generator, shuffle=shuffle, callbacks=callbacks_list)

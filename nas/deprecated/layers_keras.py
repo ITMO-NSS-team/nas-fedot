@@ -11,19 +11,6 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.default_parameters import default_nodes_params
 
 
-class ActivationTypesIdsEnum(Enum):
-    softmax = 'softmax'
-    elu = 'elu'
-    selu = 'selu'
-    softplus = 'softplus'
-    relu = 'relu'
-    softsign = 'softsign'
-    tanh = 'tanh'
-    hard_sigmoid = 'hard_sigmoid'
-    sigmoid = 'sigmoid'
-    linear = 'linear'
-
-
 @dataclass
 class LayerParams:
     layer_type: str
