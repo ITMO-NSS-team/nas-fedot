@@ -78,7 +78,7 @@ class NNComposer(Composer):
             if not isinstance(graph, NNGraph):
                 graph = self.graph_generation_params.adapter.restore(graph)
             graph.save(path)
-            graph.show(path / 'graph.png')
+            # graph.show(path / 'graph.png')
 
         if self.history:
             self.history.save(path / 'history.json')
