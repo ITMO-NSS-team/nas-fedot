@@ -110,20 +110,20 @@ class GraphLayers:
 
     def layer_by_type(self, layer_type: LayersPoolEnum, requirements: NNRequirements) -> dict:
         layers = {
-            LayersPoolEnum.conv2d_1x1: self._conv2d_1x1(requirements),
-            LayersPoolEnum.conv2d_3x3: self._conv2d_3x3(requirements),
-            LayersPoolEnum.conv2d_5x5: self._conv2d_5x5(requirements),
-            LayersPoolEnum.conv2d_7x7: self._conv2d_7x7(requirements),
-            LayersPoolEnum.dilation_conv2d: self._dilation_conv2d(requirements),
-            LayersPoolEnum.flatten: self._flatten(requirements),
-            LayersPoolEnum.dense: self._dense(requirements),
-            LayersPoolEnum.dropout: self._dropout(requirements),
-            LayersPoolEnum.max_pool2d: self._max_pool2d(requirements),
-            LayersPoolEnum.average_poold2: self._average_pool2d(requirements)
+            LayersPoolEnum.conv2d_1x1: self._conv2d_1x1,
+            LayersPoolEnum.conv2d_3x3: self._conv2d_3x3,
+            LayersPoolEnum.conv2d_5x5: self._conv2d_5x5,
+            LayersPoolEnum.conv2d_7x7: self._conv2d_7x7,
+            LayersPoolEnum.dilation_conv2d: self._dilation_conv2d,
+            LayersPoolEnum.flatten: self._flatten,
+            LayersPoolEnum.dense: self._dense,
+            LayersPoolEnum.dropout: self._dropout,
+            LayersPoolEnum.max_pool2d: self._max_pool2d,
+            LayersPoolEnum.average_poold2: self._average_pool2d
         }
 
         if layer_type in layers:
-            return layers[layer_type]
+            return layers[layer_type](requirements)
         else:
             raise NotImplementedError
 

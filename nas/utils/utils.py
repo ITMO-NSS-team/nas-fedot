@@ -1,11 +1,12 @@
-import os
 import gc
+import os
+import pathlib
 import random
 import sys
 from pathlib import Path
-import nvidia_smi
 
 import numpy as np
+import nvidia_smi
 import tensorflow
 from keras.backend import get_session, set_session, clear_session
 
@@ -24,9 +25,9 @@ def project_root() -> Path:
     """Returns NAS project root folder."""
     return Path(__file__).parent.parent.parent
 
+
 def clear_session():
     session = tensorflow.compat.v1.Session()
-
 
 
 def log_gpu_memory(func):
@@ -45,6 +46,7 @@ def log_gpu_memory(func):
             log.info(f'Used memory \t\t{float(info.used) / 1024 ** 3:.5f} GiB')
             log.info(f'Free memory \t\t{float(info.free) / 1024 ** 3:.5f} GiB')
         return result
+
     return memory_logger
 
 

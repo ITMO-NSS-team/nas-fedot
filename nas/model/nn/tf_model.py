@@ -7,11 +7,10 @@ from keras import optimizers
 from nas.composer.nn_composer_requirements import NNComposerRequirements, OptimizerRequirements, DataRequirements, \
     ConvRequirements, FullyConnectedRequirements, NNRequirements
 from nas.graph.node.nn_graph_node import NNNode
-from nas.model import converter
-from nas.model.branch_manager import GraphBranchManager
+from nas.model.utils import converter
+from nas.model.utils.branch_manager import GraphBranchManager
 from nas.model.layers.keras_layers import KerasLayers
-from nas.model.layers.keras_layers import ActivationTypesIdsEnum
-from nas.repository.layer_types_enum import LayersPoolEnum
+from nas.repository.layer_types_enum import LayersPoolEnum, ActivationTypesIdsEnum
 
 from nas.graph.cnn.cnn_graph import NNGraph
 
@@ -51,6 +50,8 @@ class ModelMaker:
         x = self._make_one_layer(inputs, self._graph_struct.head, self._branch_manager, None)
         for node in self._graph_struct:
             # for node in nodes:
+            # if len(self._graph_struct.get_children(node)) > 2:
+            #     print(1)
             x = self._make_one_layer(input_layer=x, node=node, branch_manager=self._branch_manager,
                                      downsample=KerasLayers.downsample_block)  # create layer with batch_norm
             # _update active deprecated branches after each layer creation
@@ -60,6 +61,7 @@ class ModelMaker:
     def build(self):
         inputs = self._input
         body = self._body(inputs)
+        self._branch_manager = None
         output = self._classifier(body)
         model = tensorflow.keras.Model(inputs=inputs, outputs=output, name='nas_model')
 
@@ -67,15 +69,20 @@ class ModelMaker:
 
         return model
 
+
 if __name__ == '__main__':
     from nas.graph.cnn.resnet_builder import ResNetGenerator
+    import os
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     cv_folds = 2
     image_side_size = 256
     batch_size = 8
     epochs = 1
     optimization_epochs = 1
     # conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
-
+    # import os
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
     data_requirements = DataRequirements(split_params={'cv_folds': cv_folds})
     conv_requirements = ConvRequirements(input_shape=[image_side_size, image_side_size],
                                          cnn_secondary=[LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2],
@@ -100,16 +107,13 @@ if __name__ == '__main__':
                                           nn_requirements=nn_requirements,
                                           timeout=datetime.timedelta(hours=200),
                                           num_of_generations=1)
-    graph = ResNetGenerator(requirements.nn_requirements).build()
+    graph = NNGraph.load('/home/staeros/debug_data/graph.json')
 
     print(tensorflow.config.list_physical_devices('GPU'))
     dataset = tensorflow.keras.datasets.cifar10.load_data()
     (x_train, y_train), (x_test, y_test) = dataset
     x_train = x_train.astype("float32") / 255
     x_test = x_test.astype("float32") / 255
-    # Make sure images have shape (28, 28, 1)
-    # x_train = np.expand_dims(x_train, -1)
-    # x_test = np.expand_dims(x_test, -1)
     print("x_train shape:", x_train.shape)
     print(x_train.shape[0], "train samples")
     print(x_test.shape[0], "test samples")

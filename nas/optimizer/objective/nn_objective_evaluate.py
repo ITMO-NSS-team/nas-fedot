@@ -1,5 +1,8 @@
+import pathlib
 from typing import Optional, TypeVar, Any
 
+import os
+import sys
 import numpy as np
 from fedot.core.dag.graph import Graph
 from fedot.core.data.data import InputData
@@ -15,10 +18,21 @@ from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.data_generator import Preprocessor, DataGenerator
 from nas.data.setup_data import setup_data
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.model import converter
+from nas.model.utils import converter
 from nas.model.nn.tf_model import ModelMaker
 
 G = TypeVar('G', Graph, OptGraph)
+
+
+def _exceptions_save(graph: NNGraph, error_msg: str):
+    data_folder = pathlib.Path('../debug_data')
+    data_folder.mkdir(parents=True, exist_ok=True)
+    folder = len(list(data_folder.iterdir()))
+    save_path = data_folder / str(folder)
+    save_path.mkdir(parents=True, exist_ok=True)
+    with open(save_path / 'log.txt', 'w') as file:
+        file.write(str(error_msg))
+    graph.save(save_path)
 
 
 class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
@@ -38,7 +52,7 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         # TODO
         # First converts InputData to Generator format (TEMPORARY)
 
-        NNGraph.release_memory(graph, **kwargs)
+        graph.release_memory(**kwargs)
 
         shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
         data_to_train, data_to_validate = train_test_data_setup(data, shuffle_flag=True, stratify=data.target)
@@ -69,11 +83,13 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
             try:
                 # TODO add cache support. RESET WEIGHTS FOR EACH FOLD
-                # build_nn_from_graph(graph, train_data.num_classes, self._requirements)
                 self.evaluate_objective(graph, train_data, fold_id, log=self._log)
             except Exception as ex:
-                self._log.warning(f'Continuing after graph fit error {ex}\nfor graph: {graph_id}')
-                # NNGraph.release_memory(graph)
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                self._log.warning(f'Continuing after graph fit error {ex}\n '
+                                  f'in {fname}\n line {exc_tb.tb_lineno}\n')
+                _exceptions_save(graph, ex)
                 continue
 
             evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
@@ -81,10 +97,10 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 folds_metrics.append(evaluated_fitness.values)
             else:
                 self._log.warning(f'Continuing after objective evaluation error for graph: {graph_id}')
-                # NNGraph.release_memory(graph)
+                graph.release_memory()
                 continue
 
-            # NNGraph.release_memory(graph)
+            graph.release_memory()
 
         if folds_metrics:
             folds_metrics = tuple(np.mean(folds_metrics, axis=0))

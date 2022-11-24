@@ -1,6 +1,7 @@
 from fedot.core.dag.verification_rules import ERROR_PREFIX
 
 from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.node.params_counter import get_shape, add_shortcut_and_check
 
 
 def parameters_check(graph: NNGraph):
@@ -56,3 +57,33 @@ def graph_has_wrong_structure_tmp(graph: NNGraph):
 def graph_has_several_root_nodes(graph: NNGraph):
     if len(graph.root_node) > 1:
         raise ValueError(f'{ERROR_PREFIX} Graph has several root nodes')
+
+
+def dimensions_check(graph: NNGraph) -> int:
+    # if not any(shape == output_shape for shape in main_shapes):
+    #     Add conv 1x1 with different strides and compare again. If not equal, raise the error
+    #     add_shortcut_and_check(shape, output_shape)
+    input_shape = graph.input_shape
+    dimension_cache = {}
+    for node in graph.graph_struct:
+        output_shape = get_shape(input_shape, node)
+        dimension_cache[node] = output_shape
+        input_shape = output_shape
+        if len(node.nodes_from) > 1:
+            # shape list where skip connection starts
+            main_shapes = [dimension_cache.get(parent) for parent in node.nodes_from[1::]]
+            for shape in main_shapes:
+                if not shape == output_shape:
+                    new_shape = add_shortcut_and_check(shape, output_shape)
+                    if not new_shape == output_shape:
+                        raise ValueError(f'{ERROR_PREFIX} shapes {shape} and {output_shape} are not equal')
+    return True
+
+
+def tmp_dense_in_conv(graph: NNGraph):
+    for node in graph.graph_struct:
+        if 'conv' in node.content['name']:
+            parent_nodes = [n.content['name'] for n in node.nodes_from]
+            if 'dense' in parent_nodes:
+                raise ValueError(f'{ERROR_PREFIX} dense layer in conv part!')
+    return True

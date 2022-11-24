@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 
@@ -21,3 +23,14 @@ class LayersPoolEnum(Enum):
     average_poold2 = 'average_pool2d'
 
 
+class ActivationTypesIdsEnum(Enum):
+    softmax = 'softmax'
+    elu = 'elu'
+    selu = 'selu'
+    softplus = 'softplus'
+    relu = 'relu'
+    softsign = 'softsign'
+    tanh = 'tanh'
+    hard_sigmoid = 'hard_sigmoid'
+    sigmoid = 'sigmoid'
+    linear = 'linear'

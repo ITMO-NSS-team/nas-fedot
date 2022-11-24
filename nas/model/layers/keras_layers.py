@@ -1,7 +1,6 @@
 from __future__ import annotations
 import math
-from enum import Enum
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import tensorflow
 from fedot.core.utils import DEFAULT_PARAMS_STUB
@@ -10,7 +9,7 @@ from nas.utils.default_parameters import default_nodes_params
 
 if TYPE_CHECKING:
     from nas.graph.node.nn_graph_node import NNNode
-    from nas.model.branch_manager import GraphBranchManager
+    from nas.model.utils.branch_manager import GraphBranchManager
 
 
 def _get_layer_params(current_node: NNNode) -> dict:
@@ -19,19 +18,6 @@ def _get_layer_params(current_node: NNNode) -> dict:
     else:
         layer_params = current_node.content.get('params')
     return layer_params
-
-
-class ActivationTypesIdsEnum(Enum):
-    softmax = 'softmax'
-    elu = 'elu'
-    selu = 'selu'
-    softplus = 'softplus'
-    relu = 'relu'
-    softsign = 'softsign'
-    tanh = 'tanh'
-    hard_sigmoid = 'hard_sigmoid'
-    sigmoid = 'sigmoid'
-    linear = 'linear'
 
 
 class KerasLayers:

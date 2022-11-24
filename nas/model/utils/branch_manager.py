@@ -27,25 +27,35 @@ class GraphBranchManager:
         return self._streams.pop(key)
 
     def add_and_update(self, node: NNNode, layer, childrens):
+        _added_branches_keys = []
+        self.update_keys()
+        if self._streams:
+            self._update(node, layer, _added_branches_keys)
         new_connections = self.new_connections(childrens)
         if new_connections:
             for i in range(new_connections):
-                self._add(node, layer)
-        if self._streams:
-            self._update(node, layer)
+                self._add(node, layer, _added_branches_keys)
 
-    def _add(self, node: NNNode, layer):
+    def _add(self, node: NNNode, layer, ids: List):
         key = len(self._streams.keys())
         self.__setitem__(key=key, value={'node': node, 'layer': layer})
+        ids.append(key)
 
-    def _update(self, current_node: Union[GraphNode, NNNode], layer):
+    def _update(self, current_node: Union[GraphNode, NNNode], layer, new_branches: List):
         # Update all existed branches where last node == current_node
-        nodes_to_update = current_node.nodes_from
+        # Update branches that have nodes_from[0] as parent
+        if len(current_node.nodes_from) > 1:
+            nodes_to_update = current_node.nodes_from[:-1]
+        else:
+            nodes_to_update = current_node.nodes_from
         for node_to_update in nodes_to_update:
             key = self.find_by_node(node_to_update)
             if key is not None:
-                new_val = {'node': current_node, 'layer': layer}
-                self._streams.update({key: new_val})
+                if key not in new_branches:
+                    new_val = {'node': current_node, 'layer': layer}
+                    self._streams.update({key: new_val})
+                else:
+                    continue
 
     def update_keys(self):
         iter_keys = list(self._streams.keys())

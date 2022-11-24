@@ -182,11 +182,10 @@ class NNGraph(OptGraph):
         else:
             return self.nodes[::-1]
 
-    @staticmethod
-    def release_memory(graph, **kwargs):
-        del graph.model
+    def release_memory(self, **kwargs):
+        del self.model
+        clear_keras_session(**kwargs)
         gc.collect()
 
         # if tensorflow.config.list_physical_devices('GPU'):
         #     tensorflow.config.experimental.reset_memory_stats('GPU:0')
-        clear_keras_session(**kwargs)

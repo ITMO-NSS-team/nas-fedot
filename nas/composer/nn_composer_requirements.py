@@ -7,8 +7,7 @@ from typing import List, Optional
 from fedot.core.optimisers.gp_comp.operators.mutation import MutationStrengthEnum
 from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements
 
-from nas.model.layers.keras_layers import ActivationTypesIdsEnum
-from nas.repository.layer_types_enum import LayersPoolEnum
+from nas.repository.layer_types_enum import LayersPoolEnum, ActivationTypesIdsEnum
 
 _possible_color_modes = {'RGB': 3, 'Gray': 1}
 
@@ -79,19 +78,13 @@ class ConvRequirements:
             self.input_shape.append(3) if self.color_mode == 'RGB' else self.input_shape.append(1)
         if self.min_filters < 2:
             raise ValueError(f'min_filters value {self.min_filters} is unacceptable')
+
         if self.max_filters < 2:
             raise ValueError(f'max_filters value {self.max_filters} is unacceptable')
         if not self.conv_strides:
             self.conv_strides = [[1, 1]]
-        # if not self.pool_size:
-        #     self.pool_size = [[2, 2]]
-        # if not self.pool_strides:
-        #     self.pool_strides = [[2, 2]]
-        # if not self.pool_types:
-        #     self.pool_types = ['max_pool2d', 'average_pool2d']
         if not all([side_size >= 3 for side_size in self.input_shape]):
             raise ValueError(f'Specified image size is unacceptable')
-
         # TODO Extend checker method. Current one doesn't fit it's name.
         # permissible_kernel_parameters_correct(self.input_shape, self.kernel_size, self.conv_strides, False)
         if self._has_pooling():
@@ -123,10 +116,13 @@ class NNRequirements:
 
     primary: Optional[List[LayersPoolEnum]] = None
     secondary: Optional[List[LayersPoolEnum]] = None
+    activation_types: List[ActivationTypesIdsEnum] = None
+    batch_norm_prob: Optional[float] = None
+    dropout_prob: Optional[float] = None
+    has_skip_connection: Optional[bool] = False
 
     max_possible_parameters: int = 8e7
 
-    activation_types: List[ActivationTypesIdsEnum] = None
     epochs: int = 1
     batch_size: int = 12
 
@@ -137,10 +133,6 @@ class NNRequirements:
     min_nn_depth: int = 1
 
     max_drop_size: int = 0.5
-    batch_norm_prob: Optional[float] = None
-    dropout_prob: Optional[float] = None
-
-    has_skip_connection: Optional[bool] = False
 
     def __post_init__(self):
         if not self.activation_types:
