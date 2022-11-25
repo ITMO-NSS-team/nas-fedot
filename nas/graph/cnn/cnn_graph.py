@@ -16,6 +16,7 @@ from tensorflow.python.keras.engine.functional import Functional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.node.nn_graph_node import NNNode
+from nas.operations.evaluation.callbacks.bad_performance_callback import CustomCallback
 from nas.repository.layer_types_enum import LayersPoolEnum
 # hotfix
 from nas.utils.default_parameters import default_nodes_params
@@ -123,7 +124,10 @@ class NNGraph(OptGraph):
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
         reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                            verbose=1, min_delta=1e-4, mode='min')
+
         callbacks_list = [early_stopping, reduce_lr_loss]
+        if optimization:
+            callbacks_list.append(CustomCallback())
 
         self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,
                        validation_data=val_generator, shuffle=shuffle, callbacks=callbacks_list)

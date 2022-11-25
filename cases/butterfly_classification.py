@@ -63,7 +63,7 @@ def build_butterfly_cls(save_path=None):
     image_side_size = 256
     batch_size = 8
     epochs = 1
-    optimization_epochs = 1
+    optimization_epochs = 3
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
                         LayersPoolEnum.conv2d_7x7]
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
