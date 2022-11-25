@@ -95,6 +95,7 @@ def build_butterfly_cls(save_path=None):
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),
+                                                           early_stopping_generations=10,
                                                            num_of_generations=2)
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
