@@ -64,8 +64,9 @@ class ModelMaker:
         self._branch_manager = None
         output = self._classifier(body)
         model = tensorflow.keras.Model(inputs=inputs, outputs=output, name='nas_model')
+        optimizer = optimizers.Adam(learning_rate=1e-3)
 
-        model.compile(loss=self._loss_func, optimizer=optimizers.RMSprop(learning_rate=1e-4), metrics=['acc'])
+        model.compile(loss=self._loss_func, optimizer=optimizer, metrics=['acc'])
 
         return model
 
@@ -107,7 +108,7 @@ if __name__ == '__main__':
                                           nn_requirements=nn_requirements,
                                           timeout=datetime.timedelta(hours=200),
                                           num_of_generations=1)
-    graph = NNGraph.load('/home/staeros/debug_data/graph.json')
+    graph = NNGraph.load('/home/staeros/results/1/2022-11-24/graph.json')
 
     print(tensorflow.config.list_physical_devices('GPU'))
     dataset = tensorflow.keras.datasets.cifar10.load_data()
