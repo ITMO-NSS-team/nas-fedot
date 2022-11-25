@@ -64,7 +64,7 @@ class ModelMaker:
         self._branch_manager = None
         output = self._classifier(body)
         model = tensorflow.keras.Model(inputs=inputs, outputs=output, name='nas_model')
-        optimizer = optimizers.Adam(learning_rate=1e-3)
+        optimizer = optimizers.Adam(learning_rate=1e-4)
 
         model.compile(loss=self._loss_func, optimizer=optimizer, metrics=['acc'])
 
