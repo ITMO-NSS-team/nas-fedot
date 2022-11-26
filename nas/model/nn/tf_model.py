@@ -108,7 +108,7 @@ if __name__ == '__main__':
                                           nn_requirements=nn_requirements,
                                           timeout=datetime.timedelta(hours=200),
                                           num_of_generations=1)
-    graph = NNGraph.load('/home/staeros/results/1/2022-11-24/graph.json')
+    graph = NNGraph.load('/home/staeros/results/1/2022-11-25/graph.json')
 
     print(tensorflow.config.list_physical_devices('GPU'))
     dataset = tensorflow.keras.datasets.cifar10.load_data()

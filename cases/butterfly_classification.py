@@ -60,7 +60,7 @@ def build_butterfly_cls(save_path=None):
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     cv_folds = 2
-    image_side_size = 256
+    image_side_size = 28
     batch_size = 8
     epochs = 1
     optimization_epochs = 3
@@ -94,8 +94,8 @@ def build_butterfly_cls(save_path=None):
     requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
-                                                           timeout=datetime.timedelta(hours=200),
-                                                           num_of_generations=2)
+                                                           timeout=datetime.timedelta(hours=20),
+                                                           num_of_generations=2, early_stopping_iterations=100)
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
                         has_no_cycle, has_no_self_cycled_nodes, unique_node_types,
