@@ -16,5 +16,8 @@ class CustomCallback(tensorflow.keras.callbacks.Callback):
         _loss = logs.get('val_loss')
         _acc = logs.get('val_acc', 0)
         time_delta = self.end_time - self.start_time
-        if time_delta >= self.time_restriction and _acc < 0.015:
+        cond_1 = time_delta >= self.time_restriction
+        cond_2 = _loss > 100
+        cond_3 = _acc < 0.015
+        if cond_1 and any([cond_2, cond_3]):
             self.model.stop_training = True

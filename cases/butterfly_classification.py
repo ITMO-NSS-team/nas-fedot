@@ -60,7 +60,7 @@ def build_butterfly_cls(save_path=None):
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     cv_folds = 2
-    image_side_size = 28
+    image_side_size = 12
     batch_size = 8
     epochs = 1
     optimization_epochs = 3
