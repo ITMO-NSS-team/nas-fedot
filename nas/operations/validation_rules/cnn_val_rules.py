@@ -65,18 +65,21 @@ def dimensions_check(graph: NNGraph) -> int:
     #     add_shortcut_and_check(shape, output_shape)
     input_shape = graph.input_shape
     dimension_cache = {}
-    for node in graph.graph_struct:
-        output_shape = get_shape(input_shape, node)
-        dimension_cache[node] = output_shape
-        input_shape = output_shape
-        if len(node.nodes_from) > 1:
-            # shape list where skip connection starts
-            main_shapes = [dimension_cache.get(parent) for parent in node.nodes_from[1::]]
-            for shape in main_shapes:
-                if not shape == output_shape:
-                    new_shape = add_shortcut_and_check(shape, output_shape)
-                    if not new_shape == output_shape:
-                        raise ValueError(f'{ERROR_PREFIX} shapes {shape} and {output_shape} are not equal')
+    try:
+        for node in graph.graph_struct:
+            output_shape = get_shape(input_shape, node)
+            dimension_cache[node] = output_shape
+            input_shape = output_shape
+            if len(node.nodes_from) > 1:
+                # shape list where skip connection starts
+                main_shapes = [dimension_cache.get(parent) for parent in node.nodes_from[1::]]
+                for shape in main_shapes:
+                    if not shape == output_shape:
+                        new_shape = add_shortcut_and_check(shape, output_shape)
+                        if not new_shape == output_shape:
+                            raise ValueError(f'{ERROR_PREFIX} shapes {shape} and {output_shape} are not equal')
+    except TypeError:
+        raise ValueError('TEMPORAL ERROR MESSAGE. Type error occurred during validation. TEMPORAL ERROR MESSAGE')
     return True
 
 
