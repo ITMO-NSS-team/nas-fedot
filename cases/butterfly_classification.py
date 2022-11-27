@@ -99,7 +99,7 @@ def build_butterfly_cls(save_path=None):
 
     validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
                         has_no_cycle, has_no_self_cycled_nodes, unique_node_types,
-                        graph_has_wrong_structure_tmp, tmp_dense_in_conv, dimensions_check]
+                        graph_has_wrong_structure_tmp, tmp_dense_in_conv]
 
     optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                       mutation_types=mutations,
