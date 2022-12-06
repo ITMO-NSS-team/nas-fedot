@@ -70,7 +70,7 @@ class GraphBranchManager:
 
     def new_connections(self, nodes: List[NNNode]) -> int:
         if not self._streams:
-            return 1
+            return len(nodes)
         else:
             current_node_children = nodes[1:]
             existed_connections = self.existed_connections
