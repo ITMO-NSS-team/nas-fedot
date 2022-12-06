@@ -83,7 +83,8 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                 self._log.warning(f'Continuing after graph fit error {ex}\n '
                                   f'in {file_name}\n line {exc_tb.tb_lineno}\n')
-                graph.unfit()
+                graph.release_memory()
+                # graph.unfit()
                 _exceptions_save(graph, ex)
                 continue
 
