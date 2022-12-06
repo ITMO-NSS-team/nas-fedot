@@ -19,7 +19,7 @@ decorator==5.1.1
 dill==0.3.5.1
 ete3==3.1.2
 executing==0.10.0
-fedot @ https://github.com/aimclub/FEDOT.git@182b0aeac2c0ad56264b638128cc7b3461f88b43
+fedot @ git+https://github.com/aimclub/FEDOT.git@182b0aeac2c0ad56264b638128cc7b3461f88b43
 flatbuffers==22.10.26
 fonttools==4.36.0
 func-timeout==4.3.5
