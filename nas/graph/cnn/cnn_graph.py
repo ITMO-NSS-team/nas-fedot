@@ -5,6 +5,10 @@ import pathlib
 from typing import List, Union, Optional
 
 import numpy as np
+import tensorflow as tf
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.python.keras.engine.functional import Functional
+
 from fedot.core.dag.graph_node import GraphNode
 from fedot.core.data.data import OutputData
 from fedot.core.optimisers.graph import OptGraph, OptNode
@@ -47,6 +51,7 @@ class NNGraph(OptGraph):
         super().__init__(nodes)
         self._model = model
         self._input_shape = None
+        self._weights = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
@@ -123,7 +128,7 @@ class NNGraph(OptGraph):
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         batch_size = requirements.nn_requirements.batch_size
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-        reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
+        reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3,
                                            verbose=1, min_delta=1e-4, mode='min')
         metric = tf.keras.metrics.AUC(multi_label=True)
         callbacks_list = [early_stopping]
@@ -203,5 +208,23 @@ class NNGraph(OptGraph):
         clear_keras_session(**kwargs)
         gc.collect()
 
-        # if tensorflow.config.list_physical_devices('GPU'):
-        #     tensorflow.config.experimental.reset_memory_stats('GPU:0')
+    # def unfit(self, **kwargs):
+    #     if self.model:
+    #         del self.model
+    #     if hasattr(self, '_weights'):
+    #         del self._weights
+    #     clear_keras_session(**kwargs)
+    #     # if tf.config.list_physical_devices('GPU'):
+    #     #     from numba import cuda
+    #     #     _device = cuda.get_current_device()
+    #     #     _device.reset()
+    #     gc.collect()
+
+    def reset_weights(self):
+        for ix, l in enumerate(self.model.layers):
+            if hasattr(l, "kernel_initializer"):
+                l.kernel.assign(l.kernel_initializer(tf.shape(l.kernel)))
+            if hasattr(l, "bias_initializer"):
+                l.bias.assign(l.bias_initializer(tf.shape(l.bias)))
+            if hasattr(l, "recurrent_initializer"):
+                l.recurrent_kernel.assign(l.recurrent_initializer(tf.shape(l.recurrent_kernel)))
