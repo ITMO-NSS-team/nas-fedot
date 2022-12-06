@@ -11,13 +11,13 @@ from fedot.core.optimisers.graph import OptGraph, OptNode
 from fedot.core.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 from fedot.core.visualisation.graph_viz import NodeColorType
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.python.keras.engine.functional import Functional
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.node.nn_graph_node import NNNode
 from nas.operations.evaluation.callbacks.bad_performance_callback import CustomCallback
 from nas.repository.layer_types_enum import LayersPoolEnum
+from nas.model.nn.tf_model import ModelMaker
+from nas.model.utils import converter
 # hotfix
 from nas.utils.default_parameters import default_nodes_params
 from nas.utils.utils import set_root, seed_all, project_root, clear_keras_session
@@ -79,6 +79,7 @@ class NNGraph(OptGraph):
     def model(self):
         del self._model
         self._model = None
+        gc.collect()
 
     @property
     def free_nodes(self):
@@ -114,25 +115,36 @@ class NNGraph(OptGraph):
         return total_params
 
     def fit(self, train_generator, val_generator, requirements: NNComposerRequirements, num_classes: int,
-            verbose='auto', optimization: bool = True, shuffle: bool = False):
+            verbose='auto', optimization: bool = True, shuffle: bool = False, **kwargs):
+        loss_func = 'binary_crossentropy' if num_classes == 2 else 'categorical_crossentropy'
 
-        # self.release_memory(self)
-        # TODO add memory logging
         epochs = requirements.optimizer_requirements.opt_epochs if optimization else requirements.nn_requirements.epochs
+        lr = tf.keras.optimizers.schedules.ExponentialDecay(1e-2, decay_steps=epochs, decay_rate=0.96, staircase=True)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         batch_size = requirements.nn_requirements.batch_size
-
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
         reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=7,
                                            verbose=1, min_delta=1e-4, mode='min')
-
-        callbacks_list = [early_stopping, reduce_lr_loss]
+        metric = tf.keras.metrics.AUC(multi_label=True)
+        callbacks_list = [early_stopping]
         if optimization:
             callbacks_list.append(CustomCallback())
 
+        input_shape = requirements.nn_requirements.conv_requirements.input_shape
+        self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
+
+        # if not self.model:
+        #     # with tf.device('/device:cpu:0'):
+        #     input_shape = requirements.nn_requirements.conv_requirements.input_shape
+        #     self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
+        #     self._weights = self.model.get_weights()
+        # else:
+        #     with tf.device('/device:cpu:0'):
+        #         self.model.set_weights(self._weights)
+
+        self.model.compile(loss=loss_func, optimizer=optimizer, metrics=['acc'])
         self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,
                        validation_data=val_generator, shuffle=shuffle, callbacks=callbacks_list)
-
-        return self
 
     def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs):
         if not self.model:
@@ -186,8 +198,8 @@ class NNGraph(OptGraph):
         else:
             return self.nodes[::-1]
 
-    def release_memory(self, **kwargs):
-        del self.model
+    @staticmethod
+    def release_memory(**kwargs):
         clear_keras_session(**kwargs)
         gc.collect()
 

@@ -1,6 +1,7 @@
+from __future__ import annotations
 import datetime
 import pathlib
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, TYPE_CHECKING
 
 import tensorflow
 from fedot.core.data.data_split import train_test_data_setup
@@ -8,14 +9,16 @@ from fedot.core.repository.tasks import Task, TaskTypesEnum
 from keras import optimizers
 
 from nas.data import Preprocessor, setup_data, DataGenerator
-from nas.graph.cnn.cnn_graph import NNGraph
 from nas.graph.graph_builder import NNGraphBuilder
-from nas.graph.node.nn_graph_node import NNNode
 from nas.model.layers.keras_layers import KerasLayers
 from nas.model.utils import converter
 from nas.model.utils.branch_manager import GraphBranchManager
 from nas.operations.evaluation.metrics.metrics import get_predictions, calculate_validation_metric
 from nas.repository.layer_types_enum import LayersPoolEnum
+
+if TYPE_CHECKING:
+    from nas.graph.cnn.cnn_graph import NNGraph
+    from nas.graph.node.nn_graph_node import NNNode
 
 
 class ModelMaker:
@@ -35,7 +38,7 @@ class ModelMaker:
 
     @staticmethod
     def _make_one_layer(input_layer, node: NNNode, branch_manager: GraphBranchManager, downsample: Optional[Callable]):
-        layer = KerasLayers().convert_by_node_type(node=node, input_layer=input_layer, branch_manager=branch_manager)
+        layer = KerasLayers.convert_by_node_type(node=node, input_layer=input_layer, branch_manager=branch_manager)
         layer = KerasLayers.batch_norm(node=node, input_layer=layer)
 
         if len(node.nodes_from) > 1:
@@ -50,11 +53,9 @@ class ModelMaker:
         return layer
 
     def _make_body(self, inputs, **kwargs):
-        x = self._make_one_layer(inputs, self._graph_struct.head, self._branch_manager, None)
+        # x = self._make_one_layer(inputs, self._graph_struct.head, self._branch_manager, None)
+        x = inputs
         for node in self._graph_struct:
-            # for node in nodes:
-            # if len(self._graph_struct.get_children(node)) > 2:
-            #     print(1)
             x = self._make_one_layer(input_layer=x, node=node, branch_manager=self._branch_manager,
                                      downsample=KerasLayers.downsample_block)  # create layer with batch_norm
             # _update active deprecated branches after each layer creation
@@ -64,12 +65,10 @@ class ModelMaker:
     def build(self):
         inputs = self._input
         body = self._body(inputs)
+        del self._branch_manager
         self._branch_manager = None
         output = self._classifier(body)
         model = tensorflow.keras.Model(inputs=inputs, outputs=output, name='nas_model')
-        optimizer = optimizers.Adam(learning_rate=1e-4)
-
-        model.compile(loss=self._loss_func, optimizer=optimizer, metrics=['acc'])
 
         return model
 

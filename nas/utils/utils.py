@@ -59,10 +59,10 @@ def clear_keras_session(**kwargs):
     sess.close()
     sess = get_session()
 
-    if log:
-        log.info(gc.collect())
-
-    config = tensorflow.compat.v1.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.7
-    config.gpu_options.visible_device_list = "0"
-    set_session(tensorflow.compat.v1.Session(config=config))
+    # if log:
+    #     log.info(gc.collect())
+    #
+    # config = tensorflow.compat.v1.ConfigProto()
+    # config.gpu_options.per_process_gpu_memory_fraction = 0.7
+    # config.gpu_options.visible_device_list = "0"
+    # set_session(tensorflow.compat.v1.Session(config=config))

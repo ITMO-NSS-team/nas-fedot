@@ -1,7 +1,14 @@
+import os
+
+import keras.utils.layer_utils
+import tensorflow
 from fedot.core.dag.verification_rules import ERROR_PREFIX
+from typing import Tuple, Optional
 
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.graph.node.params_counter import get_shape, add_shortcut_and_check
+from nas.model.nn.tf_model import ModelMaker
+from nas.model.utils import converter
 
 
 def parameters_check(graph: NNGraph):
@@ -83,6 +90,22 @@ def dimensions_check(graph: NNGraph) -> int:
     return True
 
 
+def is_architecture_is_correct(graph: NNGraph):
+    # with tensorflow.device('/cpu:0'):
+    input_shape = graph.input_shape
+    num_classes = 2  # any int number
+    try:
+        model = ModelMaker(input_shape, graph, converter.Struct, num_classes).build()
+        params = keras.utils.layer_utils.count_params(model.trainable_variables)
+        if params > 1.5e5:
+            raise ValueError
+        graph.unfit()
+    except ValueError as ex:
+        graph.unfit()
+        raise ValueError(f'{ERROR_PREFIX}. Model building failed with exception {ex}. Model is unacceptable')
+    return True
+
+
 def tmp_dense_in_conv(graph: NNGraph):
     for node in graph.graph_struct:
         if 'conv' in node.content['name']:
@@ -90,3 +113,60 @@ def tmp_dense_in_conv(graph: NNGraph):
             if 'dense' in parent_nodes:
                 raise ValueError(f'{ERROR_PREFIX} dense layer in conv part!')
     return True
+
+class ConvNetChecker:
+    params_limit: int = 5e7
+    error_message: Optional[str] = None
+    model: Optional = None
+
+    @classmethod
+    def check_cnn(cls, graph: NNGraph):
+        cls.error_message = None
+        cls.model = None
+        rules_list = [rule for rule in dir(cls) if callable(getattr(cls, rule)) and rule.startswith('r_')]
+        with tensorflow.device('/cpu:0'):
+            for rule in rules_list:
+                getattr(cls, rule)(graph)
+                if cls.error_message:
+                    cls.clear_memory()
+                    raise ValueError(cls.error_message)
+        cls.clear_memory()
+        return True
+
+    @staticmethod
+    def r_is_buildable(graph: NNGraph):
+        input_shape = [24, 24, 3]
+        num_classes = 3
+        try:
+            ConvNetChecker.model = ModelMaker(input_shape, graph, converter.Struct, num_classes).build()
+        except Exception as ex:
+            ConvNetChecker.error_message = f'Exception {ex} occurred. Model cannot be built. {ERROR_PREFIX}.'
+
+    @staticmethod
+    def r_params_count(*args, **kwargs):
+        params = keras.utils.layer_utils.count_params(ConvNetChecker.model.trainable_variables)
+        if params > ConvNetChecker.params_limit:
+            ConvNetChecker.error_message = f'{ERROR_PREFIX}. Graph has too many trainable params: {params}'
+
+    @staticmethod
+    def r_has_correct_struct(graph: NNGraph):
+        graph_struct = graph.graph_struct
+        node = graph_struct[0]
+        if 'conv' not in node.content['name']:
+            ConvNetChecker.error_message = f'{ERROR_PREFIX}. CNN should starts with Conv layer.'
+
+    @classmethod
+    def clear_memory(cls):
+        if cls.model:
+            del cls.model
+            cls.model = None
+        if cls.error_message:
+            cls.error_message = None
+
+
+if __name__ == '__main__':
+    graph = NNGraph.load('/home/staeros/graph.json')
+    lst = []
+    for i in range(50):
+        lst.append(ModelMaker(graph.input_shape, graph, converter.Struct, 3).build())
+    print(1)
