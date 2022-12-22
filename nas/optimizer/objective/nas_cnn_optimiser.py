@@ -1,7 +1,9 @@
 import gc
+import multiprocessing
 from typing import List
 
 import numpy as np
+from fedot.core.optimisers.gp_comp.evaluation import SimpleDispatcher
 from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
 from fedot.core.optimisers.gp_comp.gp_params import GPGraphOptimizerParameters
 from fedot.core.optimisers.optimizer import GraphGenerationParams
@@ -21,6 +23,7 @@ class NNGraphOptimiser(EvoGraphOptimizer):
         super().__init__(initial_graphs=initial_graphs, requirements=requirements,
                          graph_generation_params=graph_generation_params,
                          objective=objective, graph_optimizer_params=graph_optimizer_params)
+        self.eval_dispatcher = SimpleDispatcher(adapter=graph_generation_params.adapter)
         self.save_path = None
         self.verbose = verbose
         self.metrics = objective

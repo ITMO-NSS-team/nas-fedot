@@ -6,6 +6,7 @@ from typing import List, Union, Optional
 
 import numpy as np
 import tensorflow as tf
+import tensorflow.python.keras.callbacks
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.python.keras.engine.functional import Functional
 
@@ -128,13 +129,15 @@ class NNGraph(OptGraph):
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         batch_size = requirements.nn_requirements.batch_size
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-        reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3,
-                                           verbose=1, min_delta=1e-4, mode='min')
-        metric = tf.keras.metrics.AUC(multi_label=True)
+        model_metrics = tensorflow.keras.metrics.CategoricalAccuracy() if num_classes > 2 else \
+            tensorflow.keras.metrics.Accuracy()
+        # reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3,
+        #                                    verbose=1, min_delta=1e-4, mode='min')
         callbacks_list = [early_stopping]
         if optimization:
             callbacks_list.append(CustomCallback())
 
+        tf.keras.backend.clear_session()
         input_shape = requirements.nn_requirements.conv_requirements.input_shape
         self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
 
@@ -147,7 +150,7 @@ class NNGraph(OptGraph):
         #     with tf.device('/device:cpu:0'):
         #         self.model.set_weights(self._weights)
 
-        self.model.compile(loss=loss_func, optimizer=optimizer, metrics=['acc'])
+        self.model.compile(loss=loss_func, optimizer=optimizer, metrics=[model_metrics])
         self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,
                        validation_data=val_generator, shuffle=shuffle, callbacks=callbacks_list)
 

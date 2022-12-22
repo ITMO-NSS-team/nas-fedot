@@ -50,7 +50,6 @@ def log_gpu_memory(func):
     return memory_logger
 
 
-@log_gpu_memory
 def clear_keras_session(**kwargs):
     log = kwargs.get('log')
 
