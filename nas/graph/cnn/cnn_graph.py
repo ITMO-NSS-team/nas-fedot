@@ -212,23 +212,20 @@ class NNGraph(OptGraph):
         clear_keras_session(**kwargs)
         gc.collect()
 
-    # def unfit(self, **kwargs):
-    #     if self.model:
-    #         del self.model
-    #     if hasattr(self, '_weights'):
-    #         del self._weights
-    #     clear_keras_session(**kwargs)
-    #     # if tf.config.list_physical_devices('GPU'):
-    #     #     from numba import cuda
-    #     #     _device = cuda.get_current_device()
-    #     #     _device.reset()
-    #     gc.collect()
+    def unfit(self, **kwargs):
+        if self.model:
+            del self.model
+        if hasattr(self, '_weights'):
+            del self._weights
+        clear_keras_session(**kwargs)
+        gc.collect()
 
     def reset_weights(self):
-        for ix, l in enumerate(self.model.layers):
-            if hasattr(l, "kernel_initializer"):
-                l.kernel.assign(l.kernel_initializer(tf.shape(l.kernel)))
-            if hasattr(l, "bias_initializer"):
-                l.bias.assign(l.bias_initializer(tf.shape(l.bias)))
-            if hasattr(l, "recurrent_initializer"):
-                l.recurrent_kernel.assign(l.recurrent_initializer(tf.shape(l.recurrent_kernel)))
+        pass
+        # for ix, l in enumerate(self.model.layers):
+        #     if hasattr(l, "kernel_initializer"):
+        #         l.kernel.assign(l.kernel_initializer(tf.shape(l.kernel)))
+        #     if hasattr(l, "bias_initializer"):
+        #         l.bias.assign(l.bias_initializer(tf.shape(l.bias)))
+        #     if hasattr(l, "recurrent_initializer"):
+        #         l.recurrent_kernel.assign(l.recurrent_initializer(tf.shape(l.recurrent_kernel)))
