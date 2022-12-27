@@ -125,15 +125,16 @@ class NNGraph(OptGraph):
         loss_func = 'binary_crossentropy' if num_classes == 2 else 'categorical_crossentropy'
 
         epochs = requirements.optimizer_requirements.opt_epochs if optimization else requirements.nn_requirements.epochs
-        lr = tf.keras.optimizers.schedules.ExponentialDecay(1e-2, decay_steps=epochs, decay_rate=0.96, staircase=True)
+        # lr = tf.keras.optimizers.schedules.ExponentialDecay(1e-2, decay_steps=epochs, decay_rate=0.96, staircase=True)
+        lr = 1e-4
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         batch_size = requirements.nn_requirements.batch_size
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
         model_metrics = tensorflow.keras.metrics.CategoricalAccuracy() if num_classes > 2 else \
             tensorflow.keras.metrics.Accuracy()
-        # reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3,
-        #                                    verbose=1, min_delta=1e-4, mode='min')
-        callbacks_list = [early_stopping]
+        reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3,
+                                           verbose=1, min_delta=1e-4, mode='min')
+        callbacks_list = [early_stopping, reduce_lr_loss]
         if optimization:
             callbacks_list.append(CustomCallback())
 

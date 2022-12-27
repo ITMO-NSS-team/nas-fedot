@@ -48,13 +48,12 @@ def build_butterfly_cls(save_path=None):
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    # dataset_path = pathlib.Path('../datasets/CXR8_5')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     cv_folds = 3
     image_side_size = 256
     batch_size = 32
-    epochs = 30
+    epochs = 40
     optimization_epochs = 6
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
                         LayersPoolEnum.conv2d_7x7]
