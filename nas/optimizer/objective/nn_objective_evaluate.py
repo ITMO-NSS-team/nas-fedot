@@ -93,7 +93,8 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 folds_metrics.append(evaluated_fitness.values)
             else:
                 self._log.warning(f'Continuing after objective evaluation error for graph: {graph_id}')
-                graph.unfit()
+                graph.release_memory()
+                # graph.unfit()
                 continue
 
         if folds_metrics:
@@ -103,7 +104,8 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         else:
             folds_metrics = None
 
-        graph.unfit(log=self._log)
+        graph.release_memory()
+        # graph.unfit(log=self._log)
 
         return to_fitness(folds_metrics, self._objective.is_multi_objective)
 

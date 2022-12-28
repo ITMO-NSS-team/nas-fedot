@@ -4,6 +4,7 @@ import os
 import pathlib
 from typing import List, Union, Optional
 
+import keras.backend
 import numpy as np
 import tensorflow as tf
 import tensorflow.python.keras.callbacks
@@ -217,8 +218,10 @@ class NNGraph(OptGraph):
             del self.model
         if hasattr(self, '_weights'):
             del self._weights
-        clear_keras_session(**kwargs)
-        gc.collect()
+        keras.backend.clear_session()
+
+        # clear_keras_session(**kwargs)
+        # gc.collect()
 
     def reset_weights(self):
         pass
