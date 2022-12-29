@@ -86,9 +86,9 @@ def build_butterfly_cls(save_path=None):
     requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                            optimizer_requirements=optimizer_requirements,
                                                            nn_requirements=nn_requirements,
-                                                           timeout=datetime.timedelta(hours=8),
+                                                           timeout=datetime.timedelta(minutes=30),
                                                            num_of_generations=3, early_stopping_iterations=100,
-                                                           early_stopping_timeout=float(datetime.timedelta(hours=8).
+                                                           early_stopping_timeout=float(datetime.timedelta(minutes=30).
                                                                                         total_seconds()),
                                                            max_pipeline_fit_time=datetime.timedelta(minutes=30),
                                                            n_jobs=1

@@ -142,16 +142,6 @@ class NNGraph(OptGraph):
         tf.keras.backend.clear_session()
         input_shape = requirements.nn_requirements.conv_requirements.input_shape
         self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
-
-        # if not self.model:
-        #     # with tf.device('/device:cpu:0'):
-        #     input_shape = requirements.nn_requirements.conv_requirements.input_shape
-        #     self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
-        #     self._weights = self.model.get_weights()
-        # else:
-        #     with tf.device('/device:cpu:0'):
-        #         self.model.set_weights(self._weights)
-
         self.model.compile(loss=loss_func, optimizer=optimizer, metrics=[model_metrics])
         self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,
                        validation_data=val_generator, shuffle=shuffle, callbacks=callbacks_list)
@@ -211,7 +201,7 @@ class NNGraph(OptGraph):
     @staticmethod
     def release_memory(**kwargs):
         clear_keras_session(**kwargs)
-        gc.collect()
+        # gc.collect()
 
     def unfit(self, **kwargs):
         if self.model:

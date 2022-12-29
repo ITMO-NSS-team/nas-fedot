@@ -3,6 +3,7 @@ import sys
 import pathlib
 from typing import Optional, TypeVar, Any
 
+import keras.backend
 import tensorflow as tf
 import numpy as np
 
@@ -83,7 +84,9 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                 self._log.warning(f'Continuing after graph fit error {ex}\n '
                                   f'in {file_name}\n line {exc_tb.tb_lineno}\n')
-                graph.release_memory()
+                graph.model = None
+                keras.backend.clear_session()
+                # graph.release_memory()
                 # graph.unfit()
                 _exceptions_save(graph, ex)
                 continue
@@ -93,8 +96,9 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
                 folds_metrics.append(evaluated_fitness.values)
             else:
                 self._log.warning(f'Continuing after objective evaluation error for graph: {graph_id}')
-                graph.release_memory()
-                # graph.unfit()
+                # graph.release_memory()
+                graph.model = None
+                keras.backend.clear_session()
                 continue
 
         if folds_metrics:
@@ -104,9 +108,8 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         else:
             folds_metrics = None
 
-        graph.release_memory()
-        # graph.unfit(log=self._log)
-
+        graph.model = None
+        keras.backend.clear_session()
         return to_fitness(folds_metrics, self._objective.is_multi_objective)
 
     def calculate_objective_with_cache(self, graph, train_data, fold_id=None, n_jobs=-1):

@@ -124,12 +124,12 @@ class ConvNetChecker:
         cls.error_message = None
         cls.model = None
         rules_list = [rule for rule in dir(cls) if callable(getattr(cls, rule)) and rule.startswith('r_')]
-        with tensorflow.device('/cpu:0'):
-            for rule in rules_list:
-                getattr(cls, rule)(graph)
-                if cls.error_message:
-                    cls.clear_memory()
-                    raise ValueError(cls.error_message)
+        # with tensorflow.device('/cpu:0'):
+        for rule in rules_list:
+            getattr(cls, rule)(graph)
+            if cls.error_message:
+                cls.clear_memory()
+                raise ValueError(cls.error_message)
         cls.clear_memory()
         return True
 
