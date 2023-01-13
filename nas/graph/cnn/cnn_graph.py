@@ -2,7 +2,7 @@ import gc
 import json
 import os
 import pathlib
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 import keras.backend
 import numpy as np
@@ -52,27 +52,12 @@ class NNGraph(OptGraph):
     def __init__(self, nodes=(), model=None):
         super().__init__(nodes)
         self._model = model
-        self._input_shape = None
-        self._weights = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
 
     def __eq__(self, other) -> bool:
         return self is other
-
-    def show(self, save_path: Optional[Union[os.PathLike, str]] = None, engine: str = 'matplotlib',
-             node_color: Optional[NodeColorType] = None, dpi: int = 100,
-             node_size_scale: float = 1.0, font_size_scale: float = 1.0, edge_curvature_scale: float = 1.0):
-        super().show(save_path, 'pyvis', node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
-
-    @property
-    def input_shape(self):
-        return self._input_shape
-
-    @input_shape.setter
-    def input_shape(self, val):
-        self._input_shape = val
 
     @property
     def model(self) -> Functional:
@@ -110,6 +95,15 @@ class NNGraph(OptGraph):
     def cnn_depth(self):
         flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
         return flatten_id
+
+    def set_input_channels(self, input_channels: int):
+        self.graph_struct[0].content['params']['input_channels'] = input_channels
+        return self
+
+    def show(self, save_path: Optional[Union[os.PathLike, str]] = None, engine: str = 'matplotlib',
+             node_color: Optional[NodeColorType] = None, dpi: int = 100,
+             node_size_scale: float = 1.0, font_size_scale: float = 1.0, edge_curvature_scale: float = 1.0):
+        super().show(save_path, 'pyvis', node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
 
     def get_trainable_params(self):
         total_params = 0
@@ -201,7 +195,6 @@ class NNGraph(OptGraph):
     @staticmethod
     def release_memory(**kwargs):
         clear_keras_session(**kwargs)
-        # gc.collect()
 
     def unfit(self, **kwargs):
         if self.model:
@@ -209,16 +202,3 @@ class NNGraph(OptGraph):
         if hasattr(self, '_weights'):
             del self._weights
         keras.backend.clear_session()
-
-        # clear_keras_session(**kwargs)
-        # gc.collect()
-
-    def reset_weights(self):
-        pass
-        # for ix, l in enumerate(self.model.layers):
-        #     if hasattr(l, "kernel_initializer"):
-        #         l.kernel.assign(l.kernel_initializer(tf.shape(l.kernel)))
-        #     if hasattr(l, "bias_initializer"):
-        #         l.bias.assign(l.bias_initializer(tf.shape(l.bias)))
-        #     if hasattr(l, "recurrent_initializer"):
-        #         l.recurrent_kernel.assign(l.recurrent_initializer(tf.shape(l.recurrent_kernel)))

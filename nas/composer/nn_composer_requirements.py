@@ -15,7 +15,6 @@ _possible_color_modes = {'RGB': 3, 'Gray': 1}
 def permissible_kernel_parameters_correct(image_size: List[float], kernel_sizes: List[List[int]],
                                           strides: List[List[int]],
                                           pooling: bool):
-    # TODO _update parameters checker
     for i, kernel_size in enumerate(kernel_sizes):
         for j, stride in enumerate(strides):
             is_strides_permissible = all([stride[i] < kernel_size[i] for i in range(len(stride))])
@@ -79,7 +78,6 @@ class ConvRequirements:
                 self.input_shape.append(3) if self.color_mode == 'RGB' else self.input_shape.append(1)
         if self.min_filters < 2:
             raise ValueError(f'min_filters value {self.min_filters} is unacceptable')
-
         if self.max_filters < 2:
             raise ValueError(f'max_filters value {self.max_filters} is unacceptable')
         if not self.conv_strides:

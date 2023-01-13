@@ -50,7 +50,7 @@ class GraphLayers:
 
         layer_parameters['activation'] = random.choice(requirements.activation_types).value
         layer_parameters['conv_strides'] = random.choice(requirements.conv_requirements.conv_strides)
-        layer_parameters['neurons'] = random.choice(requirements.conv_requirements.neurons)
+        layer_parameters['neurons'] = random.choice(requirements.conv_requirements.out_channels)
         return GraphLayers._batch_normalization(requirements, layer_parameters)
 
     @staticmethod

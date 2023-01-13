@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import nvidia_smi
 import tensorflow
 from keras.backend import get_session, set_session, clear_session
 
@@ -30,24 +29,24 @@ def clear_session():
     session = tensorflow.compat.v1.Session()
 
 
-def log_gpu_memory(func):
-    def memory_logger(*args, **kwargs):
-        result = func(*args, **kwargs)
-
-        log = kwargs.get('log')
-
-        nvidia_smi.nvmlInit()
-        handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
-        # card id 0 hardcoded here, there is also a call to get all available card ids, so we could iterate
-
-        info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
-        if log:
-            log.info(f'Total memory\t\t{float(info.total) / 1024 ** 3:.5f} GiB')
-            log.info(f'Used memory \t\t{float(info.used) / 1024 ** 3:.5f} GiB')
-            log.info(f'Free memory \t\t{float(info.free) / 1024 ** 3:.5f} GiB')
-        return result
-
-    return memory_logger
+# def log_gpu_memory(func):
+#     def memory_logger(*args, **kwargs):
+#         result = func(*args, **kwargs)
+#
+#         log = kwargs.get('log')
+#
+#         nvidia_smi.nvmlInit()
+#         handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
+#         # card id 0 hardcoded here, there is also a call to get all available card ids, so we could iterate
+#
+#         info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
+#         if log:
+#             log.info(f'Total memory\t\t{float(info.total) / 1024 ** 3:.5f} GiB')
+#             log.info(f'Used memory \t\t{float(info.used) / 1024 ** 3:.5f} GiB')
+#             log.info(f'Free memory \t\t{float(info.free) / 1024 ** 3:.5f} GiB')
+#         return result
+#
+#     return memory_logger
 
 
 def clear_keras_session(**kwargs):

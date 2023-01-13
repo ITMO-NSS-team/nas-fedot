@@ -168,5 +168,5 @@ if __name__ == '__main__':
     graph = NNGraph.load('/home/staeros/graph.json')
     lst = []
     for i in range(50):
-        lst.append(ModelMaker(graph.input_shape, graph, converter.Struct, 3).build())
+        lst.append(ModelMaker(graph.source_shape, graph, converter.Struct, 3).build())
     print(1)

@@ -65,7 +65,7 @@ class ConvGraphMaker(GraphGenerator):
         return graph_nodes
 
     def _set_input_shape(self, graph, input_shape) -> NNGraph:
-        graph.input_shape = input_shape
+        graph.source_shape = input_shape
         return graph
 
     def _add_node(self, node_to_add, parent_node):
