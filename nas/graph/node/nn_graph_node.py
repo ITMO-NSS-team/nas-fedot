@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional, List, Tuple, Union
 
 import numpy as np
-from fedot.core.optimisers.graph import OptNode
+from golem.core.optimisers.graph import OptNode
 
 from nas.graph.node.nn_node_params import GraphLayers
 

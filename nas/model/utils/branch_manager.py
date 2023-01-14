@@ -1,7 +1,7 @@
 from functools import reduce
 from typing import List, Tuple, Union
 
-from fedot.core.dag.graph_node import GraphNode
+from golem.core.dag.graph_node import GraphNode
 
 from nas.graph.node.nn_graph_node import NNNode
 

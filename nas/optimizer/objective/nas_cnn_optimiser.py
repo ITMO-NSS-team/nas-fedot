@@ -3,11 +3,12 @@ import multiprocessing
 from typing import List
 
 import numpy as np
-from fedot.core.optimisers.gp_comp.evaluation import SimpleDispatcher
-from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
 from fedot.core.optimisers.gp_comp.gp_params import GPGraphOptimizerParameters
-from fedot.core.optimisers.optimizer import GraphGenerationParams
-from tensorflow.keras.backend import clear_session
+from golem.core.optimisers.genetic.evaluation import SimpleDispatcher
+from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
+from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
+from golem.core.optimisers.optimizer import GraphGenerationParams
+from keras.backend import clear_session
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.cnn.cnn_graph import NNGraph

@@ -4,11 +4,11 @@ from typing import Sequence, Tuple, Union, Optional
 from fedot.core.composer.composer import Composer
 from fedot.core.data.data import InputData
 from fedot.core.data.multi_modal import MultiModalData
-from fedot.core.optimisers.gp_comp.gp_optimizer import EvoGraphOptimizer
-from fedot.core.optimisers.graph import OptGraph
+from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
+from golem.core.optimisers.graph import OptGraph
 from fedot.core.optimisers.objective.data_source_splitter import DataSourceSplitter
-from fedot.core.optimisers.opt_history_objects.opt_history import OptHistory
-from fedot.core.optimisers.optimizer import GraphGenerationParams
+from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
+from golem.core.optimisers.optimizer import GraphGenerationParams
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.data_generator import Preprocessor

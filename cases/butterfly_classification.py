@@ -2,21 +2,23 @@ import datetime
 import os
 import pathlib
 
+from fedot.core.optimisers.gp_comp.gp_params import GPGraphOptimizerParameters
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import tensorflow as tf
 
-from fedot.core.adapter.adapter import DirectAdapter
-from fedot.core.optimisers.advisor import DefaultChangeAdvisor
+from golem.core.adapter.adapter import DirectAdapter
+from golem.core.optimisers.advisor import DefaultChangeAdvisor
 from fedot.core.composer.composer_builder import ComposerBuilder
-from fedot.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
+from golem.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.data.data_split import train_test_data_setup
-from fedot.core.optimisers.gp_comp.gp_optimizer import GPGraphOptimizerParameters
-from fedot.core.optimisers.gp_comp.operators.crossover import CrossoverTypesEnum
-from fedot.core.optimisers.gp_comp.operators.inheritance import GeneticSchemeTypesEnum
-from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum
-from fedot.core.optimisers.gp_comp.operators.regularization import RegularizationTypesEnum
-from fedot.core.optimisers.optimizer import GraphGenerationParams
+
+from golem.core.optimisers.genetic.operators.crossover import CrossoverTypesEnum
+from golem.core.optimisers.genetic.operators.inheritance import GeneticSchemeTypesEnum
+from golem.core.optimisers.genetic.operators.mutation import MutationTypesEnum
+from golem.core.optimisers.genetic.operators.regularization import RegularizationTypesEnum
+from golem.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
@@ -94,9 +96,6 @@ def build_butterfly_cls(save_path=None):
                                                            n_jobs=1
                                                            )
 
-    # validation_rules = [has_no_flatten_skip, flatten_count, graph_has_several_starts, graph_has_wrong_structure,
-    #                     has_no_cycle, has_no_self_cycled_nodes, unique_node_types,
-    #                     graph_has_wrong_structure_tmp, tmp_dense_in_conv, is_architecture_is_correct]
     validation_rules = [ConvNetChecker.check_cnn, has_no_cycle, has_no_self_cycled_nodes, ]
 
     optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
@@ -117,7 +116,6 @@ def build_butterfly_cls(save_path=None):
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
-    # with_initial_pipelines_generation_function(graph_generation_function.build). \
     composer = builder.build()
 
     transformations = [tensorflow.convert_to_tensor]

@@ -11,12 +11,12 @@ import tensorflow.python.keras.callbacks
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.python.keras.engine.functional import Functional
 
-from fedot.core.dag.graph_node import GraphNode
+from golem.core.dag.graph_node import GraphNode
 from fedot.core.data.data import OutputData
-from fedot.core.optimisers.graph import OptGraph, OptNode
-from fedot.core.serializers import Serializer
+from golem.core.optimisers.graph import OptGraph, OptNode, GraphDelegate
+from golem.serializers import Serializer
 from fedot.core.utils import DEFAULT_PARAMS_STUB
-from fedot.core.visualisation.graph_viz import NodeColorType
+from golem.visualisation.graph_viz import NodeColorType
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.graph.node.nn_graph_node import NNNode
@@ -47,7 +47,7 @@ class NNNodeOperatorAdapter:
         return obj
 
 
-class NNGraph(OptGraph):
+class NNGraph(GraphDelegate):
 
     def __init__(self, nodes=(), model=None):
         super().__init__(nodes)

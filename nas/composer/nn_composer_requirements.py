@@ -4,8 +4,9 @@ import datetime
 from dataclasses import dataclass
 from typing import List, Optional
 
-from fedot.core.optimisers.gp_comp.operators.mutation import MutationStrengthEnum
 from fedot.core.optimisers.gp_comp.pipeline_composer_requirements import PipelineComposerRequirements
+from golem.core.optimisers.genetic.operators.mutation import MutationStrengthEnum
+
 
 from nas.repository.layer_types_enum import LayersPoolEnum, ActivationTypesIdsEnum
 

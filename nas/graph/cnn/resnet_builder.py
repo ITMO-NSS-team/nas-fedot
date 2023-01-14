@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Union
 
-from fedot.core.dag.graph_node import GraphNode
+from golem.core.dag.graph_node import GraphNode
 
 from nas.composer.nn_composer_requirements import *
 from nas.graph.grpah_generator import GraphGenerator

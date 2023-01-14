@@ -6,15 +6,16 @@ from typing import Optional, TypeVar, Any
 import keras.backend
 import tensorflow as tf
 import numpy as np
+from fedot.core.optimisers.objective import DataSource
 
-from fedot.core.dag.graph import Graph
+from golem.core.dag.graph import Graph
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
-from fedot.core.log import default_log
-from fedot.core.optimisers.fitness import Fitness
-from fedot.core.optimisers.graph import OptGraph
-from fedot.core.optimisers.objective import ObjectiveEvaluate, DataSource
-from fedot.core.optimisers.objective.objective import to_fitness
+from golem.core.log import default_log
+from golem.core.optimisers.fitness import Fitness
+from golem.core.optimisers.graph import OptGraph
+from golem.core.optimisers.objective import ObjectiveEvaluate
+from golem.core.optimisers.objective.objective import to_fitness
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements

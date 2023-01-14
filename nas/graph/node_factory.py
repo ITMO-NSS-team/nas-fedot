@@ -1,7 +1,7 @@
 from random import choice
 from typing import (Optional, List)
 
-from fedot.core.optimisers.opt_node_factory import OptNodeFactory
+from golem.core.optimisers.opt_node_factory import OptNodeFactory
 
 from nas.composer.nn_composer_requirements import NNRequirements
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type

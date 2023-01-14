@@ -2,7 +2,7 @@ import os
 
 import keras.utils.layer_utils
 import tensorflow
-from fedot.core.dag.verification_rules import ERROR_PREFIX
+from golem.core.dag.verification_rules import ERROR_PREFIX
 from typing import Tuple, Optional
 
 from nas.graph.cnn.cnn_graph import NNGraph

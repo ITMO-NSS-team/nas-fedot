@@ -4,11 +4,11 @@ import pathlib
 
 import tensorflow as tf
 from fedot.core.composer.advisor import DefaultChangeAdvisor
-from fedot.core.optimisers.adapters import DirectAdapter
-from fedot.core.optimisers.gp_comp.individual import Individual
-from fedot.core.optimisers.gp_comp.operators.mutation import MutationTypesEnum, Mutation
-from fedot.core.optimisers.opt_history import OptHistory
-from fedot.core.optimisers.optimizer import GraphGenerationParams
+from golem.core.optimisers.adapters import DirectAdapter
+from golem.core.optimisers.genetic.individual import Individual
+from golem.core.optimisers.genetic.operators.mutation import MutationTypesEnum, Mutation
+from golem.core.optimisers.opt_history import OptHistory
+from golem.core.optimisers.optimizer import GraphGenerationParams
 
 import nas.composer.nn_composer_requirements as nas_requirements
 from nas.graph.cnn.cnn_graph import NNGraph
