@@ -1,7 +1,7 @@
 import random
 from typing import List, Optional
 
-from nas.composer.nn_composer_requirements import NNRequirements
+from nas.composer.nn_composer_requirements import ModelRequirements
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.graph.grpah_generator import GraphGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
@@ -23,7 +23,7 @@ def _add_skip_connections(graph: NNGraph, params):
 
 
 class ConvGraphMaker(GraphGenerator):
-    def __init__(self, param_restrictions: NNRequirements,
+    def __init__(self, param_restrictions: ModelRequirements,
                  initial_struct: Optional[List] = None):
         self._initial_struct = initial_struct
         self._param_restrictions = param_restrictions

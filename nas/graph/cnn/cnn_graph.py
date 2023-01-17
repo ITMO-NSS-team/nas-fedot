@@ -47,7 +47,7 @@ class NNNodeOperatorAdapter:
         return obj
 
 
-class NNGraph(GraphDelegate):
+class NNGraph(OptGraph):
 
     def __init__(self, nodes=(), model=None):
         super().__init__(nodes)

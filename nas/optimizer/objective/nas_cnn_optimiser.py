@@ -3,7 +3,7 @@ import multiprocessing
 from typing import List
 
 import numpy as np
-from fedot.core.optimisers.gp_comp.gp_params import GPGraphOptimizerParameters
+from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 from golem.core.optimisers.genetic.evaluation import SimpleDispatcher
 from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
@@ -19,7 +19,7 @@ seed_all(1)
 
 class NNGraphOptimiser(EvoGraphOptimizer):
     def __init__(self, initial_graphs: List[NNGraph], requirements: NNComposerRequirements,
-                 graph_generation_params: GraphGenerationParams, graph_optimizer_params: GPGraphOptimizerParameters,
+                 graph_generation_params: GraphGenerationParams, graph_optimizer_params: GPAlgorithmParameters,
                  objective, verbose=0):
         super().__init__(initial_graphs=initial_graphs, requirements=requirements,
                          graph_generation_params=graph_generation_params,

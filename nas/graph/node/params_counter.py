@@ -6,7 +6,7 @@ from typing import List, Union
 import numpy as np
 
 from nas.composer.nn_composer_requirements import DataRequirements, ConvRequirements, FullyConnectedRequirements, \
-    NNRequirements, OptimizerRequirements, NNComposerRequirements
+    ModelRequirements, OptimizerRequirements, NNComposerRequirements
 from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.layer_types_enum import ActivationTypesIdsEnum
@@ -102,19 +102,19 @@ if __name__ == '__main__':
     conv_requirements = ConvRequirements(input_shape=[image_side_size, image_side_size],
                                          cnn_secondary=[LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2],
                                          color_mode='RGB',
-                                         min_filters=32, max_filters=64,
+                                         min_filters_num=32, max_filters_num=64,
                                          conv_strides=[[1, 1]],
                                          pool_size=[[2, 2]], pool_strides=[[2, 2]])
     fc_requirements = FullyConnectedRequirements(min_number_of_neurons=32,
                                                  max_number_of_neurons=64)
-    nn_requirements = NNRequirements(conv_requirements=conv_requirements,
-                                     fc_requirements=fc_requirements,
-                                     primary=[LayersPoolEnum.conv2d_3x3],
-                                     secondary=[LayersPoolEnum.dense],
-                                     epochs=epochs, batch_size=batch_size,
-                                     max_nn_depth=1, max_num_of_conv_layers=10,
-                                     has_skip_connection=True, activation_types=[ActivationTypesIdsEnum.relu]
-                                     )
+    nn_requirements = ModelRequirements(conv_requirements=conv_requirements,
+                                        fc_requirements=fc_requirements,
+                                        primary=[LayersPoolEnum.conv2d_3x3],
+                                        secondary=[LayersPoolEnum.dense],
+                                        epochs=epochs, batch_size=batch_size,
+                                        max_nn_depth=1, max_num_of_conv_layers=10,
+                                        has_skip_connection=True, activation_types=[ActivationTypesIdsEnum.relu]
+                                        )
     optimizer_requirements = OptimizerRequirements(opt_epochs=optimization_epochs)
 
     requirements = NNComposerRequirements(data_requirements=data_requirements,

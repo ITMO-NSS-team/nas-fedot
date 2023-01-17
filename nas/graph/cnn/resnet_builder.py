@@ -22,11 +22,11 @@ class CNNRepository:
 
 
 class ResNetGenerator(GraphGenerator):
-    def __init__(self, param_restrictions: NNRequirements):
+    def __init__(self, param_restrictions: ModelRequirements):
         self._parameters_restrictions = deepcopy(param_restrictions)
         self._parameters_restrictions.set_batch_norm_prob(1).set_output_shape(64)
 
-    def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: NNRequirements,
+    def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: ModelRequirements,
                   parent_node: List[NNNode] = None, stride: int = None, pool_size: int = None,
                   pool_stride: int = None) -> NNNode:
         layer_requirements = deepcopy(node_requirements)
@@ -39,7 +39,7 @@ class ResNetGenerator(GraphGenerator):
         node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
-    def _add_to_block(self, block: NNGraph, node_to_add, requirements: NNRequirements,
+    def _add_to_block(self, block: NNGraph, node_to_add, requirements: ModelRequirements,
                       parent_node: List[Union[GraphNode, NNNode]], stride: int):
         node_to_add = self._add_node(node_to_add, parent_node=parent_node, node_requirements=requirements,
                                      stride=stride)
@@ -108,19 +108,19 @@ if __name__ == '__main__':
     conv_requirements = ConvRequirements(input_shape=[image_side_size, image_side_size],
                                          cnn_secondary=[LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2],
                                          color_mode='RGB',
-                                         min_filters=32, max_filters=64,
+                                         min_filters_num=32, max_filters_num=64,
                                          conv_strides=[[1, 1]],
                                          pool_size=[[2, 2]], pool_strides=[[2, 2]])
     fc_requirements = FullyConnectedRequirements(min_number_of_neurons=32,
                                                  max_number_of_neurons=64)
-    nn_requirements = NNRequirements(conv_requirements=conv_requirements,
-                                     fc_requirements=fc_requirements,
-                                     primary=[LayersPoolEnum.conv2d_3x3],
-                                     secondary=[LayersPoolEnum.dense],
-                                     epochs=epochs, batch_size=batch_size,
-                                     max_nn_depth=1, max_num_of_conv_layers=10,
-                                     has_skip_connection=True, activation_types=[ActivationTypesIdsEnum.relu]
-                                     )
+    nn_requirements = ModelRequirements(conv_requirements=conv_requirements,
+                                        fc_requirements=fc_requirements,
+                                        primary=[LayersPoolEnum.conv2d_3x3],
+                                        secondary=[LayersPoolEnum.dense],
+                                        epochs=epochs, batch_size=batch_size,
+                                        max_nn_depth=1, max_num_of_conv_layers=10,
+                                        has_skip_connection=True, activation_types=[ActivationTypesIdsEnum.relu]
+                                        )
     optimizer_requirements = OptimizerRequirements(opt_epochs=optimization_epochs)
 
     requirements = NNComposerRequirements(data_requirements=data_requirements,

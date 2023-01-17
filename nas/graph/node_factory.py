@@ -3,13 +3,13 @@ from typing import (Optional, List)
 
 from golem.core.optimisers.opt_node_factory import OptNodeFactory
 
-from nas.composer.nn_composer_requirements import NNRequirements
+from nas.composer.nn_composer_requirements import ModelRequirements
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 
 class NNNodeFactory(OptNodeFactory):
-    def __init__(self, requirements: NNRequirements, advisor):
+    def __init__(self, requirements: ModelRequirements, advisor):
         self.requirements = requirements
         self.advisor = advisor
         self._pool_conv_nodes = self.requirements.primary

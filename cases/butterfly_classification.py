@@ -2,7 +2,7 @@ import datetime
 import os
 import pathlib
 
-from fedot.core.optimisers.gp_comp.gp_params import GPGraphOptimizerParameters
+from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
@@ -65,25 +65,26 @@ def build_butterfly_cls(save_path=None):
 
     train_data, test_data = train_test_data_setup(data, shuffle_flag=True)
 
-    data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': cv_folds})
-    conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
-                                                          color_mode='RGB',
-                                                          min_filters=32, max_filters=256,
+    data_requirements = nas_requirements.DataRequirements(n_classes=data.num_classes,
+                                                          split_params={'cv_folds': cv_folds})
+    conv_requirements = nas_requirements.ConvRequirements(input_data_shape=[image_side_size, image_side_size],
+                                                          color_mode='color',
+                                                          min_filters_num=32, max_filters_num=256,
                                                           conv_strides=[[1, 1]],
                                                           pool_size=[[2, 2]], pool_strides=[[2, 2]],
                                                           cnn_secondary=[LayersPoolEnum.max_pool2d,
                                                                          LayersPoolEnum.average_poold2])
     fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
                                                                   max_number_of_neurons=128)
-    nn_requirements = nas_requirements.NNRequirements(conv_requirements=conv_requirements,
-                                                      fc_requirements=fc_requirements,
-                                                      primary=conv_layers_pool,
-                                                      secondary=[LayersPoolEnum.dense],
-                                                      epochs=epochs, batch_size=batch_size,
-                                                      max_nn_depth=1, max_num_of_conv_layers=36,
-                                                      has_skip_connection=True
-                                                      )
+    nn_requirements = nas_requirements.ModelRequirements(conv_requirements=conv_requirements,
+                                                         fc_requirements=fc_requirements,
+                                                         primary=conv_layers_pool,
+                                                         secondary=[LayersPoolEnum.dense],
+                                                         epochs=epochs, batch_size=batch_size,
+                                                         max_nn_depth=1, max_num_of_conv_layers=36)
     optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
+
+    # requirements = nas_requirements.NNComposerRequirements()
 
     requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                            optimizer_requirements=optimizer_requirements,
@@ -92,17 +93,16 @@ def build_butterfly_cls(save_path=None):
                                                            num_of_generations=3, early_stopping_iterations=100,
                                                            early_stopping_timeout=float(datetime.timedelta(minutes=30).
                                                                                         total_seconds()),
-                                                           max_pipeline_fit_time=datetime.timedelta(minutes=30),
                                                            n_jobs=1
                                                            )
 
     validation_rules = [ConvNetChecker.check_cnn, has_no_cycle, has_no_self_cycled_nodes, ]
 
-    optimizer_parameters = GPGraphOptimizerParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
-                                                      mutation_types=mutations,
-                                                      crossover_types=[CrossoverTypesEnum.subtree],
-                                                      pop_size=10,
-                                                      regularization_type=RegularizationTypesEnum.none)
+    optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
+                                                 mutation_types=mutations,
+                                                 crossover_types=[CrossoverTypesEnum.subtree],
+                                                 pop_size=10,
+                                                 regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
         adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
