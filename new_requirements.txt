@@ -19,7 +19,7 @@ decorator==5.1.1
 dill==0.3.5.1
 ete3==3.1.2
 executing==0.10.0
-fedot @ git+https://github.com/aimclub/FEDOT.git@182b0aeac2c0ad56264b638128cc7b3461f88b43
+fedot @ https://github.com/aimclub/FEDOT/archive/golem-transition.zip
 flatbuffers==22.10.26
 fonttools==4.36.0
 func-timeout==4.3.5
@@ -87,6 +87,7 @@ py4j==0.10.9.3
 pyaml==21.10.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
+pyemd==0.5.1
 Pygments==2.13.0
 pyparsing==3.0.9
 pytest==7.1.2
@@ -117,6 +118,7 @@ tensorflow-estimator==2.10.0
 tensorflow-io-gcs-filesystem==0.27.0
 termcolor==1.1.0
 testfixtures==7.0.0
+thegolem==0.1.0
 threadpoolctl==3.1.0
 tomli==2.0.1
 torch==1.11.0
