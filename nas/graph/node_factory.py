@@ -13,7 +13,6 @@ class NNNodeFactory(OptNodeFactory):
         self.requirements = requirements
         self.advisor = advisor
         self._pool_conv_nodes = self.requirements.primary
-        self._pool_conv_secondary = self.requirements.conv_requirements.cnn_secondary
         self._pool_fc_nodes = self.requirements.secondary
 
     def _get_possible_candidates(self, node: NNNode) -> List[LayersPoolEnum]:
@@ -47,7 +46,7 @@ class NNNodeFactory(OptNodeFactory):
     def get_node(self, is_primary: bool) -> Optional[NNNode]:
         # if not is_primary:
         #     print(1)
-        candidates = self._pool_conv_nodes + self._pool_conv_secondary if is_primary else self._pool_fc_nodes
+        candidates = self._pool_conv_nodes if is_primary else self._pool_fc_nodes
         return self._return_node(candidates)
 
     def _return_node(self, candidates):

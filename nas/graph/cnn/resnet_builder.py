@@ -24,16 +24,17 @@ class CNNRepository:
 class ResNetGenerator(GraphGenerator):
     def __init__(self, param_restrictions: ModelRequirements):
         self._parameters_restrictions = deepcopy(param_restrictions)
-        self._parameters_restrictions.set_batch_norm_prob(1).set_output_shape(64)
+        self._parameters_restrictions.conv_requirements.set_output_shape(64)
+        self._parameters_restrictions.set_batch_norm_prob(1)
 
     def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: ModelRequirements,
                   parent_node: List[NNNode] = None, stride: int = None, pool_size: int = None,
                   pool_stride: int = None) -> NNNode:
         layer_requirements = deepcopy(node_requirements)
         if stride:
-            layer_requirements.set_conv_params(stride)
+            layer_requirements.conv_requirements.set_conv_params(stride)
         elif pool_size or pool_stride:
-            layer_requirements.set_pooling_params(pool_size, pool_stride)
+            layer_requirements.conv_requirements.set_pooling_params(pool_size, pool_stride)
 
         node_params = get_node_params_by_type(node_to_add, layer_requirements)
         node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
@@ -61,7 +62,7 @@ class ResNetGenerator(GraphGenerator):
     def _generate_sub_block(self, output_shape: int, stride: int) -> NNGraph:
         res_block = NNGraph()
         block_requirements = deepcopy(self._parameters_restrictions)
-        block_requirements.set_output_shape(output_shape)
+        block_requirements.conv_requirements.set_output_shape(output_shape)
 
         self._add_to_block(res_block, LayersPoolEnum.conv2d_3x3, block_requirements, None, stride)
         self._add_to_block(res_block, LayersPoolEnum.conv2d_3x3, block_requirements, [res_block.graph_struct[-1]],
@@ -125,10 +126,10 @@ if __name__ == '__main__':
 
     requirements = NNComposerRequirements(data_requirements=data_requirements,
                                           optimizer_requirements=optimizer_requirements,
-                                          nn_requirements=nn_requirements,
+                                          model_requirements=nn_requirements,
                                           timeout=datetime.timedelta(hours=200),
                                           num_of_generations=1)
-    graph = ResNetGenerator(requirements.nn_requirements).build()
+    graph = ResNetGenerator(requirements.model_requirements).build()
 
 
     print('Done!')

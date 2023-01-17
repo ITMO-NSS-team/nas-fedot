@@ -59,7 +59,7 @@ def from_fitted():
 
     requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                            optimizer_requirements=optimizer_requirements,
-                                                           nn_requirements=nn_requirements,
+                                                           model_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=200),
                                                            pop_size=10,
                                                            num_of_generations=10)

@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
     requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                            optimizer_requirements=optimizer_requirements,
-                                                           nn_requirements=nn_requirements,
+                                                           model_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(hours=20),
                                                            num_of_generations=2, early_stopping_iterations=100)
 
@@ -125,17 +125,17 @@ if __name__ == '__main__':
     data_preprocessor.set_image_size((image_side_size, image_side_size)).set_features_transformations(transformations)
 
     graph_generation_function = NNGraphBuilder()
-    graph_generation_function.set_builder(ResNetGenerator(param_restrictions=requirements.nn_requirements))
+    graph_generation_function.set_builder(ResNetGenerator(param_restrictions=requirements.model_requirements))
 
     graph = graph_generation_function.build()
-    graph.model = ModelMaker(requirements.nn_requirements.conv_requirements.input_shape, graph, converter.Struct,
+    graph.model = ModelMaker(requirements.model_requirements.conv_requirements.input_shape, graph, converter.Struct,
                              train_data.num_classes).build()
 
     train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
 
-    train_generator = setup_data(train_data, requirements.nn_requirements.batch_size, data_preprocessor, 'train',
+    train_generator = setup_data(train_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
                                  DataGenerator, True)
-    val_generator = setup_data(val_data, requirements.nn_requirements.batch_size, data_preprocessor, 'train',
+    val_generator = setup_data(val_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
                                DataGenerator, True)
 
     graph.fit(train_generator, val_generator, requirements=requirements, num_classes=train_data.num_classes,

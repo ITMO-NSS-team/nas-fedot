@@ -59,7 +59,7 @@ def create_nn_model(graph: Any, input_shape: List, classes: int = 3):
 
 
 def build_nn_from_graph(graph, n_classes, requirements):
-    input_shape = requirements.nn_requirements.conv_requirements.input_shape
+    input_shape = requirements.model_requirements.conv_requirements.input_shape
     classes_num = n_classes
 
     graph.model = create_nn_model(graph, input_shape, classes_num)

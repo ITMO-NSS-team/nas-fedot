@@ -57,9 +57,9 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
 
         shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
         data_to_train, data_to_validate = train_test_data_setup(data, shuffle_flag=shuffle, stratify=data.target)
-        train_generator = setup_data(data_to_train, self._requirements.nn_requirements.batch_size, self._preprocessor,
+        train_generator = setup_data(data_to_train, self._requirements.model_requirements.batch_size, self._preprocessor,
                                      'train', DataGenerator, shuffle)
-        validation_generator = setup_data(data_to_validate, self._requirements.nn_requirements.batch_size,
+        validation_generator = setup_data(data_to_validate, self._requirements.model_requirements.batch_size,
                                           self._preprocessor, 'train', DataGenerator, shuffle)
 
         graph.fit(train_generator, validation_generator, self._requirements, data.num_classes,

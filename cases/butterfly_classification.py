@@ -65,36 +65,30 @@ def build_butterfly_cls(save_path=None):
 
     train_data, test_data = train_test_data_setup(data, shuffle_flag=True)
 
-    data_requirements = nas_requirements.DataRequirements(n_classes=data.num_classes,
-                                                          split_params={'cv_folds': cv_folds})
     conv_requirements = nas_requirements.ConvRequirements(input_data_shape=[image_side_size, image_side_size],
                                                           color_mode='color',
                                                           min_filters_num=32, max_filters_num=256,
                                                           conv_strides=[[1, 1]],
-                                                          pool_size=[[2, 2]], pool_strides=[[2, 2]],
-                                                          cnn_secondary=[LayersPoolEnum.max_pool2d,
-                                                                         LayersPoolEnum.average_poold2])
+                                                          pool_size=[[2, 2]], pool_strides=[[2, 2]])
     fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
                                                                   max_number_of_neurons=128)
-    nn_requirements = nas_requirements.ModelRequirements(conv_requirements=conv_requirements,
+    nn_requirements = nas_requirements.ModelRequirements(num_of_classes=data.num_classes,
+                                                         conv_requirements=conv_requirements,
                                                          fc_requirements=fc_requirements,
                                                          primary=conv_layers_pool,
                                                          secondary=[LayersPoolEnum.dense],
                                                          epochs=epochs, batch_size=batch_size,
                                                          max_nn_depth=1, max_num_of_conv_layers=36)
-    optimizer_requirements = nas_requirements.OptimizerRequirements(opt_epochs=optimization_epochs)
 
-    # requirements = nas_requirements.NNComposerRequirements()
-
-    requirements = nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
-                                                           optimizer_requirements=optimizer_requirements,
-                                                           nn_requirements=nn_requirements,
+    requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
+                                                           model_requirements=nn_requirements,
                                                            timeout=datetime.timedelta(minutes=30),
-                                                           num_of_generations=3, early_stopping_iterations=100,
+                                                           num_of_generations=3,
+                                                           early_stopping_iterations=100,
                                                            early_stopping_timeout=float(datetime.timedelta(minutes=30).
                                                                                         total_seconds()),
-                                                           n_jobs=1
-                                                           )
+                                                           n_jobs=1,
+                                                           cv_folds=cv_folds)
 
     validation_rules = [ConvNetChecker.check_cnn, has_no_cycle, has_no_self_cycled_nodes, ]
 
@@ -106,11 +100,11 @@ def build_butterfly_cls(save_path=None):
 
     graph_generation_parameters = GraphGenerationParams(
         adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
-        rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements.nn_requirements,
+        rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements.model_requirements,
                                                                           DefaultChangeAdvisor()))
 
     graph_generation_function = NNGraphBuilder()
-    graph_generation_function.set_builder(ResNetGenerator(param_restrictions=requirements.nn_requirements))
+    graph_generation_function.set_builder(ResNetGenerator(param_restrictions=requirements.model_requirements))
 
     builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
@@ -127,12 +121,12 @@ def build_butterfly_cls(save_path=None):
 
     train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
 
-    train_generator = setup_data(train_data, requirements.nn_requirements.batch_size, data_preprocessor, 'train',
+    train_generator = setup_data(train_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
                                  DataGenerator, True)
-    val_generator = setup_data(val_data, requirements.nn_requirements.batch_size, data_preprocessor, 'train',
+    val_generator = setup_data(val_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
                                DataGenerator, True)
 
-    optimized_network.model = ModelMaker(requirements.nn_requirements.conv_requirements.input_shape,
+    optimized_network.model = ModelMaker(requirements.model_requirements.conv_requirements.input_shape,
                                          optimized_network, converter.Struct, data.num_classes).build()
     optimized_network.fit(train_generator, val_generator, requirements=requirements, num_classes=train_data.num_classes,
                           verbose=1, optimization=False, shuffle=True)

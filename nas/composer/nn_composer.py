@@ -54,7 +54,7 @@ class NNComposer(Composer):
         if self.history:
             self.history.clean_results()
 
-        data_producer = DataSourceSplitter(**self.composer_requirements.data_requirements.split_params).build(data)
+        data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
 
         objective_evaluator = NNObjectiveEvaluate(self.optimizer.objective, data_producer, self._preprocessor,
                                                   self.composer_requirements, self.pipelines_cache,

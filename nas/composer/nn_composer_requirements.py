@@ -9,25 +9,15 @@ from golem.core.optimisers.genetic.operators.mutation import MutationStrengthEnu
 
 from nas.repository.layer_types_enum import LayersPoolEnum, ActivationTypesIdsEnum
 
-_possible_color_modes = {'RGB': 3, 'Gray': 1}
 
-
-def permissible_kernel_parameters_correct(image_size: List[float], kernel_sizes: List[List[int]],
-                                          strides: List[List[int]],
-                                          pooling: bool):
-    # TODO _update parameters checker
-    for i, kernel_size in enumerate(kernel_sizes):
-        for j, stride in enumerate(strides):
-            is_strides_permissible = all([stride[i] < kernel_size[i] for i in range(len(stride))])
-            is_kernel_size_permissible = all([kernel_size[i] < image_size[i] for i in range(len(stride))])
-
-            if not is_strides_permissible:
-                if pooling:
-                    strides[j] = [2, 2]
-                else:
-                    strides[j] = [1, 1]
-            if not is_kernel_size_permissible:
-                kernel_sizes[i] = [2, 2]
+def load_default_requirements() -> NNComposerRequirements:
+    primary_nodes_list = [LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_5x5,
+                          LayersPoolEnum.conv2d_7x7]
+    fc_requirements = FullyConnectedRequirements()
+    conv_requirements = ConvRequirements(input_data_shape=[64, 64])
+    model_requirements = ModelRequirements(fc_requirements, conv_requirements, primary=primary_nodes_list, epochs=20, )
+    requirements = NNComposerRequirements(5, model_requirements=model_requirements, opt_epochs=5)
+    return requirements
 
 
 @dataclass
@@ -53,13 +43,12 @@ class FullyConnectedRequirements:
 
 @dataclass
 class ConvRequirements:
-    input_data_shape: List[Union[int, float], Union[int, float]] = None
-    cnn_secondary: List[LayersPoolEnum] = None  # Additional node type that can be placed in conv part of the graph
+    input_data_shape: List[Union[int, float], Union[int, float]]
 
-    dilation_rate: List[int] = None
     conv_strides: List[List[int]] = None
     pool_size: List[List[int]] = None
     pool_strides: List[List[int]] = None
+    dilation_rate: List[int] = None
     color_mode: Optional[str] = 'color'
     min_filters_num: int = 32
     max_filters_num: int = 128
@@ -77,6 +66,21 @@ class ConvRequirements:
             raise ValueError(f'Specified image size {self.input_data_shape} is unacceptable.')
         if not self.channels_num:
             raise ValueError(f'Wrong color mode.')
+
+    def set_output_shape(self, output_shape: int) -> ConvRequirements:
+        # TODO add output shape check
+        self.max_filters_num = output_shape
+        self.min_filters_num = output_shape
+        return self
+
+    def set_conv_params(self, stride: int) -> ConvRequirements:
+        self.conv_strides = [[stride, stride]]
+        return self
+
+    def set_pooling_params(self, stride: int, size: int) -> ConvRequirements:
+        self.pool_size = [[size, size]]
+        self.pool_strides = [[stride, stride]]
+        return self
 
     @staticmethod
     def _get_image_channels_num(color_mode) -> int:
@@ -105,21 +109,22 @@ class ConvRequirements:
 
 @dataclass
 class ModelRequirements:
-    fc_requirements: FullyConnectedRequirements = None
-    conv_requirements: ConvRequirements = None
+    num_of_classes: int
+    conv_requirements: ConvRequirements
+    fc_requirements: FullyConnectedRequirements = FullyConnectedRequirements()
 
     primary: Optional[List[LayersPoolEnum]] = None
     secondary: Optional[List[LayersPoolEnum]] = None
 
     activation_types: List[ActivationTypesIdsEnum] = None
 
-    batch_norm_prob: Optional[float] = None
-    dropout_prob: Optional[float] = None
-    max_drop_size: int = 0.5
-    has_skip_connection: Optional[bool] = False
+    _batch_norm_prob: float = .5
+    _dropout_prob: float = .5
+    _max_dropout_val: float = .5
+    _has_skip_connection: Optional[bool] = False
 
     epochs: int = 1
-    batch_size: int = 12
+    batch_size: int = 32
 
     max_num_of_conv_layers: int = 6
     min_num_of_conv_layers: int = 4
@@ -128,81 +133,67 @@ class ModelRequirements:
     min_nn_depth: int = 1
 
     def __post_init__(self):
+        if not self.primary:
+            self.primary = [LayersPoolEnum.conv2d_3x3]
+        if not self.secondary:
+            self.secondary = [LayersPoolEnum.dropout, LayersPoolEnum.batch_norm, LayersPoolEnum.dense,
+                              LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2]
         if not self.activation_types:
             self.activation_types = [activation_func for activation_func in ActivationTypesIdsEnum]
-        if not self.max_num_of_conv_layers:
-            self.max_num_of_conv_layers = 4
-        if self.max_drop_size > 1:
-            self.max_drop_size = 1
-        if not self.batch_size:
-            self.batch_size = 16
-        if not self.batch_norm_prob:
-            self.batch_norm_prob = 0.5
-        if not self.dropout_prob:
-            self.dropout_prob = 0.5
         if self.epochs < 1:
             raise ValueError('Epoch number must be at least 1 or greater')
-        if self.max_drop_size >= 1:
-            raise ValueError(f'max_drop_size value {self.max_drop_size} is unacceptable')
+        if self.max_dropout_val >= 1:
+            raise ValueError(f'max_drop_size value {self.max_dropout_val} is unacceptable')
+
+    @property
+    def batch_norm_prob(self) -> float:
+        return self._batch_norm_prob
+
+    def set_batch_norm_prob(self, prob: float) -> ModelRequirements:
+        self._batch_norm_prob = prob
+        return self
+
+    @property
+    def dropout_prob(self) -> float:
+        return self._dropout_prob
+
+    def set_dropout_prob(self, prob: float) -> ModelRequirements:
+        self._dropout_prob = prob
+        return self
+
+    @property
+    def max_dropout_val(self) -> float:
+        return self._max_dropout_val
+
+    def set_max_dropout_val(self, val: float) -> ModelRequirements:
+        if 0 < val < 1:
+            self._max_dropout_val = val
+        else:
+            raise ValueError('Given dropout value is unacceptable.')
+        return self
+
+    @property
+    def has_skip_connection(self) -> bool:
+        return self._has_skip_connection
 
     @property
     def max_possible_depth(self):
         return self.max_nn_depth + self.max_num_of_conv_layers
 
-    def set_output_shape(self, output_shape: int):
-        # TODO add output shape check
-        self.conv_requirements.max_filters_num = output_shape
-        self.conv_requirements.min_filters_num = output_shape
-        return self
-
-    def set_conv_params(self, stride: int):
-        self.conv_requirements.conv_strides = [[stride, stride]]
-        return self
-
-    def set_pooling_params(self, stride: int, size: int) -> ModelRequirements:
-        self.conv_requirements.pool_size = [[size, size]]
-        self.conv_requirements.pool_strides = [[stride, stride]]
-        return self
-
-    def set_batch_norm_prob(self, prob: float):
-        self.batch_norm_prob = prob
-        return self
-
-
-@dataclass
-class OptimizerRequirements:
-    opt_epochs: Optional[int] = 5
-
-    def __post_init__(self):
-        pass
-
-
-@dataclass
-class DataRequirements:
-    n_classes: int = None
-    split_params: Optional[dict] = None
-
-    def __post_init__(self):
-        if not self.split_params:
-            self.split_params = {'cv_folds': 5}
-        if self.n_classes and self.n_classes < 2:
-            raise ValueError(f'number of classes {self.n_classes} is not acceptable')
-
 
 @dataclass
 class NNComposerRequirements(PipelineComposerRequirements):
-    data_requirements: DataRequirements = None
-    optimizer_requirements: OptimizerRequirements = None
-    nn_requirements: ModelRequirements = None
+    model_requirements: ModelRequirements = None
+    opt_epochs: int = None
 
     def __post_init__(self):
-        if self.data_requirements.split_params.get('cv_folds'):
-            self.cv_folds = self.data_requirements.split_params.get('cv_folds')
-        self.primary = self.nn_requirements.primary
-        self.secondary = self.nn_requirements.secondary
-        self.max_depth = self.nn_requirements.max_possible_depth
+        # TODO type fix
+        self.primary = self.model_requirements.primary
+        self.secondary = self.model_requirements.secondary
+        self.max_depth = self.model_requirements.max_possible_depth
         self.mutation_strength = MutationStrengthEnum.strong
 
-    @staticmethod
-    def get_default_requirements(**specified_parameters):
-        pass
+
+if __name__ == '__main__':
+    r = load_default_requirements()
+    print('D!')

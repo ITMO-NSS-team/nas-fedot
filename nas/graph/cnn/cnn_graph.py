@@ -125,11 +125,11 @@ class NNGraph(OptGraph):
             verbose='auto', optimization: bool = True, shuffle: bool = False, **kwargs):
         loss_func = 'binary_crossentropy' if num_classes == 2 else 'categorical_crossentropy'
 
-        epochs = requirements.optimizer_requirements.opt_epochs if optimization else requirements.nn_requirements.epochs
+        epochs = requirements.opt_epochs if optimization else requirements.model_requirements.epochs
         # lr = tf.keras.optimizers.schedules.ExponentialDecay(1e-2, decay_steps=epochs, decay_rate=0.96, staircase=True)
         lr = 1e-4
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-        batch_size = requirements.nn_requirements.batch_size
+        batch_size = requirements.model_requirements.batch_size
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
         model_metrics = tensorflow.keras.metrics.CategoricalAccuracy() if num_classes > 2 else \
             tensorflow.keras.metrics.Accuracy()
@@ -140,7 +140,7 @@ class NNGraph(OptGraph):
             callbacks_list.append(CustomCallback())
 
         tf.keras.backend.clear_session()
-        input_shape = requirements.nn_requirements.conv_requirements.input_shape
+        input_shape = requirements.model_requirements.conv_requirements.input_shape
         self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
         self.model.compile(loss=loss_func, optimizer=optimizer, metrics=[model_metrics])
         self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,

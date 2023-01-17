@@ -101,7 +101,7 @@ class GraphLayers:
     def _dropout(requirements: ModelRequirements) -> dict:
         layer_parameters = dict()
 
-        layer_parameters['drop'] = random.randint(1, requirements.max_drop_size * 10) / 10
+        layer_parameters['drop'] = random.randint(1, requirements.max_dropout_val * 10) / 10
         return layer_parameters
 
     @staticmethod

@@ -5,8 +5,8 @@ from typing import List, Union
 
 import numpy as np
 
-from nas.composer.nn_composer_requirements import DataRequirements, ConvRequirements, FullyConnectedRequirements, \
-    ModelRequirements, OptimizerRequirements, NNComposerRequirements
+from nas.composer.nn_composer_requirements import ConvRequirements, FullyConnectedRequirements, \
+    ModelRequirements, NNComposerRequirements
 from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.layer_types_enum import ActivationTypesIdsEnum
@@ -19,7 +19,7 @@ def add_shortcut_and_check(input_shape: List, output_shape: List) -> bool:
     stride = math.ceil(input_shape[0] / output_shape[0])
     layer_type = LayersPoolEnum.conv2d_1x1
     requirements = NNComposerRequirements()
-    layer_params = get_node_params_by_type(layer_type, requirements.nn_requirements)
+    layer_params = get_node_params_by_type(layer_type, requirements.model_requirements)
     shortcut_node = NNNode(content={'name': layer_type.value, 'params': layer_params})
     shortcut_node.content['params']['conv_strides'] = [stride, stride]
     shortcut_node.content['params']['neurons'] = output_shape[-1]
@@ -119,10 +119,10 @@ if __name__ == '__main__':
 
     requirements = NNComposerRequirements(data_requirements=data_requirements,
                                           optimizer_requirements=optimizer_requirements,
-                                          nn_requirements=nn_requirements,
+                                          model_requirements=nn_requirements,
                                           timeout=datetime.timedelta(hours=200),
                                           num_of_generations=1)
-    graph = ResNetGenerator(requirements.nn_requirements).build()
+    graph = ResNetGenerator(requirements.model_requirements).build()
     # dimensions_check(graph, input_shape=[256, 256, 3])
 
     print('Done!')

@@ -25,7 +25,7 @@ def get_requirements():
 
     return nas_requirements.NNComposerRequirements(data_requirements=data_requirements,
                                                    optimizer_requirements=optimizer_requirements,
-                                                   nn_requirements=nn_requirements,
+                                                   model_requirements=nn_requirements,
                                                    timeout=datetime.timedelta(hours=1),
                                                    pop_size=1,
                                                    num_of_generations=1)
