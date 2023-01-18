@@ -24,7 +24,7 @@ class CNNRepository:
 class ResNetGenerator(GraphGenerator):
     def __init__(self, model_requirements: ModelRequirements):
         self._model_requirements = deepcopy(model_requirements)
-        self._model_requirements.conv_requirements.set_output_shape(64)  # TODO fix
+        self._model_requirements.conv_requirements.force_output_shape(64)  # TODO fix
         self._model_requirements.fc_requirements.set_batch_norm_prob(1)
 
     def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: ModelRequirements,
@@ -32,8 +32,10 @@ class ResNetGenerator(GraphGenerator):
                   pool_stride: int = None) -> NNNode:
         layer_requirements = deepcopy(node_requirements)
         if stride:
-            layer_requirements.conv_requirements.set_conv_params(stride)
+            layer_requirements.conv_requirements.force_conv_params(stride)
         elif pool_size or pool_stride:
+            layer_requirements.conv_requirements.force_pooling_size(pool_size)
+            layer_requirements.conv_requirements.force_pooling_stride(pool_stride)
             layer_requirements.conv_requirements.set_pooling_params(pool_size, pool_stride)
 
         node_params = get_node_params_by_type(node_to_add, layer_requirements)
@@ -62,7 +64,7 @@ class ResNetGenerator(GraphGenerator):
     def _generate_sub_block(self, output_shape: int, stride: int) -> NNGraph:
         res_block = NNGraph()
         block_requirements = deepcopy(self._model_requirements)
-        block_requirements.conv_requirements.set_output_shape(output_shape)
+        block_requirements.conv_requirements.force_output_shape(output_shape)
 
         self._add_to_block(res_block, LayersPoolEnum.conv2d_3x3, block_requirements, None, stride)
         self._add_to_block(res_block, LayersPoolEnum.conv2d_3x3, block_requirements, [res_block.graph_struct[-1]],

@@ -58,9 +58,9 @@ class BaseLayerRequirements:
         if self.max_number_of_neurons < self.min_number_of_neurons:
             raise ValueError('Min number of neurons in requirements can not be greater than max number of neurons.')
         if self.min_number_of_neurons < 2:
-            raise ValueError(f'{self.min_number_of_neurons.__name__} of {self.min_number_of_neurons} is unacceptable.')
+            raise ValueError(f'Min number of neurons = {self.min_number_of_neurons} is unacceptable.')
         if self.max_number_of_neurons < 2:
-            raise ValueError(f'{self.max_number_of_neurons.__name__} of {self.max_number_of_neurons} is unacceptable.')
+            raise ValueError(f'Max number of neurons = {self.max_number_of_neurons} is unacceptable.')
         if self.max_dropout_val >= 1:
             raise ValueError(f'Max dropout value {self.max_dropout_val} is unacceptable')
 
@@ -98,11 +98,10 @@ class BaseLayerRequirements:
 
 @dataclass
 class ConvRequirements(BaseLayerRequirements):
-    conv_strides: List[List[int]] = None
-    pool_size: List[List[int]] = None
-    pool_strides: List[List[int]] = None
-    dilation_rate: List[int] = None
-    color_mode: Optional[str] = 'color'
+    conv_strides: Optional[List[List[int]]] = None
+    pool_size: Optional[List[List[int]]] = None
+    pool_strides: Optional[List[List[int]]] = None
+    dilation_rate: Optional[List[int]] = None
 
     def __post_init__(self):
         if not self.dilation_rate:
@@ -110,14 +109,20 @@ class ConvRequirements(BaseLayerRequirements):
         if not self.conv_strides:
             self.conv_strides = [[1, 1]]
 
-    def set_output_shape(self, output_shape: int) -> ConvRequirements:
+        if not hasattr(self.conv_strides, '__iter__'):
+            raise ValueError('Pool of possible strides must be an iterable object')
+
+    def force_output_shape(self, output_shape: int) -> ConvRequirements:
         # TODO add output shape check
         self.max_number_of_neurons = output_shape
         self.min_number_of_neurons = output_shape
         return self
 
     def set_conv_params(self, stride: int) -> ConvRequirements:
-        self.conv_strides = [[stride, stride]]
+        if self.conv_strides:
+            self.conv_strides.append([stride, stride])
+        else:
+            self.conv_strides = [[stride, stride]]
         return self
 
     def set_pooling_params(self, stride: int, size: int) -> ConvRequirements:
@@ -125,12 +130,38 @@ class ConvRequirements(BaseLayerRequirements):
         self.pool_strides = [[stride, stride]]
         return self
 
+    def set_pooling_stride(self, stride: int) -> ConvRequirements:
+        if self.pool_strides:
+            self.pool_strides.append([stride, stride])
+        else:
+            self.force_pooling_stride(stride)
+        return self
+
+    def set_pooling_size(self, size: int) -> ConvRequirements:
+        if self.pool_size:
+            self.pool_size.append([size, size])
+        else:
+            self.force_pooling_size(size)
+        return self
+
+    def force_pooling_size(self, pool_size: int) -> ConvRequirements:
+        self.pool_size = [[pool_size, pool_size]]
+        return self
+
+    def force_pooling_stride(self, pool_stride: int) -> ConvRequirements:
+        self.pool_strides = [[pool_stride, pool_stride]]
+        return self
+
+    def force_conv_params(self, stride: int) -> ConvRequirements:
+        self.conv_strides = [[stride, stride]]
+        return self
+
 
 @dataclass
 class ModelRequirements:
     input_data_shape: List[int, int]
-    conv_requirements: ConvRequirements
-    fc_requirements: BaseLayerRequirements
+    conv_requirements: ConvRequirements = None
+    fc_requirements: BaseLayerRequirements = None
     color_mode: str = 'color'
     num_of_classes: int = None
 
@@ -149,10 +180,16 @@ class ModelRequirements:
     min_nn_depth: int = 1
 
     def __post_init__(self):
+        if not self.conv_requirements:
+            self.conv_requirements = ConvRequirements()
+        if not self.fc_requirements:
+            self.fc_requirements = BaseLayerRequirements()
         if self.epochs < 1:
             raise ValueError(f'{self.epochs} is unacceptable number of train epochs.')
         if not all([side_size >= 3 for side_size in self.input_data_shape]):
             raise ValueError(f'Specified image size {self.input_data_shape} is unacceptable.')
+        if not self.channels_num:
+            raise ValueError(f'{self.color_mode} if unacceptable')
         if not self.primary:
             self.primary = [LayersPoolEnum.conv2d_3x3]
         if not self.secondary:
@@ -180,7 +217,7 @@ class ModelRequirements:
 @dataclass
 class NNComposerRequirements(PipelineComposerRequirements):
     model_requirements: ModelRequirements = None
-    opt_epochs: int = None
+    opt_epochs: int = 5
 
     def __post_init__(self):
         # TODO type fix
@@ -188,8 +225,9 @@ class NNComposerRequirements(PipelineComposerRequirements):
         self.secondary = self.model_requirements.secondary
         self.max_depth = self.model_requirements.max_possible_depth
         self.mutation_strength = MutationStrengthEnum.strong
+        if self.opt_epochs < 1:
+            raise ValueError(f'{self.opt_epochs} is unacceptable number of optimization epochs.')
 
-
-if __name__ == '__main__':
-    r = load_default_requirements()
-    print('D!')
+    def set_model_requirements(self, model_requirements: ModelRequirements) -> NNComposerRequirements:
+        self.model_requirements = model_requirements
+        return self

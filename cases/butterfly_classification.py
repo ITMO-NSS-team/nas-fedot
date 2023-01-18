@@ -38,7 +38,7 @@ from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
+gpus = tf.config.list_logical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
 
