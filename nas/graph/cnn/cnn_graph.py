@@ -111,16 +111,6 @@ class NNGraph(OptGraph):
         flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
         return flatten_id
 
-    def get_trainable_params(self):
-        total_params = 0
-        output_shape = self.input_shape
-        for node in self.graph_struct:
-            node.input_shape = output_shape
-            layer_params = node.node_params
-            total_params += layer_params
-            output_shape = node.output_shape
-        return total_params
-
     def fit(self, train_generator, val_generator, requirements: NNComposerRequirements, num_classes: int,
             verbose='auto', optimization: bool = True, shuffle: bool = False, **kwargs):
         loss_func = 'binary_crossentropy' if num_classes == 2 else 'categorical_crossentropy'

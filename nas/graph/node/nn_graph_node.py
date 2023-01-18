@@ -42,14 +42,12 @@ def count_fc_layer_params(node):
 
 
 class NNNode(OptNode):
-    def __init__(self, content: dict, nodes_from: Optional[List] = None,
-                 input_shape: Union[List[float], Tuple[float]] = None):
+    def __init__(self, content: dict, nodes_from: Optional[List] = None):
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from
         self._input_shape = None
         if 'params' in content:
             self.content = content
-            # self.content['name'] = self.content['params']['name']
 
     def __str__(self):
         return str(self.content['name'])
@@ -57,26 +55,3 @@ class NNNode(OptNode):
     def __repr__(self):
         return self.__str__()
 
-    @property
-    def input_shape(self):
-        return self._input_shape
-
-    @input_shape.setter
-    def input_shape(self, val):
-        self._input_shape = val
-
-    @property
-    def output_shape(self) -> List:
-        is_conv = 'conv' in self.content['name']
-        is_flatten = 'flatten' in self.content['name']
-        if is_conv:
-            return [*self.content['params'].get('kernel_size'), self.content['params'].get('neurons')]
-        if is_flatten:
-            parent_node = self.nodes_from[0]
-            return [np.prod(parent_node.output_shape).tolist()]
-        else:
-            return [*self.input_shape, self.content['params'].get('neurons')]
-
-    @property
-    def node_params(self):
-        return calculate_output_shape(self)

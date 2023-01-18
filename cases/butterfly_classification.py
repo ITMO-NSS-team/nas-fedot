@@ -28,7 +28,7 @@ from nas.composer.nn_composer import NNComposer
 from nas.data.data_generator import DataGenerator
 from nas.data.data_generator import Preprocessor
 from nas.data.setup_data import setup_data
-from nas.graph.cnn.cnn_graph import NNGraph, NNNode
+from nas.graph.cnn.cnn_graph import NNNode
 from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.graph_builder import NNGraphBuilder
 from nas.graph.node_factory import NNNodeFactory
