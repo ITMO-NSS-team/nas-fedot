@@ -16,11 +16,11 @@ if TYPE_CHECKING:
 
 @dataclass
 class GraphLayers:
-    # TODO remade as decorator
     @staticmethod
     def _batch_normalization(requirements: ModelRequirements, layer_params: dict) -> dict:
-        if random.uniform(0, 1) < requirements.batch_norm_prob:
-            layer_params['momentum'] = 0.99  # random.uniform(0, 1)
+        if random.uniform(0, 1) < requirements.fc_requirements.batch_norm_prob:
+            # TODO add mode variety
+            layer_params['momentum'] = 0.99
             layer_params['epsilon'] = 0.001
         return layer_params
 
@@ -34,23 +34,20 @@ class GraphLayers:
     @staticmethod
     def _max_pool2d(requirements: ModelRequirements) -> dict:
         layer_params = GraphLayers._get_pool_params(requirements)
-        # layer_params['pool_type'] = LayersPoolEnum.max_pool2d.value
         return layer_params
 
     @staticmethod
     def _average_pool2d(requirements: ModelRequirements) -> dict:
         layer_params = GraphLayers._get_pool_params(requirements)
-        # layer_params['pool_type'] = LayersPoolEnum.average_poold2.value
         return layer_params
 
     @staticmethod
-    def _base_conv2d(requirements):
+    def _base_conv2d(requirements: ModelRequirements) -> dict:
         """Returns dictionary with particular layer parameters as NNGraph"""
         layer_parameters = dict()
-
-        layer_parameters['activation'] = random.choice(requirements.activation_types).value
+        layer_parameters['activation'] = random.choice(requirements.fc_requirements.activation_types).value
         layer_parameters['conv_strides'] = random.choice(requirements.conv_requirements.conv_strides)
-        layer_parameters['neurons'] = random.choice(requirements.conv_requirements.filters_num)
+        layer_parameters['neurons'] = random.choice(requirements.conv_requirements.neurons_num)
         return GraphLayers._batch_normalization(requirements, layer_parameters)
 
     @staticmethod
@@ -83,7 +80,7 @@ class GraphLayers:
 
     @staticmethod
     def _dilation_conv2d(requirements: ModelRequirements) -> dict:
-        pass
+        raise NotImplementedError(f'Dilation conv layers currently is unsupported')
         #
         # layer_parameters = GraphLayers._base_conv2d(requirements)
         # layer_parameters['dilation_rate'] = random.choice(requirements.conv_requirements.dilation_rate)
@@ -91,21 +88,20 @@ class GraphLayers:
         # return layer_parameters
 
     @staticmethod
-    def _dense(requirements: ModelRequirements):
+    def _dense(requirements: ModelRequirements) -> dict:
         layer_parameters = dict()
-        layer_parameters['activation'] = random.choice(requirements.activation_types).value
+        layer_parameters['activation'] = random.choice(requirements.fc_requirements.activation_types).value
         layer_parameters['neurons'] = random.choice(requirements.fc_requirements.neurons_num)
         return GraphLayers._batch_normalization(requirements, layer_parameters)
 
     @staticmethod
     def _dropout(requirements: ModelRequirements) -> dict:
         layer_parameters = dict()
-
-        layer_parameters['drop'] = random.randint(1, requirements.max_dropout_val * 10) / 10
+        layer_parameters['drop'] = random.randint(0, int(requirements.fc_requirements.max_dropout_val * 100)) / 100
         return layer_parameters
 
     @staticmethod
-    def _flatten(*args) -> dict:
+    def _flatten(*args, **kwargs) -> dict:
         return {'n_jobs': 1}
 
     def layer_by_type(self, layer_type: LayersPoolEnum, requirements: ModelRequirements) -> dict:

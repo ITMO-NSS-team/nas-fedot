@@ -65,14 +65,15 @@ def build_butterfly_cls(save_path=None):
 
     train_data, test_data = train_test_data_setup(data, shuffle_flag=True)
 
-    conv_requirements = nas_requirements.ConvRequirements(input_data_shape=[image_side_size, image_side_size],
-                                                          color_mode='color',
-                                                          min_filters_num=32, max_filters_num=256,
-                                                          conv_strides=[[1, 1]],
-                                                          pool_size=[[2, 2]], pool_strides=[[2, 2]])
-    fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
-                                                                  max_number_of_neurons=128)
-    nn_requirements = nas_requirements.ModelRequirements(num_of_classes=data.num_classes,
+    fc_requirements = nas_requirements.BaseLayerRequirements(min_number_of_neurons=32,
+                                                             max_number_of_neurons=128)
+    conv_requirements = nas_requirements.ConvRequirements(
+        min_number_of_neurons=32, max_number_of_neurons=256,
+        conv_strides=[[1, 1]],
+        pool_size=[[2, 2]], pool_strides=[[2, 2]])
+    nn_requirements = nas_requirements.ModelRequirements(input_data_shape=[image_side_size, image_side_size],
+                                                         color_mode='color',
+                                                         num_of_classes=data.num_classes,
                                                          conv_requirements=conv_requirements,
                                                          fc_requirements=fc_requirements,
                                                          primary=conv_layers_pool,
@@ -104,7 +105,7 @@ def build_butterfly_cls(save_path=None):
                                                                           DefaultChangeAdvisor()))
 
     graph_generation_function = NNGraphBuilder()
-    graph_generation_function.set_builder(ResNetGenerator(param_restrictions=requirements.model_requirements))
+    graph_generation_function.set_builder(ResNetGenerator(model_requirements=requirements.model_requirements))
 
     builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \

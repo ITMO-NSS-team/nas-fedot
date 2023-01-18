@@ -42,12 +42,12 @@ def from_fitted():
     data_requirements = nas_requirements.DataRequirements(split_params={'cv_folds': cv_folds})
     conv_requirements = nas_requirements.ConvRequirements(input_shape=[image_side_size, image_side_size],
                                                           color_mode='RGB',
-                                                          min_filters_num=32, max_filters_num=64,
+                                                          min_number_of_neurons=32, max_number_of_neurons=64,
                                                           conv_strides=[[1, 1]],
                                                           pool_size=[[2, 2]], pool_strides=[[2, 2]],
                                                           pool_types=['max_pool2d', 'average_pool2d'])
-    fc_requirements = nas_requirements.FullyConnectedRequirements(min_number_of_neurons=32,
-                                                                  max_number_of_neurons=64)
+    fc_requirements = nas_requirements.BaseLayerRequirements(min_number_of_neurons=32,
+                                                             max_number_of_neurons=64)
     nn_requirements = nas_requirements.ModelRequirements(conv_requirements=conv_requirements,
                                                          fc_requirements=fc_requirements,
                                                          primary=['conv2d'], secondary=['dense'],

@@ -140,7 +140,7 @@ class NNGraph(OptGraph):
             callbacks_list.append(CustomCallback())
 
         tf.keras.backend.clear_session()
-        input_shape = requirements.model_requirements.conv_requirements.input_shape
+        input_shape = requirements.model_requirements.input_shape
         self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
         self.model.compile(loss=loss_func, optimizer=optimizer, metrics=[model_metrics])
         self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,

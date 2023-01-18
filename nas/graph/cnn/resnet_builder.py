@@ -22,10 +22,10 @@ class CNNRepository:
 
 
 class ResNetGenerator(GraphGenerator):
-    def __init__(self, param_restrictions: ModelRequirements):
-        self._parameters_restrictions = deepcopy(param_restrictions)
-        self._parameters_restrictions.conv_requirements.set_output_shape(64)
-        self._parameters_restrictions.set_batch_norm_prob(1)
+    def __init__(self, model_requirements: ModelRequirements):
+        self._model_requirements = deepcopy(model_requirements)
+        self._model_requirements.conv_requirements.set_output_shape(64)  # TODO fix
+        self._model_requirements.fc_requirements.set_batch_norm_prob(1)
 
     def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: ModelRequirements,
                   parent_node: List[NNNode] = None, stride: int = None, pool_size: int = None,
@@ -61,7 +61,7 @@ class ResNetGenerator(GraphGenerator):
 
     def _generate_sub_block(self, output_shape: int, stride: int) -> NNGraph:
         res_block = NNGraph()
-        block_requirements = deepcopy(self._parameters_restrictions)
+        block_requirements = deepcopy(self._model_requirements)
         block_requirements.conv_requirements.set_output_shape(output_shape)
 
         self._add_to_block(res_block, LayersPoolEnum.conv2d_3x3, block_requirements, None, stride)
@@ -70,30 +70,28 @@ class ResNetGenerator(GraphGenerator):
         return res_block
 
     def build(self) -> NNGraph:
-        self._parameters_restrictions.max_num_of_conv_layers = 35
-        self._parameters_restrictions.max_nn_depth = 3
+        self._model_requirements.max_num_of_conv_layers = 35
+        self._model_requirements.max_nn_depth = 3
 
         resnet = NNGraph()
 
-        node = self._add_node(LayersPoolEnum.conv2d_7x7, node_requirements=self._parameters_restrictions, stride=2)
+        node = self._add_node(LayersPoolEnum.conv2d_7x7, node_requirements=self._model_requirements, stride=2)
         resnet.add_node(node)
 
-        pooling = self._add_node(LayersPoolEnum.max_pool2d, node_requirements=self._parameters_restrictions,
+        pooling = self._add_node(LayersPoolEnum.max_pool2d, node_requirements=self._model_requirements,
                                  pool_size=3, pool_stride=2, parent_node=[node])
         resnet.add_node(pooling)
         self._growth_one_block(resnet, 64, 3)
         self._growth_one_block(resnet, 128, 4)
         self._growth_one_block(resnet, 256, 6)
         self._growth_one_block(resnet, 512, 3)
-        pooling = self._add_node(LayersPoolEnum.average_poold2, node_requirements=self._parameters_restrictions,
+        pooling = self._add_node(LayersPoolEnum.average_poold2, node_requirements=self._model_requirements,
                                  parent_node=[resnet.graph_struct[-1]])
         resnet.add_node(pooling)
-        flatten = self._add_node(LayersPoolEnum.flatten, node_requirements=self._parameters_restrictions,
+        flatten = self._add_node(LayersPoolEnum.flatten, node_requirements=self._model_requirements,
                                  parent_node=[pooling])
         resnet.add_node(flatten)
-        resnet.input_shape = self._parameters_restrictions.conv_requirements.input_shape
-        # total_params = resnet.get_trainable_params()
-
+        resnet.input_shape = self._model_requirements.input_shape
         return resnet
 
 
@@ -109,11 +107,11 @@ if __name__ == '__main__':
     conv_requirements = ConvRequirements(input_shape=[image_side_size, image_side_size],
                                          cnn_secondary=[LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2],
                                          color_mode='RGB',
-                                         min_filters_num=32, max_filters_num=64,
+                                         min_number_of_neurons=32, max_number_of_neurons=64,
                                          conv_strides=[[1, 1]],
                                          pool_size=[[2, 2]], pool_strides=[[2, 2]])
-    fc_requirements = FullyConnectedRequirements(min_number_of_neurons=32,
-                                                 max_number_of_neurons=64)
+    fc_requirements = BaseLayerRequirements(min_number_of_neurons=32,
+                                            max_number_of_neurons=64)
     nn_requirements = ModelRequirements(conv_requirements=conv_requirements,
                                         fc_requirements=fc_requirements,
                                         primary=[LayersPoolEnum.conv2d_3x3],
