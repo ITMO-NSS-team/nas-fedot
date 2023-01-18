@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import pathlib
 from typing import Sequence, Tuple, Union, Optional
 
+from fedot.core.caching.pipelines_cache import OperationsCache
+from fedot.core.caching.preprocessing_cache import PreprocessingCache
 from fedot.core.composer.composer import Composer
 from fedot.core.data.data import InputData
 from fedot.core.data.multi_modal import MultiModalData
@@ -16,22 +20,17 @@ from nas.graph.cnn.cnn_graph import NNGraph
 from nas.optimizer.objective.nn_objective_evaluate import NNObjectiveEvaluate
 
 
-class NNComposer(Composer):
+class NasComposer(Composer):
     def __init__(self, optimizer: EvoGraphOptimizer,
-                 composer_requirements: NNComposerRequirements, history: OptHistory = None,
-                 pipelines_cache=None, preprocessing_cache=None,
-                 graph_generation_params: Optional[GraphGenerationParams] = None):
+                 composer_requirements: NNComposerRequirements,
+                 pipelines_cache: Optional[OperationsCache] = None,
+                 preprocessing_cache: Optional[PreprocessingCache] = None):
         super().__init__(optimizer, composer_requirements)
-        self.graph_generation_params = graph_generation_params
 
-        self._preprocessor = Preprocessor()
-
-        self.composer_requirements = composer_requirements
+        self.best_models = ()
+        self._preprocessor = None
         self.pipelines_cache = pipelines_cache
         self.preprocessing_cache = preprocessing_cache
-
-        self._full_history_dir = history
-        self.best_models = ()
 
     def _convert_opt_results_to_nn_graph(self, graphs: Sequence[OptGraph]) -> Tuple[NNGraph, Sequence[NNGraph]]:
         adapter = self.optimizer.graph_generation_params.adapter
@@ -40,14 +39,14 @@ class NNComposer(Composer):
         best_graph = best_graphs if multi_objective else best_graphs[0]
         return best_graph, best_graphs
 
-    def set_preprocessor(self, preprocessor):
+    def set_preprocessor(self, preprocessor: Preprocessor) -> NasComposer:
         self._preprocessor = preprocessor
         return self
 
     def set_callbacks(self, callbacks):
         raise NotImplementedError
 
-    def compose_pipeline(self, data: Union[InputData, MultiModalData]) -> NNGraph:
+    def compose_pipeline(self, data: Union[InputData, MultiModalData], optimization_verbose = None) -> NNGraph:
         """ Method for objective evaluation"""
 
         data.shuffle()
@@ -58,7 +57,7 @@ class NNComposer(Composer):
 
         objective_evaluator = NNObjectiveEvaluate(self.optimizer.objective, data_producer, self._preprocessor,
                                                   self.composer_requirements, self.pipelines_cache,
-                                                  self.preprocessing_cache)
+                                                  self.preprocessing_cache, optimization_verbose)
         objective_function = objective_evaluator.evaluate
 
         if self.composer_requirements.collect_intermediate_metric:

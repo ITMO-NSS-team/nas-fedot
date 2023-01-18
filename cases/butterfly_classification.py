@@ -24,7 +24,7 @@ from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
-from nas.composer.nn_composer import NNComposer
+from nas.composer.nn_composer import NasComposer
 from nas.data.data_generator import DataGenerator
 from nas.data.data_generator import Preprocessor
 from nas.data.setup_data import setup_data
@@ -38,7 +38,8 @@ from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
 
-gpus = tf.config.list_logical_devices('GPU')
+gpus = tf.config.list_physical_devices('GPU')
+print(gpus)
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
 
@@ -52,11 +53,11 @@ def build_butterfly_cls(save_path=None):
     dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
     data = loader.NNData.data_from_folder(dataset_path, task)
 
-    cv_folds = 3
+    cv_folds = None
     image_side_size = 256
     batch_size = 32
     epochs = 40
-    optimization_epochs = 6
+    optimization_epochs = 1
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
                         LayersPoolEnum.conv2d_7x7]
 
@@ -107,15 +108,16 @@ def build_butterfly_cls(save_path=None):
     graph_generation_function = NNGraphBuilder()
     graph_generation_function.set_builder(ResNetGenerator(model_requirements=requirements.model_requirements))
 
-    builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
+    builder = ComposerBuilder(task).with_composer(NasComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
-    composer = builder.build()
 
     transformations = [tensorflow.convert_to_tensor]
     data_preprocessor = Preprocessor()
     data_preprocessor.set_image_size((image_side_size, image_side_size)).set_features_transformations(transformations)
+
+    composer = builder.build()
     composer.set_preprocessor(data_preprocessor)
 
     optimized_network = composer.compose_pipeline(train_data)

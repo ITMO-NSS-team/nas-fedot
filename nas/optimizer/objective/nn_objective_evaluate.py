@@ -42,7 +42,7 @@ def _exceptions_save(graph: NNGraph, error_msg: Exception):
 class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
     def __init__(self, objective, data_producer: DataSource, preprocessor: Preprocessor,
                  requirements: NNComposerRequirements, pipeline_cache: Any = None,
-                 preprocessing_cache: Any = None, eval_n_jobs: int = 1, **objective_kwargs):
+                 preprocessing_cache: Any = None, eval_n_jobs: int = 1, optimization_verbose=None, **objective_kwargs):
         # Add cache
         super().__init__(objective, eval_n_jobs, **objective_kwargs)
         self._data_producer = data_producer
@@ -50,15 +50,20 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         self._pipeline_cache = pipeline_cache
         self._preprocessing_cache = preprocessing_cache
         self._preprocessor = preprocessor
+        self._optimization_verbose = optimization_verbose
         self._log = default_log(self)
 
-    def one_fold_train(self, graph: NNGraph, data: InputData, fold_id: Optional[int] = None, **kwargs) -> None:
-        graph.release_memory(**kwargs)
-
+    def one_fold_train(self, graph: NNGraph, data: InputData, **kwargs) -> None:
+        if not self._optimization_verbose == 'silent':
+            fold_id = kwargs.get('fold_id')
+            self._log.message(f'Train fold number: {fold_id}')
         shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
+
         data_to_train, data_to_validate = train_test_data_setup(data, shuffle_flag=shuffle, stratify=data.target)
-        train_generator = setup_data(data_to_train, self._requirements.model_requirements.batch_size, self._preprocessor,
-                                     'train', DataGenerator, shuffle)
+
+        train_generator = setup_data(data_to_train, self._requirements.model_requirements.batch_size,
+                                     self._preprocessor, 'train', DataGenerator, shuffle)
+
         validation_generator = setup_data(data_to_validate, self._requirements.model_requirements.batch_size,
                                           self._preprocessor, 'train', DataGenerator, shuffle)
 
@@ -70,47 +75,33 @@ class NNObjectiveEvaluate(ObjectiveEvaluate[G]):
         return self._objective(graph, reference_data=test_generator)
 
     def evaluate(self, graph: NNGraph) -> Fitness:
-        graph.log = self._log
+        if not self._optimization_verbose == 'silent':
+            self._log.info('Fit for graph has started.')
         graph_id = graph.root_node.descriptive_id
-
-        self._log.info('Fit for graph has started.')
-
         folds_metrics = []
+
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
-            # self.one_fold_train(graph, train_data, fold_id, log=self._log)
             try:
-                self.one_fold_train(graph, train_data, fold_id, log=self._log)
+                self.one_fold_train(graph, train_data, log=self._log, fold_id=fold_id)
             except Exception as ex:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                 self._log.warning(f'Continuing after graph fit error {ex}\n '
-                                  f'in {file_name}\n line {exc_tb.tb_lineno}\n')
-                graph.model = None
-                keras.backend.clear_session()
-                # graph.release_memory()
-                # graph.unfit()
-                _exceptions_save(graph, ex)
-                continue
-
-            evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
-            if evaluated_fitness.valid:
-                folds_metrics.append(evaluated_fitness.values)
+                                  f'In {file_name}\n line {exc_tb.tb_lineno}\n.')
             else:
-                self._log.warning(f'Continuing after objective evaluation error for graph: {graph_id}')
-                # graph.release_memory()
-                graph.model = None
-                keras.backend.clear_session()
-                continue
+                evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
+                if evaluated_fitness.valid:
+                    folds_metrics.append(evaluated_fitness.values)
+                else:
+                    self._log.warning(f'Continuing after objective evaluation error for graph: {graph_id}')
 
-        if folds_metrics:
-            folds_metrics = tuple(np.mean(folds_metrics, axis=0))
-            self._log.message(f'Evaluated metrics: {folds_metrics}')
-            graph._weights = None
-        else:
-            folds_metrics = None
-
-        graph.model = None
-        keras.backend.clear_session()
+                if folds_metrics:
+                    folds_metrics = tuple(np.mean(folds_metrics, axis=0))
+                    self._log.message(f'Evaluated metrics: {folds_metrics}')
+                else:
+                    folds_metrics = None
+            finally:
+                graph.unfit()
         return to_fitness(folds_metrics, self._objective.is_multi_objective)
 
     def calculate_objective_with_cache(self, graph, train_data, fold_id=None, n_jobs=-1):

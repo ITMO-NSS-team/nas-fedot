@@ -22,15 +22,15 @@ class NNGraphOptimiser(EvoGraphOptimizer):
                          graph_generation_params=graph_generation_params,
                          objective=objective, graph_optimizer_params=graph_optimizer_params)
         self.verbose = verbose
-
         self.save_path = kwargs.get('save_path')
 
-    def save(self, history: bool = True, image: bool = True):
-        print(f'Saving files into {self.save_path.resolve()}')
+    def save(self, history: bool = True):
+        self.log.message(f'Saving files into {self.save_path.resolve()}')
         if not isinstance(self.generations.best_individuals[0].graph, NNGraph):
             graph = self.graph_generation_params.adapter.restore(self.generations.best_individuals[0].graph)
         else:
             graph = self.generations.best_individuals[0].graph
+        if history:
+            self.history.save(self.save_path)
         graph.save(path=self.save_path)
-        if image:
-            graph.show(path=self.save_path / 'opt_graph.png')
+

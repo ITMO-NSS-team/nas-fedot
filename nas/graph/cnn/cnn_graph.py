@@ -202,13 +202,3 @@ class NNGraph(OptGraph):
 
         # clear_keras_session(**kwargs)
         # gc.collect()
-
-    def reset_weights(self):
-        pass
-        # for ix, l in enumerate(self.model.layers):
-        #     if hasattr(l, "kernel_initializer"):
-        #         l.kernel.assign(l.kernel_initializer(tf.shape(l.kernel)))
-        #     if hasattr(l, "bias_initializer"):
-        #         l.bias.assign(l.bias_initializer(tf.shape(l.bias)))
-        #     if hasattr(l, "recurrent_initializer"):
-        #         l.recurrent_kernel.assign(l.recurrent_initializer(tf.shape(l.recurrent_kernel)))
