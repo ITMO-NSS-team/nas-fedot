@@ -30,8 +30,10 @@ def load_default_requirements() -> NNComposerRequirements:
     primary_nodes_list = [LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_5x5,
                           LayersPoolEnum.conv2d_7x7]
     fc_requirements = BaseLayerRequirements()
-    conv_requirements = ConvRequirements(input_data_shape=[64, 64])
-    model_requirements = ModelRequirements(5, conv_requirements, fc_requirements, primary=primary_nodes_list, epochs=20)
+    conv_requirements = ConvRequirements()
+    model_requirements = ModelRequirements(input_data_shape=[64, 64], num_of_classes=5, color_mode='color',
+                                           conv_requirements=conv_requirements, fc_requirements=fc_requirements,
+                                           primary=primary_nodes_list, epochs=20)
     requirements = NNComposerRequirements(5, model_requirements=model_requirements, opt_epochs=5)
     return requirements
 
