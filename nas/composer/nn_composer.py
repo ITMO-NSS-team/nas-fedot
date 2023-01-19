@@ -15,7 +15,8 @@ from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.data_generator import Preprocessor, BaseNasDatasetBuilder
+from nas.data.preprocessor import Preprocessor
+from nas.data.dataset import BaseNasDatasetBuilder
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.optimizer.objective.nn_objective_evaluate import NasObjectiveEvaluate
 

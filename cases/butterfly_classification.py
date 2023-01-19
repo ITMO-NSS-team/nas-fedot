@@ -25,8 +25,9 @@ from fedot.core.repository.tasks import TaskTypesEnum, Task
 import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
 from nas.composer.nn_composer import NasComposer
-from nas.data.data_generator import KerasDataset, BaseNasDatasetBuilder
-from nas.data.data_generator import Preprocessor
+from nas.data import KerasDataset
+from nas.data.dataset import BaseNasDatasetBuilder
+from nas.data.preprocessor import Preprocessor
 from nas.data.setup_data import setup_data
 from nas.graph.cnn.cnn_graph import NNNode
 from nas.graph.cnn.resnet_builder import ResNetGenerator
@@ -51,7 +52,7 @@ def build_butterfly_cls(save_path=None):
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    data = loader.NNData.data_from_folder(dataset_path, task)
+    data = loader.NasData.data_from_folder(dataset_path, task)
 
     cv_folds = None
     image_side_size = 64

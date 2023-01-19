@@ -1,7 +1,7 @@
 import tensorflow as tf
 from fedot.core.data.data import InputData
 
-from nas.data.data_generator import ImageLoader
+from nas.data import ImageLoader
 
 
 def setup_data(input_data: InputData, batch_size, data_preprocessor, mode,

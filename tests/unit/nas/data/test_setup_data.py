@@ -4,6 +4,7 @@ import tensorflow as tf
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas
+import nas.data.dataset.tf_dataset
 from nas.utils.utils import project_root, set_root
 
 set_root(project_root())
@@ -15,7 +16,7 @@ def _load_dataset_as_input_data():
     path = 'example_datasets/butterfly_cls'
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path(path)
-    return nas.data.load_images.NNData.data_from_folder(dataset_path, task)
+    return nas.data.load_images.NasData.data_from_folder(dataset_path, task)
 
 
 def _make_generator(mode: str):
@@ -26,7 +27,7 @@ def _make_generator(mode: str):
     shuffle = True
 
     return nas.data.setup_data(data, batch_size, preprocessor, mode,
-                               nas.data.data_generator.KerasDataset, shuffle)
+                               nas.data.dataset.tf_dataset.KerasDataset, shuffle)
 
 
 def test_if_generator_is_valid():

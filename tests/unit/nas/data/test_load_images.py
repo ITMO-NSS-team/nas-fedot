@@ -13,7 +13,7 @@ def test_load_images_from_folder():
     path = 'example_datasets/butterfly_cls'
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path(path)
-    dataset = nas.data.load_images.NNData.data_from_folder(dataset_path, task)
+    dataset = nas.data.load_images.NasData.data_from_folder(dataset_path, task)
     assert isinstance(dataset, InputData)
 
 
@@ -22,5 +22,5 @@ def test_load_images_from_csv():
     path = 'example_datasets/butterfly_cls'
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path(path)
-    dataset = nas.data.load_images.NNData.data_from_folder(dataset_path, task)
+    dataset = nas.data.load_images.NasData.data_from_folder(dataset_path, task)
     assert True

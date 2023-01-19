@@ -3,7 +3,8 @@ from typing import Tuple
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
 from fedot.core.data.data import InputData, OutputData
 
-from nas.data.data_generator import KerasDataset, BaseNasDatasetBuilder
+from nas.data import KerasDataset
+from nas.data.dataset import BaseNasDatasetBuilder
 from nas.data.setup_data import setup_data
 
 
