@@ -5,7 +5,7 @@ import tensorflow as tf
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas
-from nas.data.data_generator import DataGenerator
+from nas.data.data_generator import KerasDataset
 from nas.utils.utils import set_root, project_root
 
 set_root(project_root())
@@ -27,13 +27,13 @@ def _setup_input_data_dataset():
 
 def _setup_loader():
     dataset = _setup_input_data_dataset()
-    return nas.data.data_generator.Loader(dataset)
+    return nas.data.data_generator.ImageLoader(dataset)
 
 
 def setup_data_generator():
     dataset_loader = _setup_loader()
     preprocessor = _setup_preprocessor()
-    return DataGenerator(dataset_loader, preprocessor, batch_size=8)
+    return KerasDataset(dataset_loader, preprocessor, batch_size=8)
 
 
 def test_is_valid_loader_len():

@@ -25,7 +25,7 @@ from fedot.core.repository.tasks import TaskTypesEnum, Task
 import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
 from nas.composer.nn_composer import NasComposer
-from nas.data.data_generator import DataGenerator
+from nas.data.data_generator import KerasDataset, BaseNasDatasetBuilder
 from nas.data.data_generator import Preprocessor
 from nas.data.setup_data import setup_data
 from nas.graph.cnn.cnn_graph import NNNode
@@ -117,19 +117,23 @@ def build_butterfly_cls(save_path=None):
     data_preprocessor = Preprocessor()
     data_preprocessor.set_image_size((image_side_size, image_side_size)).set_features_transformations(transformations)
 
+    data_transformer = BaseNasDatasetBuilder(dataset_cls=KerasDataset,
+                                             batch_size=requirements.model_requirements.batch_size,
+                                             shuffle=True).set_data_preprocessor(data_preprocessor)
+
     composer = builder.build()
-    composer.set_preprocessor(data_preprocessor)
+    composer.set_data_transformer(data_transformer)
 
     optimized_network = composer.compose_pipeline(train_data)
 
     train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
 
     train_generator = setup_data(train_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
-                                 DataGenerator, True)
+                                 KerasDataset, True)
     val_generator = setup_data(val_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
-                               DataGenerator, True)
+                               KerasDataset, True)
 
-    optimized_network.model = ModelMaker(requirements.model_requirements.conv_requirements.input_shape,
+    optimized_network.model = ModelMaker(requirements.model_requirements.input_shape,
                                          optimized_network, converter.Struct, data.num_classes).build()
     optimized_network.fit(train_generator, val_generator, requirements=requirements, num_classes=train_data.num_classes,
                           verbose=1, optimization=False, shuffle=True)

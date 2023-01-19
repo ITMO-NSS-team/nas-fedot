@@ -1,6 +1,7 @@
+from __future__ import annotations
 import math
 from functools import partial
-from typing import List, Optional, Union, Callable, Tuple
+from typing import List, Optional, Union, Callable, Tuple, Type
 
 import cv2
 import numpy as np
@@ -10,8 +11,8 @@ from fedot.core.data.data import InputData
 from sklearn.preprocessing import OneHotEncoder
 
 
-class Loader:
-    """ Class for loading image dataset from InputData format. Implement loading by batches"""
+class ImageLoader:
+    """Class for loading image dataset from InputData format. Implements loading by batches"""
 
     def __init__(self, dataset: InputData):
         self.idx = dataset.idx
@@ -44,11 +45,45 @@ class Loader:
         return new_targets
 
 
-class DataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, loader: Loader, preprocessor, batch_size: int = 8, shuffle: bool = True):
+class BaseNasDatasetBuilder:
+    def __init__(self, dataset_cls: Callable, batch_size: int = 32, shuffle: bool = True):
+        self._data_transformer: Optional[Preprocessor] = None
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self._data_loader: Type[ImageLoader] = ImageLoader
+        self._dataset_cls: Callable = dataset_cls
+
+    def set_dataset_cls(self, dataset_cls: Callable):
+        self._dataset_cls = dataset_cls
+        return self
+
+    def set_loader(self, loader: ImageLoader):
+        self._data_loader = loader
+        return self
+
+    def set_data_preprocessor(self, transformer: Preprocessor):
+        self._data_transformer = transformer
+        return self
+
+    def build(self, data, **kwargs):
+        """Method for creating dataset object with given parameters for further model training/evaluating."""
+        train_mode = {'train': True, 'val': False, 'test': False}
+        mode = kwargs.get('mode')
+        batch_size = kwargs.pop('batch_size', self.batch_size)
+        if mode:
+            self.shuffle = train_mode[mode]
+        data_loader = self._data_loader(data)
+        dataset = self._dataset_cls(batch_size=batch_size, shuffle=self.shuffle,
+                                    transformer=self._data_transformer, loader=data_loader)
+        return dataset
+
+
+class KerasDataset(tf.keras.utils.Sequence):
+    def __init__(self, transformer: BaseNasDatasetBuilder, loader: ImageLoader,
+                 batch_size: int = 8, shuffle: bool = True):
         self.batch_size = batch_size
         self._loader = loader
-        self._preprocessor = preprocessor
+        self._transformer = transformer
         self._shuffle = shuffle
 
     def __len__(self):
@@ -59,7 +94,7 @@ class DataGenerator(tf.keras.utils.Sequence):
                    range(batch_id * self.batch_size, (batch_id + 1) * self.batch_size)]
         batch_y = [self._loader.get_target(i) for i in
                    range(batch_id * self.batch_size, (batch_id + 1) * self.batch_size)]
-        return self._preprocessor.preprocess(batch_x, batch_y)
+        return self._transformer.preprocess(batch_x, batch_y)
 
     def on_epoch_end(self):
         if self._shuffle:

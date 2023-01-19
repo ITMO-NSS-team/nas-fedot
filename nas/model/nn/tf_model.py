@@ -8,7 +8,7 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from keras import optimizers
 
-from nas.data import Preprocessor, setup_data, DataGenerator
+from nas.data import Preprocessor, setup_data, KerasDataset
 from nas.graph.graph_builder import NNGraphBuilder
 from nas.model.layers.keras_layers import KerasLayers
 from nas.model.utils import converter

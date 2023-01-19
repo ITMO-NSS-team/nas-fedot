@@ -26,7 +26,7 @@ def _make_generator(mode: str):
     shuffle = True
 
     return nas.data.setup_data(data, batch_size, preprocessor, mode,
-                               nas.data.data_generator.DataGenerator, shuffle)
+                               nas.data.data_generator.KerasDataset, shuffle)
 
 
 def test_if_generator_is_valid():

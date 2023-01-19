@@ -15,9 +15,9 @@ from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.data_generator import Preprocessor
+from nas.data.data_generator import Preprocessor, BaseNasDatasetBuilder
 from nas.graph.cnn.cnn_graph import NNGraph
-from nas.optimizer.objective.nn_objective_evaluate import NNObjectiveEvaluate
+from nas.optimizer.objective.nn_objective_evaluate import NasObjectiveEvaluate
 
 
 class NasComposer(Composer):
@@ -28,7 +28,7 @@ class NasComposer(Composer):
         super().__init__(optimizer, composer_requirements)
 
         self.best_models = ()
-        self._preprocessor = None
+        self._data_transformer: Optional[BaseNasDatasetBuilder] = None
         self.pipelines_cache = pipelines_cache
         self.preprocessing_cache = preprocessing_cache
 
@@ -39,8 +39,8 @@ class NasComposer(Composer):
         best_graph = best_graphs if multi_objective else best_graphs[0]
         return best_graph, best_graphs
 
-    def set_preprocessor(self, preprocessor: Preprocessor) -> NasComposer:
-        self._preprocessor = preprocessor
+    def set_data_transformer(self, transformer: BaseNasDatasetBuilder) -> NasComposer:
+        self._data_transformer = transformer
         return self
 
     def set_callbacks(self, callbacks):
@@ -55,9 +55,9 @@ class NasComposer(Composer):
 
         data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
 
-        objective_evaluator = NNObjectiveEvaluate(self.optimizer.objective, data_producer, self._preprocessor,
-                                                  self.composer_requirements, self.pipelines_cache,
-                                                  self.preprocessing_cache, optimization_verbose)
+        objective_evaluator = NasObjectiveEvaluate(self.optimizer.objective, data_producer, self._data_transformer,
+                                                   self.composer_requirements, self.pipelines_cache,
+                                                   self.preprocessing_cache, optimization_verbose)
         objective_function = objective_evaluator.evaluate
 
         if self.composer_requirements.collect_intermediate_metric:
@@ -77,7 +77,6 @@ class NasComposer(Composer):
             if not isinstance(graph, NNGraph):
                 graph = self.graph_generation_params.adapter.restore(graph)
             graph.save(path)
-            # graph.show(path / 'graph.png')
 
         if self.history:
             self.history.save(path / 'history.json')
