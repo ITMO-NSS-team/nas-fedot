@@ -26,7 +26,8 @@ class KerasDataset(tf.keras.utils.Sequence):
                    range(batch_id * self.batch_size, (batch_id + 1) * self.batch_size)]
         batch_y = [self._loader.get_target(i) for i in
                    range(batch_id * self.batch_size, (batch_id + 1) * self.batch_size)]
-        batch_x, batch_y = self._preprocessor.preprocess(batch_x, batch_y)
+        if self._preprocessor:
+            batch_x, batch_y = self._preprocessor.preprocess(batch_x, batch_y)
         return tf.convert_to_tensor(batch_x), tf.convert_to_tensor(batch_y)
 
     def on_epoch_end(self):

@@ -26,7 +26,7 @@ import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
 from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
-from nas.data.dataset.base_dataset import BaseNasDatasetBuilder
+from nas.data.dataset.builder import BaseNasDatasetBuilder
 from nas.data.preprocessor import Preprocessor
 from nas.graph.cnn.cnn_graph import NNNode
 from nas.graph.cnn.resnet_builder import ResNetGenerator
@@ -128,10 +128,6 @@ def build_butterfly_cls(save_path=None):
 
     train_generator = data_transformer.build(train_data, mode='train')
     val_generator = data_transformer.build(val_data, mode='val')
-    # train_generator = setup_data(train_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
-    #                              KerasDataset, True)
-    # val_generator = setup_data(val_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
-    #                            KerasDataset, True)
 
     optimized_network.model = ModelMaker(requirements.model_requirements.input_shape,
                                          optimized_network, converter.Struct, data.num_classes).build()

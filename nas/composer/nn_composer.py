@@ -13,7 +13,7 @@ from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
 from golem.core.optimisers.graph import OptGraph
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.dataset.base_dataset import BaseNasDatasetBuilder
+from nas.data.dataset.builder import BaseNasDatasetBuilder
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.optimizer.objective.nn_objective_evaluate import NasObjectiveEvaluate
 

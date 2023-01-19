@@ -13,10 +13,6 @@ class BaseNasDatasetBuilder:
         self._data_loader: Type[ImageLoader] = ImageLoader
         self._dataset_cls: Callable = dataset_cls
 
-    def set_dataset_cls(self, dataset_cls: Callable):
-        self._dataset_cls = dataset_cls
-        return self
-
     def set_loader(self, loader: ImageLoader):
         self._data_loader = loader
         return self
@@ -32,7 +28,8 @@ class BaseNasDatasetBuilder:
 
         shuffle = train_mode.get(mode, self.shuffle)
         batch_size = kwargs.pop('batch_size', self.batch_size)
-        self._data_preprocessor.mode = 'evaluation' if mode == 'test' else 'default'
+        if self._data_preprocessor:
+            self._data_preprocessor.mode = 'evaluation' if mode == 'test' else 'default'
         data_loader = self._data_loader(data)
 
         dataset = self._dataset_cls(batch_size=batch_size, shuffle=shuffle,
