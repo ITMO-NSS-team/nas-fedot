@@ -8,15 +8,12 @@ from fedot.core.caching.preprocessing_cache import PreprocessingCache
 from fedot.core.composer.composer import Composer
 from fedot.core.data.data import InputData
 from fedot.core.data.multi_modal import MultiModalData
+from fedot.core.optimisers.objective.data_source_splitter import DataSourceSplitter
 from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
 from golem.core.optimisers.graph import OptGraph
-from fedot.core.optimisers.objective.data_source_splitter import DataSourceSplitter
-from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
-from golem.core.optimisers.optimizer import GraphGenerationParams
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.preprocessor import Preprocessor
-from nas.data.dataset import BaseNasDatasetBuilder
+from nas.data.dataset.base_dataset import BaseNasDatasetBuilder
 from nas.graph.cnn.cnn_graph import NNGraph
 from nas.optimizer.objective.nn_objective_evaluate import NasObjectiveEvaluate
 
@@ -47,7 +44,7 @@ class NasComposer(Composer):
     def set_callbacks(self, callbacks):
         raise NotImplementedError
 
-    def compose_pipeline(self, data: Union[InputData, MultiModalData], optimization_verbose = None) -> NNGraph:
+    def compose_pipeline(self, data: Union[InputData, MultiModalData], optimization_verbose=None) -> NNGraph:
         """ Method for objective evaluation"""
 
         data.shuffle()

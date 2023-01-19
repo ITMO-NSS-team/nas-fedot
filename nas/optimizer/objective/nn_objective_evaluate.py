@@ -17,10 +17,7 @@ from golem.core.optimisers.objective.objective import to_fitness, Objective
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.preprocessor import Preprocessor
-from nas.data import KerasDataset
-from nas.data.dataset import BaseNasDatasetBuilder
-from nas.data.setup_data import setup_data
+from nas.data.dataset.base_dataset import BaseNasDatasetBuilder
 from nas.graph.cnn.cnn_graph import NNGraph
 
 G = TypeVar('G', Graph, OptGraph)

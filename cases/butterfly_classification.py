@@ -26,9 +26,8 @@ import nas.composer.nn_composer_requirements as nas_requirements
 import nas.data.load_images as loader
 from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
-from nas.data.dataset import BaseNasDatasetBuilder
+from nas.data.dataset.base_dataset import BaseNasDatasetBuilder
 from nas.data.preprocessor import Preprocessor
-from nas.data.setup_data import setup_data
 from nas.graph.cnn.cnn_graph import NNNode
 from nas.graph.cnn.resnet_builder import ResNetGenerator
 from nas.graph.graph_builder import NNGraphBuilder

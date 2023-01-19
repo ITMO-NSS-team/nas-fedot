@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import math
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING
 
 import sklearn
 import tensorflow as tf
 
-from nas.data import ImageLoader, Preprocessor
+if TYPE_CHECKING:
+    from nas.data import ImageLoader, Preprocessor
 
 
 class KerasDataset(tf.keras.utils.Sequence):
