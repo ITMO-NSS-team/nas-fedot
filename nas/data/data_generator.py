@@ -47,7 +47,7 @@ class ImageLoader:
 
 class BaseNasDatasetBuilder:
     def __init__(self, dataset_cls: Callable, batch_size: int = 32, shuffle: bool = True):
-        self._data_transformer: Optional[Preprocessor] = None
+        self._data_preprocessor: Optional[Preprocessor] = None
         self.batch_size = batch_size
         self.shuffle = shuffle
         self._data_loader: Type[ImageLoader] = ImageLoader
@@ -62,28 +62,30 @@ class BaseNasDatasetBuilder:
         return self
 
     def set_data_preprocessor(self, transformer: Preprocessor):
-        self._data_transformer = transformer
+        self._data_preprocessor = transformer
         return self
 
     def build(self, data, **kwargs):
         """Method for creating dataset object with given parameters for further model training/evaluating."""
         train_mode = {'train': True, 'val': False, 'test': False}
         mode = kwargs.get('mode')
+
+        shuffle = train_mode.get(mode, self.shuffle)
         batch_size = kwargs.pop('batch_size', self.batch_size)
-        if mode:
-            self.shuffle = train_mode[mode]
+        self._data_preprocessor.mode = 'evaluation' if mode == 'test' else 'default'
         data_loader = self._data_loader(data)
-        dataset = self._dataset_cls(batch_size=batch_size, shuffle=self.shuffle,
-                                    transformer=self._data_transformer, loader=data_loader)
+
+        dataset = self._dataset_cls(batch_size=batch_size, shuffle=shuffle,
+                                    preprocessor=self._data_preprocessor, loader=data_loader)
         return dataset
 
 
 class KerasDataset(tf.keras.utils.Sequence):
-    def __init__(self, transformer: BaseNasDatasetBuilder, loader: ImageLoader,
+    def __init__(self, loader: ImageLoader, preprocessor: Preprocessor,
                  batch_size: int = 8, shuffle: bool = True):
         self.batch_size = batch_size
         self._loader = loader
-        self._transformer = transformer
+        self._preprocessor = preprocessor
         self._shuffle = shuffle
 
     def __len__(self):
@@ -94,7 +96,8 @@ class KerasDataset(tf.keras.utils.Sequence):
                    range(batch_id * self.batch_size, (batch_id + 1) * self.batch_size)]
         batch_y = [self._loader.get_target(i) for i in
                    range(batch_id * self.batch_size, (batch_id + 1) * self.batch_size)]
-        return self._transformer.preprocess(batch_x, batch_y)
+        batch_x, batch_y = self._preprocessor.preprocess(batch_x, batch_y)
+        return tf.convert_to_tensor(batch_x), tf.convert_to_tensor(batch_y)
 
     def on_epoch_end(self):
         if self._shuffle:
@@ -134,9 +137,18 @@ class Preprocessor:
     """ Class for dataset preprocessing. Take images and targets by batch from loader and apply preprocessing to them.
     Returns generator inherited from keras Sequence class"""
 
-    def __init__(self, ):
-        self._image_size = None
+    def __init__(self, image_size: Tuple[int, int]):
+        self._image_size = image_size
         self._transformations = []
+        self._mode: str = 'default'
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, val: str):
+        self._mode = val
 
     @property
     def transformations(self) -> List[Union[partial, Callable]]:
@@ -148,10 +160,11 @@ class Preprocessor:
             self._transformations.extend(value)
         else:
             self._transformations.append(value)
+        if value in self._transformations:
+            pass
 
     def set_image_size(self, image_size: Tuple[float, float]):
         self._image_size = image_size
-        self.transformations = partial(cv2.resize, dsize=image_size)
         return self
 
     def set_features_transformations(self, transformations: Optional[List[Callable]] = None):
@@ -159,11 +172,13 @@ class Preprocessor:
         return self
 
     def transform_sample(self, sample):
+        if self._mode == 'evaluation':
+            self._transformations = [partial(cv2.resize, dsize=self._image_size)]
         for t in self.transformations:
             sample = t(sample)
         return sample
 
     def preprocess(self, features_batch, targets_batch):
-        new_features_batch = tf.convert_to_tensor([self.transform_sample(sample) for sample in features_batch])
-        new_targets_batch = tf.convert_to_tensor(targets_batch)
+        new_features_batch = [self.transform_sample(sample) for sample in features_batch]
+        new_targets_batch = targets_batch
         return new_features_batch, new_targets_batch

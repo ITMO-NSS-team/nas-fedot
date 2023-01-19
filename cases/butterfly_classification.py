@@ -113,9 +113,9 @@ def build_butterfly_cls(save_path=None):
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
 
-    transformations = [tensorflow.convert_to_tensor]
-    data_preprocessor = Preprocessor()
-    data_preprocessor.set_image_size((image_side_size, image_side_size)).set_features_transformations(transformations)
+    transformations = []
+    data_preprocessor = Preprocessor((image_side_size, image_side_size))
+    data_preprocessor.set_features_transformations(transformations)
 
     data_transformer = BaseNasDatasetBuilder(dataset_cls=KerasDataset,
                                              batch_size=requirements.model_requirements.batch_size,
