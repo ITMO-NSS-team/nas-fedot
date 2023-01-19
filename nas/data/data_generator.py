@@ -61,8 +61,8 @@ class BaseNasDatasetBuilder:
         self._data_loader = loader
         return self
 
-    def set_data_preprocessor(self, transformer: Preprocessor):
-        self._data_preprocessor = transformer
+    def set_data_preprocessor(self, preprocessor: Preprocessor):
+        self._data_preprocessor = preprocessor
         return self
 
     def build(self, data, **kwargs):
@@ -137,9 +137,11 @@ class Preprocessor:
     """ Class for dataset preprocessing. Take images and targets by batch from loader and apply preprocessing to them.
     Returns generator inherited from keras Sequence class"""
 
-    def __init__(self, image_size: Tuple[int, int]):
+    def __init__(self, image_size: Tuple[int, int],
+                 transformations: Union[List[Callable], Tuple[Callable]] = None):
         self._image_size = image_size
-        self._transformations = []
+        self._transformations = [partial(cv2.resize, dsize=self._image_size)]
+        self._additional_transforms = [] if not transformations else transformations
         self._mode: str = 'default'
 
     @property
@@ -151,30 +153,22 @@ class Preprocessor:
         self._mode = val
 
     @property
-    def transformations(self) -> List[Union[partial, Callable]]:
-        return self._transformations
-
-    @transformations.setter
-    def transformations(self, value: Union[List[Callable], Callable]):
-        if hasattr(value, '__iter__'):
-            self._transformations.extend(value)
-        else:
-            self._transformations.append(value)
-        if value in self._transformations:
-            pass
+    def all_transformations(self) -> List[Union[partial, Callable]]:
+        return self._transformations + self._additional_transforms
 
     def set_image_size(self, image_size: Tuple[float, float]):
         self._image_size = image_size
         return self
 
     def set_features_transformations(self, transformations: Optional[List[Callable]] = None):
-        self.transformations = transformations
+        self._additional_transforms = transformations
         return self
 
     def transform_sample(self, sample):
+        transformations = self.all_transformations
         if self._mode == 'evaluation':
-            self._transformations = [partial(cv2.resize, dsize=self._image_size)]
-        for t in self.transformations:
+            transformations = self._transformations
+        for t in transformations:
             sample = t(sample)
         return sample
 

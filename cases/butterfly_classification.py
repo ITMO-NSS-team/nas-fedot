@@ -40,8 +40,8 @@ from nas.utils.utils import set_root, project_root
 
 gpus = tf.config.list_physical_devices('GPU')
 print(gpus)
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
+# for gpu in gpus:
+#     tf.config.experimental.set_memory_growth(gpu, True)
 
 set_root(project_root())
 
@@ -54,8 +54,8 @@ def build_butterfly_cls(save_path=None):
     data = loader.NNData.data_from_folder(dataset_path, task)
 
     cv_folds = None
-    image_side_size = 256
-    batch_size = 32
+    image_side_size = 64
+    batch_size = 64
     epochs = 40
     optimization_epochs = 1
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
@@ -113,9 +113,7 @@ def build_butterfly_cls(save_path=None):
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
 
-    transformations = []
     data_preprocessor = Preprocessor((image_side_size, image_side_size))
-    data_preprocessor.set_features_transformations(transformations)
 
     data_transformer = BaseNasDatasetBuilder(dataset_cls=KerasDataset,
                                              batch_size=requirements.model_requirements.batch_size,
@@ -128,17 +126,19 @@ def build_butterfly_cls(save_path=None):
 
     train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
 
-    train_generator = setup_data(train_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
-                                 KerasDataset, True)
-    val_generator = setup_data(val_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
-                               KerasDataset, True)
+    train_generator = data_transformer.build(train_data, mode='train')
+    val_generator = data_transformer.build(val_data, mode='val')
+    # train_generator = setup_data(train_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
+    #                              KerasDataset, True)
+    # val_generator = setup_data(val_data, requirements.model_requirements.batch_size, data_preprocessor, 'train',
+    #                            KerasDataset, True)
 
     optimized_network.model = ModelMaker(requirements.model_requirements.input_shape,
                                          optimized_network, converter.Struct, data.num_classes).build()
     optimized_network.fit(train_generator, val_generator, requirements=requirements, num_classes=train_data.num_classes,
                           verbose=1, optimization=False, shuffle=True)
 
-    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, data_preprocessor)
+    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, data_transformer)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
 
