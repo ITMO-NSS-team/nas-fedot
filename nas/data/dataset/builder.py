@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Callable, Optional, Type
 
 from nas.data import Preprocessor, ImageLoader
@@ -28,10 +29,12 @@ class BaseNasDatasetBuilder:
 
         shuffle = train_mode.get(mode, self.shuffle)
         batch_size = kwargs.pop('batch_size', self.batch_size)
+        data_preprocessor = None
         if self._data_preprocessor:
-            self._data_preprocessor.mode = 'evaluation' if mode == 'test' else 'default'
+            data_preprocessor = deepcopy(self._data_preprocessor)
+            data_preprocessor.mode = 'evaluation' if mode == 'test' else 'default'
         data_loader = self._data_loader(data)
 
         dataset = self._dataset_cls(batch_size=batch_size, shuffle=shuffle,
-                                    preprocessor=self._data_preprocessor, loader=data_loader)
+                                    preprocessor=data_preprocessor, loader=data_loader)
         return dataset

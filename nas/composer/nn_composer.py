@@ -14,7 +14,7 @@ from golem.core.optimisers.graph import OptGraph
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.dataset.builder import BaseNasDatasetBuilder
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 from nas.optimizer.objective.nn_objective_evaluate import NasObjectiveEvaluate
 
 
@@ -30,7 +30,7 @@ class NasComposer(Composer):
         self.pipelines_cache = pipelines_cache
         self.preprocessing_cache = preprocessing_cache
 
-    def _convert_opt_results_to_nn_graph(self, graphs: Sequence[OptGraph]) -> Tuple[NNGraph, Sequence[NNGraph]]:
+    def _convert_opt_results_to_nn_graph(self, graphs: Sequence[OptGraph]) -> Tuple[NasGraph, Sequence[NasGraph]]:
         adapter = self.optimizer.graph_generation_params.adapter
         multi_objective = self.optimizer.objective.is_multi_objective
         best_graphs = [adapter.restore(graph) for graph in graphs]
@@ -44,7 +44,7 @@ class NasComposer(Composer):
     def set_callbacks(self, callbacks):
         raise NotImplementedError
 
-    def compose_pipeline(self, data: Union[InputData, MultiModalData], optimization_verbose=None) -> NNGraph:
+    def compose_pipeline(self, data: Union[InputData, MultiModalData], optimization_verbose=None) -> NasGraph:
         """ Method for objective evaluation"""
 
         data.shuffle()
@@ -72,7 +72,7 @@ class NasComposer(Composer):
         self.log.info(f'Saving results into {path.resolve()}')
         if self.best_models:
             graph = self.best_models[0]
-            if not isinstance(graph, NNGraph):
+            if not isinstance(graph, NasGraph):
                 graph = self.graph_generation_params.adapter.restore(graph)
             graph.save(path)
 

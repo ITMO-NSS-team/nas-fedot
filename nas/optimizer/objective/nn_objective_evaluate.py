@@ -18,12 +18,12 @@ from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.dataset.builder import BaseNasDatasetBuilder
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 
 G = TypeVar('G', Graph, OptGraph)
 
 
-def _exceptions_save(graph: NNGraph, error_msg: Exception):
+def _exceptions_save(graph: NasGraph, error_msg: Exception):
     data_folder = pathlib.Path('../debug_data')
     data_folder.mkdir(parents=True, exist_ok=True)
     folder = len(list(data_folder.iterdir()))
@@ -48,7 +48,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         self._optimization_verbose = optimization_verbose
         self._log = default_log(self)
 
-    def one_fold_train(self, graph: NNGraph, data: InputData, **kwargs):
+    def one_fold_train(self, graph: NasGraph, data: InputData, **kwargs):
         if not self._optimization_verbose == 'silent':
             fold_id = kwargs.pop('fold_id')
             self._log.message(f'\nTrain fold number: {fold_id}')
@@ -62,11 +62,11 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         graph.fit(train_dataset, validation_dataset, self._requirements, data.num_classes,
                   shuffle=shuffle, **kwargs)
 
-    def calculate_objective(self, graph: NNGraph, reference_data: InputData) -> Fitness:
+    def calculate_objective(self, graph: NasGraph, reference_data: InputData) -> Fitness:
         test_dataset = self._data_transformer.build(reference_data, mode='test', batch_size=1)
         return self._objective(graph, reference_data=test_dataset)
 
-    def evaluate(self, graph: NNGraph) -> Fitness:
+    def evaluate(self, graph: NasGraph) -> Fitness:
         if not self._optimization_verbose == 'silent':
             self._log.info('Fit for graph has started.')
         graph_id = graph.root_node.descriptive_id

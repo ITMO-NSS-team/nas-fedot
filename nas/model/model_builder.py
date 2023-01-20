@@ -2,7 +2,7 @@ from typing import List
 
 import tensorflow as tf
 
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 
 
 def _make_skip_connection_block(*args, **kwargs):
@@ -10,7 +10,7 @@ def _make_skip_connection_block(*args, **kwargs):
 
 
 class NNBuilder:
-    def __init__(self, graph: NNGraph, input_shape: List, classes: int):
+    def __init__(self, graph: NasGraph, input_shape: List, classes: int):
         self.graph = graph
         self.nn_struct = graph.graph_struct
         self.input_shape = input_shape

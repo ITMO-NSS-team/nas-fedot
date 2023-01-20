@@ -5,6 +5,7 @@ from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas
 import nas.data.dataset.tf_dataset
+import nas.data.nas_data
 from nas.utils.utils import project_root, set_root
 
 set_root(project_root())
@@ -16,7 +17,7 @@ def _load_dataset_as_input_data():
     path = 'example_datasets/butterfly_cls'
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path(path)
-    return nas.data.load_images.NasData.data_from_folder(dataset_path, task)
+    return nas.data.nas_data.BaseNasImageData.data_from_folder(dataset_path, task)
 
 
 def _make_generator(mode: str):

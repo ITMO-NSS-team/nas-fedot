@@ -1,4 +1,4 @@
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 from nas.deprecated.keras_graph_converter import build_nn_from_graph
 from tests.unit.nas.utility_functions import get_requirements, get_graph
 
@@ -6,7 +6,7 @@ from tests.unit.nas.utility_functions import get_requirements, get_graph
 def test_graph_type():
     for _ in range(100):
         graph = get_graph()
-        assert isinstance(graph, NNGraph)
+        assert isinstance(graph, NasGraph)
 
 
 def test_is_valid_graph():

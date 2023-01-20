@@ -8,7 +8,7 @@ from nas.graph.grpah_generator import GraphGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.existing_cnn_enum import CNNEnum
 from nas.repository.layer_types_enum import LayersPoolEnum, ActivationTypesIdsEnum
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 
 
 class CNNRepository:
@@ -42,13 +42,13 @@ class ResNetGenerator(GraphGenerator):
         node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
-    def _add_to_block(self, block: NNGraph, node_to_add, requirements: ModelRequirements,
+    def _add_to_block(self, block: NasGraph, node_to_add, requirements: ModelRequirements,
                       parent_node: List[Union[GraphNode, NNNode]], stride: int):
         node_to_add = self._add_node(node_to_add, parent_node=parent_node, node_requirements=requirements,
                                      stride=stride)
         block.add_node(node_to_add)
 
-    def _growth_one_block(self, graph: NNGraph, output_shape: int, number_of_sub_blocks: int):
+    def _growth_one_block(self, graph: NasGraph, output_shape: int, number_of_sub_blocks: int):
         for i in range(number_of_sub_blocks):
             stride = 2 if (i == 0 and output_shape != 64) else 1
             block_to_add = self._generate_sub_block(output_shape, stride)
@@ -61,8 +61,8 @@ class ResNetGenerator(GraphGenerator):
                 graph.add_node(node)
             graph.graph_struct[-1].nodes_from.append(skip_connection_start)
 
-    def _generate_sub_block(self, output_shape: int, stride: int) -> NNGraph:
-        res_block = NNGraph()
+    def _generate_sub_block(self, output_shape: int, stride: int) -> NasGraph:
+        res_block = NasGraph()
         block_requirements = deepcopy(self._model_requirements)
         block_requirements.conv_requirements.force_output_shape(output_shape)
 
@@ -71,11 +71,11 @@ class ResNetGenerator(GraphGenerator):
                            1)
         return res_block
 
-    def build(self) -> NNGraph:
+    def build(self) -> NasGraph:
         self._model_requirements.max_num_of_conv_layers = 35
         self._model_requirements.max_nn_depth = 3
 
-        resnet = NNGraph()
+        resnet = NasGraph()
 
         node = self._add_node(LayersPoolEnum.conv2d_7x7, node_requirements=self._model_requirements, stride=2)
         resnet.add_node(node)

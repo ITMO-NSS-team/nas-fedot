@@ -3,24 +3,21 @@ from __future__ import annotations
 import os
 import pathlib
 from dataclasses import dataclass
+import h5py
 
-import cv2
 import numpy as np
 import pandas as pd
-from fedot.core.data.data import InputData, Data
+from fedot.core.data.data import Data, InputData
 from fedot.core.repository.dataset_types import DataTypesEnum
-from fedot.core.repository.tasks import Task
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 
-from nas.utils.utils import project_root
-
-root = project_root()
 supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.jpe', '.jp2', '.tiff'}
 
 
 @dataclass
-class NasData(Data):
+class BaseNasImageData(Data):
     """ Class for loading heavy datasets into FEDOT's InputData e.g. image datasets"""
+
     @staticmethod
     def data_from_folder(data_path: os.PathLike, task: Task) -> InputData:
         data_path = pathlib.Path(data_path) if not isinstance(data_path, pathlib.Path) else data_path
@@ -46,37 +43,3 @@ class NasData(Data):
         features = np.expand_dims(features, -1)
         idx = np.arange(0, len(features))
         return InputData(idx=idx, features=features, target=target, task=task, data_type=data_type)
-
-
-class ImageLoader:
-    """Class for loading image dataset from InputData format. Implements loading by batches"""
-
-    def __init__(self, dataset: InputData):
-        self.idx = dataset.idx
-        self.task = dataset.task
-        self.data_type = dataset.data_type
-        self.features = dataset.features.flatten()
-        self.target = self.transform_targets(dataset.target)
-        self.num_classes = dataset.num_classes
-
-    def get_feature(self, idx):
-        return cv2.imread(self.features[idx])
-
-    def get_target(self, idx):
-        return self.target[idx]
-
-    def __len__(self):
-        return len(self.features)
-
-    def __getitem__(self, item):
-        return self.get_feature(item), self.get_target(item)
-
-    @staticmethod
-    def transform_targets(targets):
-        new_targets = np.reshape(targets, (-1, 1))
-        num_classes = len(np.unique(targets))
-
-        if num_classes > 2:
-            encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse=False)
-            new_targets = encoder.fit_transform(new_targets)
-        return new_targets

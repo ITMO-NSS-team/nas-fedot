@@ -11,7 +11,7 @@ from golem.core.optimisers.opt_history import OptHistory
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
 import nas.composer.nn_composer_requirements as nas_requirements
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 from nas.graph.node.nn_graph_node import NNNode
 from nas.graph.node_factory import NNNodeFactory
 from nas.utils.utils import project_root, set_root
@@ -26,7 +26,7 @@ def from_fitted():
     graph_path = os.path.join('/home/staeros/_results/resnet_comp/2/2022-10-04/graph.json')
     model_path = os.path.join('/home/staeros/_results/resnet_comp/2/2022-10-04/fitted_model.h5')
     model = tf.keras.models.load_model(model_path)
-    graph = NNGraph.load(str(graph_path))
+    graph = NasGraph.load(str(graph_path))
     graph.model = model
     history = OptHistory.load('/home/staeros/_results/resnet_comp/2/2022-10-04/history.json')
     history.show(per_time=False)
@@ -65,11 +65,11 @@ def from_fitted():
                                                            num_of_generations=10)
 
     graph_generation_parameters = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
+        adapter=DirectAdapter(base_graph_class=NasGraph, base_node_class=NNNode),
         rules_for_constraint=[], node_factory=NNNodeFactory(requirements, DefaultChangeAdvisor()))
 
     path = pathlib.Path('/home/staeros/_results/broken_mutation/graph.json')
-    graph = Individual(NNGraph.load(path))
+    graph = Individual(NasGraph.load(path))
 
     mutation = MutationTypesEnum.simple
 

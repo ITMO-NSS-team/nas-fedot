@@ -4,6 +4,8 @@ import pathlib
 
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 
+import nas.data.nas_data
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import tensorflow as tf
@@ -23,7 +25,7 @@ from fedot.core.repository.quality_metrics_repository import ClassificationMetri
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.nn_composer_requirements as nas_requirements
-import nas.data.load_images as loader
+import nas.data.loader as loader
 from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
 from nas.data.dataset.builder import BaseNasDatasetBuilder
@@ -40,8 +42,7 @@ from nas.utils.utils import set_root, project_root
 
 gpus = tf.config.list_physical_devices('GPU')
 print(gpus)
-# for gpu in gpus:
-#     tf.config.experimental.set_memory_growth(gpu, True)
+
 
 set_root(project_root())
 
@@ -51,7 +52,7 @@ def build_butterfly_cls(save_path=None):
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    data = loader.NasData.data_from_folder(dataset_path, task)
+    data = nas.data.nas_data.BaseNasImageData.data_from_folder(dataset_path, task)
 
     cv_folds = None
     image_side_size = 64
@@ -84,7 +85,7 @@ def build_butterfly_cls(save_path=None):
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=nn_requirements,
-                                                           timeout=datetime.timedelta(minutes=30),
+                                                           timeout=datetime.timedelta(minutes=5),
                                                            num_of_generations=3,
                                                            early_stopping_iterations=100,
                                                            early_stopping_timeout=float(datetime.timedelta(minutes=30).
@@ -101,7 +102,7 @@ def build_butterfly_cls(save_path=None):
                                                  regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=NNGraph, base_node_class=NNNode),
+        adapter=DirectAdapter(base_graph_class=NasGraph, base_node_class=NNNode),
         rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements.model_requirements,
                                                                           DefaultChangeAdvisor()))
 

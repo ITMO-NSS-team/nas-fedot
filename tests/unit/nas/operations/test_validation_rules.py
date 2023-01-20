@@ -8,7 +8,7 @@ set_root(tests_path)
 
 
 def test_flatten_count_no_flatten():
-    graph = NNGraph.load('./graph_without_flatten_node.json')
+    graph = NasGraph.load('./graph_without_flatten_node.json')
     successful_check = False
     try:
         flatten_count(graph)
@@ -18,7 +18,7 @@ def test_flatten_count_no_flatten():
 
 
 def test_flatten_count_several_flattens():
-    graph = NNGraph.load('./graph_several_flatten_and_starts.json')
+    graph = NasGraph.load('./graph_several_flatten_and_starts.json')
     successful_check = False
     try:
         flatten_count(graph)
@@ -28,7 +28,7 @@ def test_flatten_count_several_flattens():
 
 
 def test_unique_node_types():
-    graph = NNGraph.load('./graph_no_conv.json')
+    graph = NasGraph.load('./graph_no_conv.json')
     successful_check = False
     try:
         unique_node_types(graph)
@@ -38,7 +38,7 @@ def test_unique_node_types():
 
 
 def test_no_flatten_skip():
-    graph = NNGraph.load('./graph_with_flatten_skip.json')
+    graph = NasGraph.load('./graph_with_flatten_skip.json')
     successful_check = False
     try:
         has_no_flatten_skip(graph)
@@ -48,7 +48,7 @@ def test_no_flatten_skip():
 
 
 def test_several_starts():
-    graph = NNGraph.load('./graph_several_flatten_and_starts.json')
+    graph = NasGraph.load('./graph_several_flatten_and_starts.json')
     successful_check = False
     try:
         graph_has_several_starts(graph)
@@ -58,7 +58,7 @@ def test_several_starts():
 
 
 def test_wrong_cnn_struct():
-    graph = NNGraph.load('./graph_conv_after_flatten.json')
+    graph = NasGraph.load('./graph_conv_after_flatten.json')
     successful_check = False
     try:
         graph_has_wrong_structure(graph)

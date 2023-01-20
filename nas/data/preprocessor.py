@@ -9,12 +9,26 @@ class Preprocessor:
     """ Class for dataset preprocessing. Take images and targets by batch from loader and apply preprocessing to them.
     Returns generator inherited from keras Sequence class"""
 
-    def __init__(self, image_size: Tuple[int, int],
+    def __init__(self, image_size: Union[Tuple[int, int], List[int, int]],
                  transformations: Union[List[Callable], Tuple[Callable]] = None):
-        self._image_size = image_size
-        self._transformations = [partial(cv2.resize, dsize=self._image_size)]
+        self._image_size: Tuple = image_size
+        self._transformations = [partial(cv2.resize, dsize=self.image_size)]
         self._additional_transforms = [] if not transformations else transformations
         self._mode: str = 'default'
+
+    @property
+    def image_size(self) -> Tuple:
+        if type(self._image_size) == tuple:
+            return self._image_size
+        else:
+            return tuple(self._image_size)
+
+    @image_size.setter
+    def image_size(self, val: Union[Tuple[int, int], List[int, int]]):
+        if type(val) == tuple:
+            self._image_size = val
+        else:
+            self._image_size = tuple(val)
 
     @property
     def mode(self):

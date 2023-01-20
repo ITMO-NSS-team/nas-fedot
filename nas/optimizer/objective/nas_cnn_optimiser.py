@@ -8,14 +8,14 @@ from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 from nas.utils.utils import seed_all
 
 seed_all(1)
 
 
 class NNGraphOptimiser(EvoGraphOptimizer):
-    def __init__(self, initial_graphs: List[NNGraph], requirements: NNComposerRequirements,
+    def __init__(self, initial_graphs: List[NasGraph], requirements: NNComposerRequirements,
                  graph_generation_params: GraphGenerationParams, graph_optimizer_params: GPAlgorithmParameters,
                  objective: Objective, verbose=0, **kwargs):
         super().__init__(initial_graphs=initial_graphs, requirements=requirements,
@@ -26,7 +26,7 @@ class NNGraphOptimiser(EvoGraphOptimizer):
 
     def save(self, history: bool = True):
         self.log.message(f'Saving files into {self.save_path.resolve()}')
-        if not isinstance(self.generations.best_individuals[0].graph, NNGraph):
+        if not isinstance(self.generations.best_individuals[0].graph, NasGraph):
             graph = self.graph_generation_params.adapter.restore(self.generations.best_individuals[0].graph)
         else:
             graph = self.generations.best_individuals[0].graph

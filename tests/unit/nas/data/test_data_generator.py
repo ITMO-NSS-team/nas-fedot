@@ -5,7 +5,8 @@ import tensorflow as tf
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas
-import nas.data.load_images
+import nas.data.loader
+import nas.data.nas_data
 from nas.data import KerasDataset
 from nas.utils.utils import set_root, project_root
 
@@ -23,7 +24,7 @@ def _setup_preprocessor():
 def _setup_input_data_dataset():
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path('example_datasets/butterfly_cls')
-    return nas.data.load_images.NasData.data_from_folder(dataset_path, task)
+    return nas.data.nas_data.BaseNasImageData.data_from_folder(dataset_path, task)
 
 
 def _setup_loader():

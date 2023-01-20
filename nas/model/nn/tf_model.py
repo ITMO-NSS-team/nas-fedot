@@ -17,12 +17,12 @@ from nas.operations.evaluation.metrics.metrics import get_predictions, calculate
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 if TYPE_CHECKING:
-    from nas.graph.cnn.cnn_graph import NNGraph
+    from nas.graph.cnn.cnn_graph import NasGraph
     from nas.graph.node.nn_graph_node import NNNode
 
 
 class ModelMaker:
-    def __init__(self, input_shape: List, graph: NNGraph, converter: Callable, num_classes=None):
+    def __init__(self, input_shape: List, graph: NasGraph, converter: Callable, num_classes=None):
         super().__init__()
         self.num_classes = num_classes
         self._graph_struct = converter(graph)

@@ -47,12 +47,11 @@ class NNNodeOperatorAdapter:
         return obj
 
 
-class NNGraph(OptGraph):
+class NasGraph(OptGraph):
 
-    def __init__(self, nodes=(), model=None):
+    def __init__(self, nodes=()):
         super().__init__(nodes)
-        self._model = model
-        self._input_shape = None
+        self._model = None
         self._weights = None
 
     def __repr__(self):
@@ -65,14 +64,6 @@ class NNGraph(OptGraph):
              node_color: Optional[NodeColorType] = None, dpi: int = 100,
              node_size_scale: float = 1.0, font_size_scale: float = 1.0, edge_curvature_scale: float = 1.0):
         super().show(save_path, 'pyvis', node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
-
-    @property
-    def input_shape(self):
-        return self._input_shape
-
-    @input_shape.setter
-    def input_shape(self, val):
-        self._input_shape = val
 
     @property
     def model(self) -> Functional:

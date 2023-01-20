@@ -2,7 +2,7 @@ import random
 from typing import List, Optional
 
 from nas.composer.nn_composer_requirements import ModelRequirements
-from nas.graph.cnn.cnn_graph import NNGraph
+from nas.graph.cnn.cnn_graph import NasGraph
 from nas.graph.grpah_generator import GraphGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.layer_types_enum import LayersPoolEnum
@@ -10,7 +10,7 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 random.seed(1)
 
 
-def _add_skip_connections(graph: NNGraph, params):
+def _add_skip_connections(graph: NasGraph, params):
     skip_connections_id = params[0]
     shortcut_len = params[1]
     for current_node in skip_connections_id:
@@ -64,7 +64,7 @@ class ConvGraphMaker(GraphGenerator):
             graph_nodes.append(node)
         return graph_nodes
 
-    def _set_input_shape(self, graph, input_shape) -> NNGraph:
+    def _set_input_shape(self, graph, input_shape) -> NasGraph:
         graph.input_shape = input_shape
         return graph
 
@@ -73,10 +73,10 @@ class ConvGraphMaker(GraphGenerator):
         node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
-    def build(self) -> NNGraph:
+    def build(self) -> NasGraph:
         is_correct_graph = False
         while not is_correct_graph:
-            graph = NNGraph()
+            graph = NasGraph()
             parent_node = None
             graph_nodes = self.initial_struct if self.initial_struct else self._generate_from_scratch()
             for node in graph_nodes:
@@ -92,6 +92,6 @@ class ConvGraphMaker(GraphGenerator):
         return graph
 
     @staticmethod
-    def load_graph(path) -> NNGraph:
-        graph = NNGraph.load(path)
+    def load_graph(path) -> NasGraph:
+        graph = NasGraph.load(path)
         return graph
