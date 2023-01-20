@@ -49,18 +49,32 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         self._log = default_log(self)
 
     def one_fold_train(self, graph: NasGraph, data: InputData, **kwargs):
+        import tensorflow
+        from nas.operations.evaluation.callbacks.bad_performance_callback import CustomCallback
+
         if not self._optimization_verbose == 'silent':
             fold_id = kwargs.pop('fold_id')
             self._log.message(f'\nTrain fold number: {fold_id}')
-        shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
 
+        shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
         data_to_train, data_to_validate = train_test_data_setup(data, shuffle_flag=shuffle, stratify=data.target)
 
         train_dataset = self._data_transformer.build(data_to_train, mode='train')
         validation_dataset = self._data_transformer.build(data_to_validate, mode='val')
+        model_requirements = self._requirements.model_requirements
 
-        graph.fit(train_dataset, validation_dataset, self._requirements, data.num_classes,
-                  shuffle=shuffle, **kwargs)
+        loss_func = 'binary_crossentropy' if model_requirements.num_of_classes == 2 else 'categorical_crossentropy'
+        metrics = tensorflow.keras.metrics.Accuracy()
+        optimizer = tensorflow.keras.optimizers.Adam
+        callbacks = [tensorflow.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='min'),
+                     tensorflow.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3, verbose=1,
+                                                                  min_delta=1e-4, mode='min'),
+                     CustomCallback()]
+
+        graph.compile(input_shape=model_requirements.input_shape, loss_function=loss_func, metrics=[metrics],
+                      optimizer=optimizer, n_classes=model_requirements.num_of_classes)
+        graph.fit(train_dataset, validation_dataset, epoch_num=self._requirements.opt_epochs,
+                  batch_size=model_requirements.batch_size, callbacks=callbacks, **kwargs)
 
     def calculate_objective(self, graph: NasGraph, reference_data: InputData) -> Fitness:
         test_dataset = self._data_transformer.build(reference_data, mode='test', batch_size=1)

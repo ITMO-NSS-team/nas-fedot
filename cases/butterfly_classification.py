@@ -43,7 +43,6 @@ from nas.utils.utils import set_root, project_root
 gpus = tf.config.list_physical_devices('GPU')
 print(gpus)
 
-
 set_root(project_root())
 
 
@@ -57,7 +56,7 @@ def build_butterfly_cls(save_path=None):
     cv_folds = None
     image_side_size = 64
     batch_size = 64
-    epochs = 40
+    epochs = 2
     optimization_epochs = 1
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
                         LayersPoolEnum.conv2d_7x7]
@@ -73,18 +72,18 @@ def build_butterfly_cls(save_path=None):
         min_number_of_neurons=32, max_number_of_neurons=256,
         conv_strides=[[1, 1]],
         pool_size=[[2, 2]], pool_strides=[[2, 2]])
-    nn_requirements = nas_requirements.ModelRequirements(input_data_shape=[image_side_size, image_side_size],
-                                                         color_mode='color',
-                                                         num_of_classes=data.num_classes,
-                                                         conv_requirements=conv_requirements,
-                                                         fc_requirements=fc_requirements,
-                                                         primary=conv_layers_pool,
-                                                         secondary=[LayersPoolEnum.dense],
-                                                         epochs=epochs, batch_size=batch_size,
-                                                         max_nn_depth=1, max_num_of_conv_layers=36)
+    model_requirements = nas_requirements.ModelRequirements(input_data_shape=[image_side_size, image_side_size],
+                                                            color_mode='color',
+                                                            num_of_classes=data.num_classes,
+                                                            conv_requirements=conv_requirements,
+                                                            fc_requirements=fc_requirements,
+                                                            primary=conv_layers_pool,
+                                                            secondary=[LayersPoolEnum.dense],
+                                                            epochs=epochs, batch_size=batch_size,
+                                                            max_nn_depth=1, max_num_of_conv_layers=36)
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
-                                                           model_requirements=nn_requirements,
+                                                           model_requirements=model_requirements,
                                                            timeout=datetime.timedelta(minutes=5),
                                                            num_of_generations=3,
                                                            early_stopping_iterations=100,
@@ -130,10 +129,17 @@ def build_butterfly_cls(save_path=None):
     train_generator = data_transformer.build(train_data, mode='train')
     val_generator = data_transformer.build(val_data, mode='val')
 
-    optimized_network.model = ModelMaker(requirements.model_requirements.input_shape,
-                                         optimized_network, converter.Struct, data.num_classes).build()
-    optimized_network.fit(train_generator, val_generator, requirements=requirements, num_classes=train_data.num_classes,
-                          verbose=1, optimization=False, shuffle=True)
+    optimized_network.compile(model_requirements.input_shape, 'categorical_crossentropy',
+                              metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
+                              n_classes=model_requirements.num_of_classes)
+    optimized_network.fit(train_generator, val_generator, model_requirements.epochs, model_requirements.batch_size,
+                          [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1,
+                                                            mode='min'),
+                           tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3,
+                                                                verbose=1,
+                                                                min_delta=1e-4, mode='min')])
+    # optimized_network.model = ModelMaker(requirements.model_requirements.input_shape,
+    #                                      optimized_network, converter.Struct, data.num_classes).build()
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, data_transformer)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \

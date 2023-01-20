@@ -2,7 +2,7 @@ import gc
 import json
 import os
 import pathlib
-from typing import List, Union, Optional
+from typing import List, Union, Optional, TYPE_CHECKING, Tuple, Callable, Type
 
 import keras.backend
 import numpy as np
@@ -13,46 +13,27 @@ from tensorflow.python.keras.engine.functional import Functional
 
 from golem.core.dag.graph_node import GraphNode
 from fedot.core.data.data import OutputData
-from golem.core.optimisers.graph import OptGraph, OptNode, GraphDelegate
+from golem.core.optimisers.graph import OptGraph
 from golem.serializers import Serializer
-from fedot.core.utils import DEFAULT_PARAMS_STUB
 from golem.visualisation.graph_viz import NodeColorType
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements
+from nas.composer.nn_composer_requirements import NNComposerRequirements, ModelRequirements
 from nas.graph.node.nn_graph_node import NNNode
+from nas.graph.utils import NNNodeOperatorAdapter
 from nas.operations.evaluation.callbacks.bad_performance_callback import CustomCallback
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.model.nn.tf_model import ModelMaker
 from nas.model.utils import converter
 # hotfix
-from nas.utils.default_parameters import default_nodes_params
 from nas.utils.utils import set_root, seed_all, project_root, clear_keras_session
 
-set_root(project_root())
-convolutional_types = (LayersPoolEnum.conv2d, LayersPoolEnum.dilation_conv2d)
 seed_all(1)
 
 
-class NNNodeOperatorAdapter:
-    def adapt(self, adaptee) -> OptNode:
-        adaptee.__class__ = OptNode
-        return adaptee
-
-    def restore(self, node) -> NNNode:
-        obj = node
-        obj.__class__ = NNNode
-        if obj.content['params'] == DEFAULT_PARAMS_STUB:
-            node_name = obj.content.get('name')
-            obj.content = default_nodes_params[node_name]
-        return obj
-
-
 class NasGraph(OptGraph):
-
-    def __init__(self, nodes=()):
+    def __init__(self, nodes: Optional[List[NNNode]] = ()):
         super().__init__(nodes)
         self._model = None
-        self._weights = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
@@ -60,10 +41,10 @@ class NasGraph(OptGraph):
     def __eq__(self, other) -> bool:
         return self is other
 
-    def show(self, save_path: Optional[Union[os.PathLike, str]] = None, engine: str = 'matplotlib',
+    def show(self, save_path: Optional[Union[os.PathLike, str]] = None, engine: str = 'pyvis',
              node_color: Optional[NodeColorType] = None, dpi: int = 100,
              node_size_scale: float = 1.0, font_size_scale: float = 1.0, edge_curvature_scale: float = 1.0):
-        super().show(save_path, 'pyvis', node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
+        super().show(save_path, engine, node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
 
     @property
     def model(self) -> Functional:
@@ -80,52 +61,24 @@ class NasGraph(OptGraph):
         gc.collect()
 
     @property
-    def free_nodes(self):
-        free_nodes = []
-        skip_connections_start_nodes = set()
-        for node in self.graph_struct[::-1]:
-            if len(skip_connections_start_nodes) == 0:
-                free_nodes.append(node)
-            is_skip_connection_end = len(node.nodes_from) > 1
-            if is_skip_connection_end:
-                skip_connections_start_nodes.update(node.nodes_from[1:])
-            if node in skip_connections_start_nodes:
-                skip_connections_start_nodes.remove(node)
-        return free_nodes
-
-    @property
-    def _node_adapter(self):
-        return NNNodeOperatorAdapter()
-
-    @property
     def cnn_depth(self):
         flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
         return flatten_id
 
-    def fit(self, train_generator, val_generator, requirements: NNComposerRequirements, num_classes: int,
-            verbose='auto', optimization: bool = True, shuffle: bool = False, **kwargs):
-        loss_func = 'binary_crossentropy' if num_classes == 2 else 'categorical_crossentropy'
+    def compile(self, input_shape: Union[List[int], Tuple[int]], loss_function: str, metrics: List,
+                model_builder: Callable = ModelMaker, n_classes: Optional[int] = None, learning_rate: float = 1e-3,
+                optimizer: Callable = None):
+        optimizer = optimizer(learning_rate=learning_rate)
 
-        epochs = requirements.opt_epochs if optimization else requirements.model_requirements.epochs
-        # lr = tf.keras.optimizers.schedules.ExponentialDecay(1e-2, decay_steps=epochs, decay_rate=0.96, staircase=True)
-        lr = 1e-4
-        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-        batch_size = requirements.model_requirements.batch_size
-        early_stopping = EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min')
-        model_metrics = tensorflow.keras.metrics.CategoricalAccuracy() if num_classes > 2 else \
-            tensorflow.keras.metrics.Accuracy()
-        reduce_lr_loss = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3,
-                                           verbose=1, min_delta=1e-4, mode='min')
-        callbacks_list = [early_stopping, reduce_lr_loss]
-        if optimization:
-            callbacks_list.append(CustomCallback())
+        self.model = model_builder(input_shape, self, converter.Struct, n_classes).build()
+        self.model.compile(loss=loss_function, optimizer=optimizer, metrics=metrics)
+        return self
 
+    def fit(self, train_generator, validation_generator, epoch_num: int = 5, batch_size: int = 32,
+            callbacks: List = None, verbose='auto', **kwargs):
         tf.keras.backend.clear_session()
-        input_shape = requirements.model_requirements.input_shape
-        self.model = ModelMaker(input_shape, self, converter.Struct, num_classes).build()
-        self.model.compile(loss=loss_func, optimizer=optimizer, metrics=[model_metrics])
-        self.model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=verbose,
-                       validation_data=val_generator, shuffle=shuffle, callbacks=callbacks_list)
+        self.model.fit(train_generator, batch_size=batch_size, epochs=epoch_num, verbose=verbose,
+                       validation_data=validation_generator, callbacks=callbacks)
 
     def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs):
         if not self.model:

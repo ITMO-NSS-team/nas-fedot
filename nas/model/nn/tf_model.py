@@ -22,8 +22,7 @@ if TYPE_CHECKING:
 
 
 class ModelMaker:
-    def __init__(self, input_shape: List, graph: NasGraph, converter: Callable, num_classes=None):
-        super().__init__()
+    def __init__(self, input_shape: List, graph: NasGraph, converter: Callable, num_classes: int = None):
         self.num_classes = num_classes
         self._graph_struct = converter(graph)
         self._branch_manager = GraphBranchManager()

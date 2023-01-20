@@ -202,7 +202,7 @@ class ModelRequirements:
         return _get_image_channels_num(color_mode)
 
     @property
-    def input_shape(self) -> List[Union[int, float], Union[int, float], int]:
+    def input_shape(self) -> List[Union[int, int], Union[int, int], int]:
         return [*self.input_data_shape, self.channels_num]
 
     @property
