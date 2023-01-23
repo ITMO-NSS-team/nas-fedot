@@ -1,24 +1,48 @@
 from __future__ import annotations
-import datetime
-import pathlib
+
+from enum import Enum
+from functools import partial
 from typing import Callable, Optional, List, TYPE_CHECKING
 
 import tensorflow
-from fedot.core.data.data_split import train_test_data_setup
-from fedot.core.repository.tasks import Task, TaskTypesEnum
-from keras import optimizers
 
-from nas.data import Preprocessor, setup_data, KerasDataset
-from nas.graph.graph_builder import NNGraphBuilder
 from nas.model.layers.keras_layers import KerasLayers
-from nas.model.utils import converter
+from nas.model.layers.tf_layer_initializer import LayerInitializer
 from nas.model.utils.branch_manager import GraphBranchManager
-from nas.operations.evaluation.metrics.metrics import get_predictions, calculate_validation_metric
-from nas.repository.layer_types_enum import LayersPoolEnum
+from nas.model.utils.converter import GraphStruct
 
 if TYPE_CHECKING:
     from nas.graph.cnn.cnn_graph import NasGraph
     from nas.graph.node.nn_graph_node import NNNode
+
+
+class ModelBuilder:
+    def __init__(self):
+        self._builder = Optional[Callable] = None
+
+    def set_builder(self, builder) -> ModelBuilder:
+        self._builder = builder
+        return self
+
+    def build(self, graph: NasGraph, **kwargs):
+        return self._builder(graph, kwargs)
+
+
+class TFLayers(Enum):
+    conv2s = partial(LayerInitializer.conv2d)
+
+
+class NasKerasModel(tensorflow.keras.Model):
+    def __init__(self, input_shape: List[int], graph: NasGraph,
+                 graph_branch_manager: Optional[GraphBranchManager] = None,
+                 n_classes: Optional[int] = None):
+        super().__init__()
+        self._graph_struct = GraphStruct(graph)
+        self._branch_manager = graph_branch_manager
+        self._model_structure = {node: LayerInitializer(node) for node in self._graph_struct}
+
+    def call(self, inputs, training=None, mask=None):
+        pass
 
 
 class ModelMaker:

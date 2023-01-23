@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from nas.graph.node.nn_graph_node import NNNode
 
 
-class Struct:
+class GraphStruct:
     def __init__(self, graph: NasGraph):
         self.head = graph.graph_struct[0]
         self.graph = graph

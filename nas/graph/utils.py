@@ -1,4 +1,6 @@
 from typing import TYPE_CHECKING
+
+import numpy as np
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 from golem.core.optimisers.graph import OptNode
 
@@ -21,3 +23,10 @@ class NNNodeOperatorAdapter:
             node_name = obj.content.get('name')
             obj.content = default_nodes_params[node_name]
         return obj
+
+
+def probs2labels(predictions, is_multiclass):
+    if is_multiclass:
+        return np.argmax(predictions, axis=-1)
+    else:
+        return np.where(predictions > .5, 1, 0)

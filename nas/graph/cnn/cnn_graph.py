@@ -2,13 +2,10 @@ import gc
 import json
 import os
 import pathlib
-from typing import List, Union, Optional, TYPE_CHECKING, Tuple, Callable, Type
+from typing import List, Union, Optional, Tuple, Callable
 
 import keras.backend
-import numpy as np
 import tensorflow as tf
-import tensorflow.python.keras.callbacks
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.python.keras.engine.functional import Functional
 
 from golem.core.dag.graph_node import GraphNode
@@ -17,15 +14,12 @@ from golem.core.optimisers.graph import OptGraph
 from golem.serializers import Serializer
 from golem.visualisation.graph_viz import NodeColorType
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements, ModelRequirements
 from nas.graph.node.nn_graph_node import NNNode
-from nas.graph.utils import NNNodeOperatorAdapter
-from nas.operations.evaluation.callbacks.bad_performance_callback import CustomCallback
-from nas.repository.layer_types_enum import LayersPoolEnum
+from nas.graph.utils import probs2labels
 from nas.model.nn.tf_model import ModelMaker
 from nas.model.utils import converter
 # hotfix
-from nas.utils.utils import set_root, seed_all, project_root, clear_keras_session
+from nas.utils.utils import seed_all, clear_keras_session
 
 seed_all(1)
 
@@ -65,12 +59,12 @@ class NasGraph(OptGraph):
         flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
         return flatten_id
 
-    def compile(self, input_shape: Union[List[int], Tuple[int]], loss_function: str, metrics: List,
-                model_builder: Callable = ModelMaker, n_classes: Optional[int] = None, learning_rate: float = 1e-3,
-                optimizer: Callable = None):
+    def compile_model(self, input_shape: Union[List[int], Tuple[int]], loss_function: str, metrics: List,
+                      model_builder: Callable = ModelMaker, n_classes: Optional[int] = None,
+                      learning_rate: float = 1e-3, optimizer: Callable = None):
         optimizer = optimizer(learning_rate=learning_rate)
 
-        self.model = model_builder(input_shape, self, converter.Struct, n_classes).build()
+        self.model = model_builder(input_shape, self, converter.GraphStruct, n_classes).build()
         self.model.compile(loss=loss_function, optimizer=optimizer, metrics=metrics)
         return self
 
@@ -80,25 +74,17 @@ class NasGraph(OptGraph):
         self.model.fit(train_generator, batch_size=batch_size, epochs=epoch_num, verbose=verbose,
                        validation_data=validation_generator, callbacks=callbacks)
 
-    def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs):
+    def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs) -> OutputData:
         if not self.model:
             raise AttributeError("Graph doesn't have a model yet")
 
         is_multiclass = test_data.num_classes > 2
-
         predictions = self.model.predict(test_data, batch_size)
         if output_mode == 'labels':
-            predictions = self._probs2labels(predictions, is_multiclass)
+            predictions = probs2labels(predictions, is_multiclass)
 
         return OutputData(idx=test_data.idx, features=test_data.features, predict=predictions,
                           task=test_data.task, data_type=test_data.data_type)
-
-    @staticmethod
-    def _probs2labels(predictions, is_multiclass):
-        if is_multiclass:
-            return np.argmax(predictions, axis=-1)
-        else:
-            return np.where(predictions > .5, 1, 0)
 
     def fit_with_cache(self, *args, **kwargs):
         # TODO
@@ -144,5 +130,3 @@ class NasGraph(OptGraph):
             del self._weights
         keras.backend.clear_session()
 
-        # clear_keras_session(**kwargs)
-        # gc.collect()

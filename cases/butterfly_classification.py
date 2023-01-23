@@ -129,9 +129,9 @@ def build_butterfly_cls(save_path=None):
     train_generator = data_transformer.build(train_data, mode='train')
     val_generator = data_transformer.build(val_data, mode='val')
 
-    optimized_network.compile(model_requirements.input_shape, 'categorical_crossentropy',
-                              metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
-                              n_classes=model_requirements.num_of_classes)
+    optimized_network.compile_model(model_requirements.input_shape, 'categorical_crossentropy',
+                                    metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
+                                    n_classes=model_requirements.num_of_classes)
     optimized_network.fit(train_generator, val_generator, model_requirements.epochs, model_requirements.batch_size,
                           [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1,
                                                             mode='min'),

@@ -71,8 +71,8 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
                                                                   min_delta=1e-4, mode='min'),
                      CustomCallback()]
 
-        graph.compile(input_shape=model_requirements.input_shape, loss_function=loss_func, metrics=[metrics],
-                      optimizer=optimizer, n_classes=model_requirements.num_of_classes)
+        graph.compile_model(input_shape=model_requirements.input_shape, loss_function=loss_func, metrics=[metrics],
+                            optimizer=optimizer, n_classes=model_requirements.num_of_classes)
         graph.fit(train_dataset, validation_dataset, epoch_num=self._requirements.opt_epochs,
                   batch_size=model_requirements.batch_size, callbacks=callbacks, **kwargs)
 
