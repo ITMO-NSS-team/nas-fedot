@@ -8,7 +8,7 @@ from nas.graph.node.nn_graph_node import NNNode
 from nas.utils.default_parameters import default_nodes_params
 
 if TYPE_CHECKING:
-    from nas.graph.cnn.cnn_graph import NasGraph
+    pass
 
 
 class NNNodeOperatorAdapter:

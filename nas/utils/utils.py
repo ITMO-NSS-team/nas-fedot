@@ -1,6 +1,5 @@
-import gc
 import os
-import pathlib
+import os
 import random
 import sys
 from pathlib import Path
@@ -8,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import nvidia_smi
 import tensorflow
-from keras.backend import get_session, set_session, clear_session
+from keras.backend import get_session, clear_session
 
 
 def set_root(root: Path):

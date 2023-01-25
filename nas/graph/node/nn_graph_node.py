@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union
+
+from typing import Optional, List
 
 import numpy as np
 from golem.core.optimisers.graph import OptNode
@@ -54,4 +55,3 @@ class NNNode(OptNode):
 
     def __repr__(self):
         return self.__str__()
-

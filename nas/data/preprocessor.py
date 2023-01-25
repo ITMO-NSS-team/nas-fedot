@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from functools import partial
 from typing import List, Optional, Union, Callable, Tuple
 

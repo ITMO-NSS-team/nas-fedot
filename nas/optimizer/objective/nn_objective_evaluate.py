@@ -1,20 +1,19 @@
 import os
-import sys
 import pathlib
-from typing import Optional, TypeVar, Any
+import sys
+from typing import TypeVar, Any
 
 import numpy as np
-from fedot.core.optimisers.objective import DataSource
-
-from golem.core.dag.graph import Graph
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
+from fedot.core.optimisers.objective import DataSource
+from fedot.core.repository.tasks import TaskTypesEnum, Task
+from golem.core.dag.graph import Graph
 from golem.core.log import default_log
 from golem.core.optimisers.fitness import Fitness
 from golem.core.optimisers.graph import OptGraph
 from golem.core.optimisers.objective import ObjectiveEvaluate
 from golem.core.optimisers.objective.objective import to_fitness, Objective
-from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.dataset.builder import BaseNasDatasetBuilder

@@ -25,7 +25,6 @@ from fedot.core.repository.quality_metrics_repository import ClassificationMetri
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.nn_composer_requirements as nas_requirements
-import nas.data.loader as loader
 from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
 from nas.data.dataset.builder import BaseNasDatasetBuilder
@@ -138,8 +137,6 @@ def build_butterfly_cls(save_path=None):
                            tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3,
                                                                 verbose=1,
                                                                 min_delta=1e-4, mode='min')])
-    # optimized_network.model = ModelMaker(requirements.model_requirements.input_shape,
-    #                                      optimized_network, converter.Struct, data.num_classes).build()
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, data_transformer)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \

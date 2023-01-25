@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import math
 from typing import TYPE_CHECKING
 
 import tensorflow
 from fedot.core.utils import DEFAULT_PARAMS_STUB
+
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.default_parameters import default_nodes_params
 

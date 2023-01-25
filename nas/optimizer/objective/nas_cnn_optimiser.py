@@ -1,10 +1,8 @@
 from typing import List
 
-from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
-from golem.core.optimisers.genetic.evaluation import SimpleDispatcher
-from golem.core.optimisers.objective.objective import Objective
 from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
+from golem.core.optimisers.objective.objective import Objective
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
@@ -33,4 +31,3 @@ class NNGraphOptimiser(EvoGraphOptimizer):
         if history:
             self.history.save(self.save_path)
         graph.save(path=self.save_path)
-

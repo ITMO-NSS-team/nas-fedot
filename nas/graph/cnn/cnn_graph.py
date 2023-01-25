@@ -6,17 +6,16 @@ from typing import List, Union, Optional, Tuple, Callable
 
 import keras.backend
 import tensorflow as tf
-from tensorflow.python.keras.engine.functional import Functional
-
-from golem.core.dag.graph_node import GraphNode
 from fedot.core.data.data import OutputData
+from golem.core.dag.graph_node import GraphNode
 from golem.core.optimisers.graph import OptGraph
 from golem.serializers import Serializer
 from golem.visualisation.graph_viz import NodeColorType
+from tensorflow.python.keras.engine.functional import Functional
 
 from nas.graph.node.nn_graph_node import NNNode
 from nas.graph.utils import probs2labels
-from nas.model.nn.tf_model import ModelMaker
+from nas.model.nn.tf_model import KerasModelMaker
 from nas.model.utils import converter
 # hotfix
 from nas.utils.utils import seed_all, clear_keras_session
@@ -60,7 +59,7 @@ class NasGraph(OptGraph):
         return flatten_id
 
     def compile_model(self, input_shape: Union[List[int], Tuple[int]], loss_function: str, metrics: List,
-                      model_builder: Callable = ModelMaker, n_classes: Optional[int] = None,
+                      model_builder: Callable = KerasModelMaker, n_classes: Optional[int] = None,
                       learning_rate: float = 1e-3, optimizer: Callable = None):
         optimizer = optimizer(learning_rate=learning_rate)
 
@@ -129,4 +128,3 @@ class NasGraph(OptGraph):
         if hasattr(self, '_weights'):
             del self._weights
         keras.backend.clear_session()
-

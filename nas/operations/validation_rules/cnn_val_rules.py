@@ -1,13 +1,11 @@
-import os
+from typing import Optional
 
 import keras.utils.layer_utils
-import tensorflow
 from golem.core.dag.verification_rules import ERROR_PREFIX
-from typing import Tuple, Optional
 
 from nas.graph.cnn.cnn_graph import NasGraph
 from nas.graph.node.params_counter import get_shape, add_shortcut_and_check
-from nas.model.nn.tf_model import ModelMaker
+from nas.model.nn.tf_model import KerasModelMaker
 from nas.model.utils import converter
 
 
@@ -95,7 +93,7 @@ def is_architecture_is_correct(graph: NasGraph):
     input_shape = graph.input_shape
     num_classes = 2  # any int number
     try:
-        model = ModelMaker(input_shape, graph, converter.GraphStruct, num_classes).build()
+        model = KerasModelMaker(input_shape, graph, converter.GraphStruct, num_classes).build()
         params = keras.utils.layer_utils.count_params(model.trainable_variables)
         if params > 1.5e5:
             raise ValueError
@@ -113,6 +111,7 @@ def tmp_dense_in_conv(graph: NasGraph):
             if 'dense' in parent_nodes:
                 raise ValueError(f'{ERROR_PREFIX} dense layer in conv part!')
     return True
+
 
 class ConvNetChecker:
     params_limit: int = 5e7
@@ -138,7 +137,7 @@ class ConvNetChecker:
         input_shape = [24, 24, 3]
         num_classes = 3
         try:
-            ConvNetChecker.model = ModelMaker(input_shape, graph, converter.GraphStruct, num_classes).build()
+            ConvNetChecker.model = KerasModelMaker(input_shape, graph, converter.GraphStruct, num_classes).build()
         except Exception as ex:
             ConvNetChecker.error_message = f'Exception {ex} occurred. Model cannot be built. {ERROR_PREFIX}.'
 
@@ -168,5 +167,5 @@ if __name__ == '__main__':
     graph = NasGraph.load('/home/staeros/graph.json')
     lst = []
     for i in range(50):
-        lst.append(ModelMaker(graph.input_shape, graph, converter.GraphStruct, 3).build())
+        lst.append(KerasModelMaker(graph.input_shape, graph, converter.GraphStruct, 3).build())
     print(1)

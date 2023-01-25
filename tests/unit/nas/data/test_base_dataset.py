@@ -5,8 +5,8 @@ import cv2
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 from nas.data import BaseNasImageData, Preprocessor
-from nas.data.dataset.tf_dataset import KerasDataset
 from nas.data.dataset.builder import BaseNasDatasetBuilder
+from nas.data.dataset.tf_dataset import KerasDataset
 from nas.utils.utils import set_root, project_root
 
 set_root(project_root())

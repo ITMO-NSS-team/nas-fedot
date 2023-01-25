@@ -1,5 +1,6 @@
-from nas.graph.cnn.cnn_graph import NasGraph
 from nas.deprecated.keras_graph_converter import build_nn_from_graph
+
+from nas.graph.cnn.cnn_graph import NasGraph
 from tests.unit.nas.utility_functions import get_requirements, get_graph
 
 

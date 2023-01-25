@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum
-from functools import partial
 from typing import Callable, Optional, List, TYPE_CHECKING
 
 import tensorflow
 
 from nas.model.layers.keras_layers import KerasLayers
-from nas.model.layers.tf_layer_initializer import LayerInitializer
 from nas.model.utils.branch_manager import GraphBranchManager
-from nas.model.utils.converter import GraphStruct
 
 if TYPE_CHECKING:
     from nas.graph.cnn.cnn_graph import NasGraph
@@ -18,34 +14,17 @@ if TYPE_CHECKING:
 
 class ModelBuilder:
     def __init__(self):
-        self._builder = Optional[Callable] = None
+        self._model_class = Optional[Callable] = None
 
-    def set_builder(self, builder) -> ModelBuilder:
-        self._builder = builder
+    def set_model_class(self, model_class) -> ModelBuilder:
+        self._model_class = model_class
         return self
 
     def build(self, graph: NasGraph, **kwargs):
-        return self._builder(graph, kwargs)
+        return self._model_class(graph, kwargs)
 
 
-class TFLayers(Enum):
-    conv2s = partial(LayerInitializer.conv2d)
-
-
-class NasKerasModel(tensorflow.keras.Model):
-    def __init__(self, input_shape: List[int], graph: NasGraph,
-                 graph_branch_manager: Optional[GraphBranchManager] = None,
-                 n_classes: Optional[int] = None):
-        super().__init__()
-        self._graph_struct = GraphStruct(graph)
-        self._branch_manager = graph_branch_manager
-        self._model_structure = {node: LayerInitializer(node) for node in self._graph_struct}
-
-    def call(self, inputs, training=None, mask=None):
-        pass
-
-
-class ModelMaker:
+class KerasModelMaker:
     def __init__(self, input_shape: List, graph: NasGraph, converter: Callable, num_classes: int = None):
         self.num_classes = num_classes
         self._graph_struct = converter(graph)
@@ -62,7 +41,8 @@ class ModelMaker:
     @staticmethod
     def _make_one_layer(input_layer, node: NNNode, branch_manager: GraphBranchManager, downsample: Optional[Callable]):
         layer = KerasLayers.convert_by_node_type(node=node, input_layer=input_layer, branch_manager=branch_manager)
-        layer = KerasLayers.batch_norm(node=node, input_layer=layer)
+        if node.content['params'].get('epsilon'):
+            layer = KerasLayers.batch_norm(node=node, input_layer=layer)
 
         if len(node.nodes_from) > 1:
             # return
@@ -76,7 +56,6 @@ class ModelMaker:
         return layer
 
     def _make_body(self, inputs, **kwargs):
-        # x = self._make_one_layer(inputs, self._graph_struct.head, self._branch_manager, None)
         x = inputs
         for node in self._graph_struct:
             x = self._make_one_layer(input_layer=x, node=node, branch_manager=self._branch_manager,

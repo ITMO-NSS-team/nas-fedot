@@ -1,14 +1,13 @@
 from copy import deepcopy
-from typing import Union
 
 from golem.core.dag.graph_node import GraphNode
 
 from nas.composer.nn_composer_requirements import *
+from nas.graph.cnn.cnn_graph import NasGraph
 from nas.graph.grpah_generator import GraphGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
 from nas.repository.existing_cnn_enum import CNNEnum
 from nas.repository.layer_types_enum import LayersPoolEnum, ActivationTypesIdsEnum
-from nas.graph.cnn.cnn_graph import NasGraph
 
 
 class CNNRepository:
@@ -130,6 +129,5 @@ if __name__ == '__main__':
                                           timeout=datetime.timedelta(hours=200),
                                           num_of_generations=1)
     graph = ResNetGenerator(requirements.model_requirements).build()
-
 
     print('Done!')

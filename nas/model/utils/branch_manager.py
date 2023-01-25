@@ -1,5 +1,4 @@
-from functools import reduce
-from typing import List, Tuple, Union
+from typing import List, Union
 
 from golem.core.dag.graph_node import GraphNode
 
