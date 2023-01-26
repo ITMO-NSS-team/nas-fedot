@@ -15,8 +15,9 @@ img_size = 16
 
 
 def _setup_preprocessor():
-    preprocessor = nas.data.data_generator.Preprocessor()
-    preprocessor.set_image_size((img_size, img_size))
+    image_size = (img_size, img_size)
+    preprocessor = nas.data.preprocessor.Preprocessor(image_size)
+    preprocessor.set_image_size(image_size)
     preprocessor.set_features_transformations([tf.convert_to_tensor])
     return preprocessor
 
@@ -29,7 +30,7 @@ def _setup_input_data_dataset():
 
 def _setup_loader():
     dataset = _setup_input_data_dataset()
-    return nas.data.load_images.ImageLoader(dataset)
+    return nas.data.loader.ImageLoader(dataset)
 
 
 def setup_data_generator():

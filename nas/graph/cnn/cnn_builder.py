@@ -23,18 +23,18 @@ def _add_skip_connections(graph: NasGraph, params):
 
 
 class ConvGraphMaker(GraphGenerator):
-    def __init__(self, param_restrictions: ModelRequirements,
+    def __init__(self, requirements: ModelRequirements,
                  initial_struct: Optional[List] = None):
         self._initial_struct = initial_struct
-        self._param_restrictions = param_restrictions
+        self._requirements = requirements
 
     @property
     def initial_struct(self):
         return self._initial_struct
 
     @property
-    def param_restrictions(self):
-        return self._param_restrictions
+    def requirements(self):
+        return self._requirements
 
     @staticmethod
     def _get_skip_connection_params(graph):
@@ -48,19 +48,19 @@ class ConvGraphMaker(GraphGenerator):
         return connections, skips_len
 
     def _generate_from_scratch(self):
-        total_conv_nodes = random.randint(self.param_restrictions.min_num_of_conv_layers,
-                                          self.param_restrictions.max_num_of_conv_layers)
-        total_fc_nodes = random.randint(self.param_restrictions.min_nn_depth,
-                                        self.param_restrictions.max_nn_depth)
+        total_conv_nodes = random.randint(self.requirements.min_num_of_conv_layers,
+                                          self.requirements.max_num_of_conv_layers)
+        total_fc_nodes = random.randint(self.requirements.min_nn_depth,
+                                        self.requirements.max_nn_depth)
         # hotfix
-        zero_node = random.choice(self.param_restrictions.primary)
+        zero_node = random.choice(self.requirements.primary)
         graph_nodes = [zero_node]
         for i in range(1, total_conv_nodes + total_fc_nodes):
             if i < total_conv_nodes:
-                node = random.choice(self.param_restrictions.primary) \
+                node = random.choice(self.requirements.primary) \
                     if i != total_conv_nodes - 1 else LayersPoolEnum.flatten
             else:
-                node = random.choice(self.param_restrictions.secondary)
+                node = random.choice(self.requirements.secondary)
             graph_nodes.append(node)
         return graph_nodes
 
@@ -69,26 +69,20 @@ class ConvGraphMaker(GraphGenerator):
         return graph
 
     def _add_node(self, node_to_add, parent_node):
-        node_params = get_node_params_by_type(node_to_add, self.param_restrictions)
+        node_params = get_node_params_by_type(node_to_add, self.requirements)
         node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
     def build(self) -> NasGraph:
-        is_correct_graph = False
-        while not is_correct_graph:
-            graph = NasGraph()
-            parent_node = None
-            graph_nodes = self.initial_struct if self.initial_struct else self._generate_from_scratch()
-            for node in graph_nodes:
-                node = self._add_node(node, parent_node)
-                parent_node = [node]
-                graph.add_node(node)
-            if self.param_restrictions.has_skip_connection:
-                _add_skip_connections(graph, self._get_skip_connection_params(graph))
-            graph = self._set_input_shape(graph, self.param_restrictions.conv_requirements.input_shape)
-            total_params = graph.get_trainable_params()
-            if total_params < self.param_restrictions.max_possible_parameters:
-                is_correct_graph = True
+        graph = NasGraph()
+        parent_node = None
+        graph_nodes = self.initial_struct if self.initial_struct else self._generate_from_scratch()
+        for node in graph_nodes:
+            node = self._add_node(node, parent_node)
+            parent_node = [node]
+            graph.add_node(node)
+        if self.requirements.has_skip_connection:
+            _add_skip_connections(graph, self._get_skip_connection_params(graph))
         return graph
 
     @staticmethod

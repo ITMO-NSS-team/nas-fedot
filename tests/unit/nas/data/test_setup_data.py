@@ -23,7 +23,7 @@ def _load_dataset_as_input_data():
 def _make_generator(mode: str):
     data = _load_dataset_as_input_data()
     to_tensor_transform = tf.convert_to_tensor
-    preprocessor = nas.data.data_generator.Preprocessor()
+    preprocessor = nas.data.preprocessor.Preprocessor((image_size, image_size))
     preprocessor.set_image_size((image_size, image_size)).set_features_transformations([to_tensor_transform])
     shuffle = True
 

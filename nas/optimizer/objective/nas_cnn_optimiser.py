@@ -15,11 +15,10 @@ seed_all(1)
 class NNGraphOptimiser(EvoGraphOptimizer):
     def __init__(self, initial_graphs: List[NasGraph], requirements: NNComposerRequirements,
                  graph_generation_params: GraphGenerationParams, graph_optimizer_params: GPAlgorithmParameters,
-                 objective: Objective, verbose=0, **kwargs):
+                 objective: Objective, **kwargs):
         super().__init__(initial_graphs=initial_graphs, requirements=requirements,
                          graph_generation_params=graph_generation_params,
                          objective=objective, graph_optimizer_params=graph_optimizer_params)
-        self.verbose = verbose
         self.save_path = kwargs.get('save_path')
 
     def save(self, history: bool = True):

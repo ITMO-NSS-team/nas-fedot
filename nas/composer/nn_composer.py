@@ -22,7 +22,8 @@ class NasComposer(Composer):
     def __init__(self, optimizer: EvoGraphOptimizer,
                  composer_requirements: NNComposerRequirements,
                  pipelines_cache: Optional[OperationsCache] = None,
-                 preprocessing_cache: Optional[PreprocessingCache] = None):
+                 preprocessing_cache: Optional[PreprocessingCache] = None,
+                 verbose: 'VerboseLevelsEnum' = 'VerboseLevelsEnum.default'):
         super().__init__(optimizer, composer_requirements)
 
         self.best_models = ()

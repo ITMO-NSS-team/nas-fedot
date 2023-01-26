@@ -108,6 +108,10 @@ class ConvRequirements(BaseLayerRequirements):
             self.dilation_rate = [1]
         if not self.conv_strides:
             self.conv_strides = [[1, 1]]
+        if not self.pool_size:
+            self.pool_size = [[2, 2]]
+        if not self.pool_strides:
+            self.pool_strides = self.pool_size
 
         if not hasattr(self.conv_strides, '__iter__'):
             raise ValueError('Pool of possible strides must be an iterable object')
@@ -193,7 +197,7 @@ class ModelRequirements:
         if not self.primary:
             self.primary = [LayersPoolEnum.conv2d_3x3]
         if not self.secondary:
-            self.secondary = [LayersPoolEnum.dropout, LayersPoolEnum.batch_norm, LayersPoolEnum.dense,
+            self.secondary = [LayersPoolEnum.dropout, LayersPoolEnum.dense,
                               LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2]
 
     @property

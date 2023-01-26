@@ -18,7 +18,6 @@ class LayersPoolEnum(Enum):
     flatten = 'flatten'
     dense = 'dense'
     dropout = 'dropout'
-    batch_norm = 'batch_norm'
     max_pool2d = 'max_pool2d'
     average_poold2 = 'average_pool2d'
 
