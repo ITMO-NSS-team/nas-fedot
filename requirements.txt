@@ -7,7 +7,6 @@ attrs==22.1.0
 backcall==0.2.0
 cachetools==5.0.0
 catboost==1.0.6
-certifi @ file:///C:/b/abs_85o_6fm0se/croot/certifi_1671487778835/work/certifi
 charset-normalizer==2.1.1
 click==8.0.4
 cloudpickle==2.1.0
