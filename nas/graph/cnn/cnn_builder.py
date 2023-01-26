@@ -5,6 +5,8 @@ from nas.composer.nn_composer_requirements import ModelRequirements
 from nas.graph.cnn.cnn_graph import NasGraph
 from nas.graph.grpah_generator import GraphGenerator
 from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
+from nas.operations.validation_rules.cnn_val_rules import ConvNetChecker, model_has_several_starts, \
+    model_has_wrong_number_of_flatten_layers, conv_net_check_structure, model_has_no_conv_layers
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 random.seed(1)
@@ -24,9 +26,12 @@ def _add_skip_connections(graph: NasGraph, params):
 
 class ConvGraphMaker(GraphGenerator):
     def __init__(self, requirements: ModelRequirements,
-                 initial_struct: Optional[List] = None):
+                 initial_struct: Optional[List] = None, max_generation_attempts: int = 100):
         self._initial_struct = initial_struct
         self._requirements = requirements
+        self._rules = [model_has_several_starts, model_has_wrong_number_of_flatten_layers, conv_net_check_structure,
+                       model_has_no_conv_layers]
+        self._generation_attempts = max_generation_attempts
 
     @property
     def initial_struct(self):
@@ -47,6 +52,14 @@ class ConvGraphMaker(GraphGenerator):
             connections.add(node_id)
         return connections, skips_len
 
+    def check_generated_graph(self, graph: NasGraph) -> bool:
+        for rule in self._rules:
+            try:
+                rule(graph)
+            except ValueError:
+                return False
+        return True
+
     def _generate_from_scratch(self):
         total_conv_nodes = random.randint(self.requirements.min_num_of_conv_layers,
                                           self.requirements.max_num_of_conv_layers)
@@ -56,17 +69,15 @@ class ConvGraphMaker(GraphGenerator):
         zero_node = random.choice(self.requirements.primary)
         graph_nodes = [zero_node]
         for i in range(1, total_conv_nodes + total_fc_nodes):
-            if i < total_conv_nodes:
-                node = random.choice(self.requirements.primary) \
+            if i == 0:
+                node = random.choice(self.requirements.primary)
+            elif i < total_conv_nodes:
+                node = random.choice(self.requirements.primary + self.requirements.secondary) \
                     if i != total_conv_nodes - 1 else LayersPoolEnum.flatten
             else:
-                node = random.choice(self.requirements.secondary)
+                node = random.choice([LayersPoolEnum.dropout, LayersPoolEnum.dense])
             graph_nodes.append(node)
         return graph_nodes
-
-    def _set_input_shape(self, graph, input_shape) -> NasGraph:
-        graph.input_shape = input_shape
-        return graph
 
     def _add_node(self, node_to_add, parent_node):
         node_params = get_node_params_by_type(node_to_add, self.requirements)
@@ -74,16 +85,20 @@ class ConvGraphMaker(GraphGenerator):
         return node
 
     def build(self) -> NasGraph:
-        graph = NasGraph()
-        parent_node = None
-        graph_nodes = self.initial_struct if self.initial_struct else self._generate_from_scratch()
-        for node in graph_nodes:
-            node = self._add_node(node, parent_node)
-            parent_node = [node]
-            graph.add_node(node)
-        if self.requirements.has_skip_connection:
-            _add_skip_connections(graph, self._get_skip_connection_params(graph))
-        return graph
+        for _ in range(self._generation_attempts):
+            graph = NasGraph()
+            parent_node = None
+            graph_nodes = self.initial_struct if self.initial_struct else self._generate_from_scratch()
+            for node in graph_nodes:
+                node = self._add_node(node, parent_node)
+                parent_node = [node]
+                graph.add_node(node)
+            if self.requirements.has_skip_connection:
+                _add_skip_connections(graph, self._get_skip_connection_params(graph))
+            if self.check_generated_graph(graph):
+                return graph
+        raise ValueError(f"Max number of generation attempts was reached and graph verification wasn't successful."
+                         f"Try different requirements.")
 
     @staticmethod
     def load_graph(path) -> NasGraph:

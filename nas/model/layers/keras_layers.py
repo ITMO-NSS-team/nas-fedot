@@ -113,7 +113,8 @@ class KerasLayers:
             'conv2d': cls.conv2d,
             'dense': cls.dense,
             'flatten': cls.flatten,
-            'pool': cls.pool
+            'pool': cls.pool,
+            'dropout': cls.dropout
         }
         node_type = cls._get_node_type(node)
 

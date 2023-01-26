@@ -19,9 +19,9 @@ def test_set_params():
     requirements.set_pooling_size(1)
     requirements.set_pooling_size(2)
     requirements.set_pooling_size(3)
-    requirements.set_pooling_stride(1)
-    requirements.set_pooling_stride(2)
-    requirements.set_pooling_stride(3)
-    assert len(requirements.pool_size) == 3
-    assert len(requirements.pool_strides) == 3
+    requirements.set_pooling_stride(4)
+    requirements.set_pooling_stride(5)
+    requirements.set_pooling_stride(6)
+    assert len(requirements.pool_size) == 4
+    assert len(requirements.pool_strides) == 4
     assert len(requirements.conv_strides) == 3

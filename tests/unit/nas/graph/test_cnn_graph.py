@@ -1,24 +1,22 @@
+import tensorflow as tf
 from nas.composer.nn_composer_requirements import load_default_requirements
-from nas.graph.cnn.cnn_builder import ConvGraphMaker
 from nas.graph.cnn.cnn_graph import NasGraph
-from nas.graph.graph_builder import NNGraphBuilder
-
-
-def _get_graph():
-    requirements = load_default_requirements()
-    builder = NNGraphBuilder()
-    cnn_builder = ConvGraphMaker(requirements=requirements.model_requirements)
-    builder.set_builder(cnn_builder)
-    return builder.build()
+from tests.unit.nas.utilities import get_graph
 
 
 def test_generated_graph_len():
-    pass
+    requirements = load_default_requirements()
+    max_depth = requirements.max_depth
+    for _ in range(100):
+        graph = get_graph()
+        if not max_depth >= len(graph):
+            assert False
+    assert True
 
 
 def test_generated_graph_nodes_num():
     for _ in range(100):
-        graph = _get_graph()
+        graph = get_graph()
         has_correct_nodes_num = len(graph.nodes) > 1
         if not has_correct_nodes_num:
             assert False
@@ -27,5 +25,16 @@ def test_generated_graph_nodes_num():
 
 def test_graph_type():
     for _ in range(100):
-        graph = _get_graph()
+        graph = get_graph()
         assert isinstance(graph, NasGraph)
+
+
+def test_graph_model_build():
+    for _ in range(100):
+        graph = get_graph()
+        try:
+            graph.model = graph.compile_model([32, 32, 3], 'binary_crossentropy',
+                                              optimizer=tf.keras.optimizers.Adam, n_classes=3)
+        except ValueError:
+            assert False
+    assert True

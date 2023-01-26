@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from math import log2
 from typing import List, Optional, Union
@@ -111,7 +112,7 @@ class ConvRequirements(BaseLayerRequirements):
         if not self.pool_size:
             self.pool_size = [[2, 2]]
         if not self.pool_strides:
-            self.pool_strides = self.pool_size
+            self.pool_strides = copy.deepcopy(self.pool_size)
 
         if not hasattr(self.conv_strides, '__iter__'):
             raise ValueError('Pool of possible strides must be an iterable object')
@@ -214,8 +215,12 @@ class ModelRequirements:
         return self._has_skip_connection
 
     @property
-    def max_possible_depth(self):
+    def max_depth(self):
         return self.max_nn_depth + self.max_num_of_conv_layers
+
+    @property
+    def min_depth(self):
+        return self.min_nn_depth + self.min_num_of_conv_layers
 
 
 @dataclass
@@ -227,7 +232,7 @@ class NNComposerRequirements(PipelineComposerRequirements):
         # TODO type fix
         self.primary = self.model_requirements.primary
         self.secondary = self.model_requirements.secondary
-        self.max_depth = self.model_requirements.max_possible_depth
+        self.max_depth = self.model_requirements.max_depth
         self.mutation_strength = MutationStrengthEnum.strong
         if self.opt_epochs < 1:
             raise ValueError(f'{self.opt_epochs} is unacceptable number of optimization epochs.')

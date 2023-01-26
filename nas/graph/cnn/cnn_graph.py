@@ -2,7 +2,7 @@ import gc
 import json
 import os
 import pathlib
-from typing import List, Union, Optional, Tuple, Callable
+from typing import List, Union, Optional, Tuple, Callable, Annotated
 
 import keras.backend
 import tensorflow as tf
@@ -58,9 +58,9 @@ class NasGraph(OptGraph):
         flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
         return flatten_id
 
-    def compile_model(self, input_shape: Union[List[int], Tuple[int]], loss_function: str, metrics: List,
-                      model_builder: Callable = KerasModelMaker, n_classes: Optional[int] = None,
-                      learning_rate: float = 1e-3, optimizer: Callable = None):
+    def compile_model(self, input_shape: Union[Annotated[List[int], 3], Annotated[Tuple[int], 3]], loss_function: str,
+                      metrics: Optional[List] = None, model_builder: Callable = KerasModelMaker,
+                      n_classes: Optional[int] = None, learning_rate: float = 1e-3, optimizer: Callable = None):
         optimizer = optimizer(learning_rate=learning_rate)
 
         self.model = model_builder(input_shape, self, converter.GraphStruct, n_classes).build()

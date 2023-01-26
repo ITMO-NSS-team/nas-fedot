@@ -5,10 +5,11 @@ from typing import Optional, List
 import numpy as np
 from golem.core.optimisers.graph import OptNode
 
+from nas.composer.nn_composer_requirements import ModelRequirements
 from nas.graph.node.nn_node_params import GraphLayers
 
 
-def get_node_params_by_type(node, requirements):
+def get_node_params_by_type(node, requirements: ModelRequirements):
     return GraphLayers().layer_by_type(node, requirements)
 
 
