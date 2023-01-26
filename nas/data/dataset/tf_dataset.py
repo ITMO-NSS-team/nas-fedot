@@ -50,7 +50,6 @@ class KerasDataset(tf.keras.utils.Sequence):
     def features(self):
         return self._loader.features
 
-    # TODO
     @property
     def idx(self):
         return self._loader.idx

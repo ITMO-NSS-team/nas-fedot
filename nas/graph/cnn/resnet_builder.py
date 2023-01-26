@@ -23,7 +23,7 @@ class CNNRepository:
 class ResNetGenerator(GraphGenerator):
     def __init__(self, model_requirements: ModelRequirements):
         self._model_requirements = deepcopy(model_requirements)
-        self._model_requirements.conv_requirements.force_output_shape(64)  # TODO fix
+        self._model_requirements.conv_requirements.force_output_shape(64)
         self._model_requirements.fc_requirements.set_batch_norm_prob(1)
 
     def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: ModelRequirements,
