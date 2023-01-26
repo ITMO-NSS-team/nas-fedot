@@ -44,8 +44,6 @@ class NNNodeFactory(OptNodeFactory):
         return self._return_node(candidates)
 
     def get_node(self, is_primary: bool) -> Optional[NNNode]:
-        # if not is_primary:
-        #     print(1)
         candidates = self._pool_conv_nodes if is_primary else self._pool_fc_nodes
         return self._return_node(candidates)
 

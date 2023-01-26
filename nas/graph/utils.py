@@ -1,14 +1,9 @@
-from typing import TYPE_CHECKING
-
 import numpy as np
 from fedot.core.utils import DEFAULT_PARAMS_STUB
 from golem.core.optimisers.graph import OptNode
 
 from nas.graph.node.nn_graph_node import NNNode
 from nas.utils.default_parameters import default_nodes_params
-
-if TYPE_CHECKING:
-    pass
 
 
 class NNNodeOperatorAdapter:
