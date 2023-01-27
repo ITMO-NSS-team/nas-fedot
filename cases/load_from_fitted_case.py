@@ -11,9 +11,9 @@ from golem.core.optimisers.opt_history import OptHistory
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
 import nas.composer.nn_composer_requirements as nas_requirements
-from nas.graph.cnn.cnn_graph import NasGraph
-from nas.graph.node.nn_graph_node import NNNode
-from nas.graph.node_factory import NNNodeFactory
+from nas.graph.cnn_graph import NasGraph
+from nas.graph.node.nas_graph_node import NasNode
+from nas.graph.node.node_factory import NNNodeFactory
 from nas.utils.utils import project_root, set_root
 
 set_root(project_root())
@@ -65,7 +65,7 @@ def from_fitted():
                                                            num_of_generations=10)
 
     graph_generation_parameters = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=NasGraph, base_node_class=NNNode),
+        adapter=DirectAdapter(base_graph_class=NasGraph, base_node_class=NasNode),
         rules_for_constraint=[], node_factory=NNNodeFactory(requirements, DefaultChangeAdvisor()))
 
     path = pathlib.Path('/home/staeros/_results/broken_mutation/graph.json')

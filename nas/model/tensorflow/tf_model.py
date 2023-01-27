@@ -4,12 +4,12 @@ from typing import Callable, Optional, List, TYPE_CHECKING
 
 import tensorflow
 
-from nas.model.layers.keras_layers import KerasLayers
+from nas.model.tensorflow.tf_layers import KerasLayers
 from nas.model.utils.branch_manager import GraphBranchManager
 
 if TYPE_CHECKING:
-    from nas.graph.cnn.cnn_graph import NasGraph
-    from nas.graph.node.nn_graph_node import NNNode
+    from nas.graph.cnn_graph import NasGraph
+    from nas.graph.node.nas_graph_node import NasNode
 
 
 class ModelBuilder:
@@ -39,7 +39,7 @@ class KerasModelMaker:
         self._classifier = tensorflow.keras.layers.Dense(self._output_shape, activation=self._activation_func)
 
     @staticmethod
-    def _make_one_layer(input_layer, node: NNNode, branch_manager: GraphBranchManager, downsample: Optional[Callable]):
+    def _make_one_layer(input_layer, node: NasNode, branch_manager: GraphBranchManager, downsample: Optional[Callable]):
         layer = KerasLayers.convert_by_node_type(node=node, input_layer=input_layer, branch_manager=branch_manager)
         if node.content['params'].get('epsilon'):
             layer = KerasLayers.batch_norm(node=node, input_layer=layer)

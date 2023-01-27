@@ -6,14 +6,14 @@ import numpy as np
 from golem.core.optimisers.graph import OptNode
 
 from nas.composer.nn_composer_requirements import ModelRequirements
-from nas.graph.node.nn_node_params import GraphLayers
+from nas.graph.node.nas_node_params import GraphLayers
 
 
 def get_node_params_by_type(node, requirements: ModelRequirements):
     return GraphLayers().layer_by_type(node, requirements)
 
 
-def calculate_output_shape(node: NNNode) -> np.ndarray:
+def calculate_output_shape(node: NasNode) -> np.ndarray:
     """Returns input_layer shape of node"""
     # define node type
     is_conv = 'conv' in node.content['name']
@@ -26,7 +26,7 @@ def calculate_output_shape(node: NNNode) -> np.ndarray:
         return count_fc_layer_params(node)
 
 
-def count_conv_layer_params(node: NNNode):
+def count_conv_layer_params(node: NasNode):
     input_shape = node.input_shape
     input_filters = input_shape[-1]
     kernel_size = node.content['params'].get('kernel_size')
@@ -43,7 +43,7 @@ def count_fc_layer_params(node):
     return np.prod(node.output_shape) + 1
 
 
-class NNNode(OptNode):
+class NasNode(OptNode):
     def __init__(self, content: dict, nodes_from: Optional[List] = None):
         super().__init__(content, nodes_from)
         self.nodes_from = nodes_from

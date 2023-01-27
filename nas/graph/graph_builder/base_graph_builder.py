@@ -1,7 +1,17 @@
-from nas.graph.grpah_generator import GraphGenerator
+from abc import ABC, abstractmethod
 
 
-class NNGraphBuilder:
+class GraphGenerator(ABC):
+    @abstractmethod
+    def _add_node(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def build(self):
+        raise NotImplementedError
+
+
+class BaseGraphBuilder:
     _builder = None
 
     def set_builder(self, builder: GraphGenerator):
@@ -14,4 +24,5 @@ class NNGraphBuilder:
         pass
 
     def build_from_existed_graph(self, path):
+        # TODO
         return self._builder.load_graph(path)

@@ -10,11 +10,11 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.default_parameters import default_nodes_params
 
 if TYPE_CHECKING:
-    from nas.graph.node.nn_graph_node import NNNode
+    from nas.graph.node.nas_graph_node import NasNode
     from nas.model.utils.branch_manager import GraphBranchManager
 
 
-def _get_layer_params(current_node: NNNode) -> dict:
+def _get_layer_params(current_node: NasNode) -> dict:
     if current_node.content['params'] == DEFAULT_PARAMS_STUB:
         layer_params = default_nodes_params[current_node.content['name']]
     else:
@@ -24,18 +24,15 @@ def _get_layer_params(current_node: NNNode) -> dict:
 
 class KerasLayers:
     @staticmethod
-    def downsample_block(input_layer, out_shape: int, current_node: NNNode):
+    def downsample_block(input_layer, out_shape: int, current_node: NasNode):
         """Adds to skip connection's shortcut a conv 1x1 layer to fix dimension difference"""
-        layer_params = _get_layer_params(current_node)
-        # stride = layer_params.get('conv_strides')
-        # if stride != 1:
         stride = math.ceil(out_shape[-1] / input_layer.shape[-1])
         layer_to_add = tensorflow.keras.layers.Conv2D(out_shape[-1], 1, stride, padding='valid')(input_layer)
         layer_to_add = tensorflow.keras.layers.BatchNormalization()(layer_to_add)
         return layer_to_add
 
     @staticmethod
-    def conv2d(node: NNNode, input_layer: tensorflow.Tensor, *args, **kwargs):
+    def conv2d(node: NasNode, input_layer: tensorflow.Tensor, *args, **kwargs):
         layer_params = _get_layer_params(node)
 
         kernel_size = layer_params['kernel_size']
@@ -47,7 +44,7 @@ class KerasLayers:
         return conv2d_layer(input_layer)
 
     @staticmethod
-    def pool(node: NNNode, input_layer, *args, **kwargs):
+    def pool(node: NasNode, input_layer, *args, **kwargs):
         layer_params = _get_layer_params(current_node=node)
         pool_size = layer_params.get('pool_size', [2, 2])
         pool_strides = layer_params.get('pool_strides')
@@ -59,18 +56,18 @@ class KerasLayers:
         return pool_layer
 
     @staticmethod
-    def flatten(node: NNNode, input_layer: tensorflow.Tensor, *args, **kwargs):
+    def flatten(node: NasNode, input_layer: tensorflow.Tensor, *args, **kwargs):
         return tensorflow.keras.layers.Flatten()(input_layer)
 
     @staticmethod
-    def dense(node: NNNode, input_layer: tensorflow.Tensor, *args, **kwargs):
+    def dense(node: NasNode, input_layer: tensorflow.Tensor, *args, **kwargs):
         layer_params = _get_layer_params(node)
         units = layer_params['neurons']
         dense_layer = tensorflow.keras.layers.Dense(units=units)
         return dense_layer(input_layer)
 
     @staticmethod
-    def activation(node: NNNode, input_layer: tensorflow.Tensor, *args, **kwargs):
+    def activation(node: NasNode, input_layer: tensorflow.Tensor, *args, **kwargs):
         layer_params = _get_layer_params(node)
         activation_type = layer_params.get('activation')
         if activation_type:
@@ -79,7 +76,7 @@ class KerasLayers:
         return input_layer
 
     @staticmethod
-    def dropout(node: NNNode, input_layer: tensorflow.Tensor, *args, **kwargs):
+    def dropout(node: NasNode, input_layer: tensorflow.Tensor, *args, **kwargs):
         layer_params = _get_layer_params(node)
         drop = layer_params.get('drop')
         if drop:
@@ -88,7 +85,7 @@ class KerasLayers:
         return input_layer
 
     @staticmethod
-    def batch_norm(node: NNNode, input_layer: tensorflow.Tensor, *args, **kwargs):
+    def batch_norm(node: NasNode, input_layer: tensorflow.Tensor, *args, **kwargs):
         layer_params = _get_layer_params(node)
         momentum = layer_params.get('momentum')
         epsilon = layer_params.get('epsilon')
@@ -98,7 +95,7 @@ class KerasLayers:
         return input_layer
 
     @staticmethod
-    def _get_node_type(node: NNNode) -> str:
+    def _get_node_type(node: NasNode) -> str:
         node_type = node.content['name']
         if 'conv2d' in node_type:
             return 'conv2d'
@@ -107,7 +104,7 @@ class KerasLayers:
         return node_type
 
     @classmethod
-    def convert_by_node_type(cls, node: NNNode, input_layer: tensorflow.Tensor, branch_manager: GraphBranchManager,
+    def convert_by_node_type(cls, node: NasNode, input_layer: tensorflow.Tensor, branch_manager: GraphBranchManager,
                              **kwargs):
         layer_types = {
             'conv2d': cls.conv2d,

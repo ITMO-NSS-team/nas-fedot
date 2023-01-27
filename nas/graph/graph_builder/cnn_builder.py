@@ -2,10 +2,10 @@ import random
 from typing import List, Optional
 
 from nas.composer.nn_composer_requirements import ModelRequirements
-from nas.graph.cnn.cnn_graph import NasGraph
-from nas.graph.grpah_generator import GraphGenerator
-from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
-from nas.operations.validation_rules.cnn_val_rules import ConvNetChecker, model_has_several_starts, \
+from nas.graph.cnn_graph import NasGraph
+from nas.graph.graph_builder.base_graph_builder import GraphGenerator
+from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
+from nas.operations.validation_rules.cnn_val_rules import model_has_several_starts, \
     model_has_wrong_number_of_flatten_layers, conv_net_check_structure, model_has_no_conv_layers
 from nas.repository.layer_types_enum import LayersPoolEnum
 
@@ -81,7 +81,7 @@ class ConvGraphMaker(GraphGenerator):
 
     def _add_node(self, node_to_add, parent_node):
         node_params = get_node_params_by_type(node_to_add, self.requirements)
-        node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
+        node = NasNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
     def build(self) -> NasGraph:

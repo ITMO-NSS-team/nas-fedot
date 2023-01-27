@@ -1,6 +1,6 @@
 import tensorflow as tf
 from nas.composer.nn_composer_requirements import load_default_requirements
-from nas.graph.cnn.cnn_graph import NasGraph
+from nas.graph.cnn_graph import NasGraph
 from tests.unit.nas.utilities import get_graph
 
 

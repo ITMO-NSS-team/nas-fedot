@@ -3,7 +3,8 @@ import datetime
 import tensorflow
 
 
-class CustomCallback(tensorflow.keras.callbacks.Callback):
+class PerformanceChecker(tensorflow.keras.callbacks.Callback):
+    # TODO add dock string
     def __init__(self):
         self.start_time = None
         self.end_time = None

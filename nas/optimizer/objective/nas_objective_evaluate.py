@@ -17,7 +17,7 @@ from golem.core.optimisers.objective.objective import to_fitness, Objective
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.dataset.builder import BaseNasDatasetBuilder
-from nas.graph.cnn.cnn_graph import NasGraph
+from nas.graph.cnn_graph import NasGraph
 
 G = TypeVar('G', Graph, OptGraph)
 
@@ -49,7 +49,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
 
     def one_fold_train(self, graph: NasGraph, data: InputData, **kwargs):
         import tensorflow
-        from nas.operations.evaluation.callbacks.bad_performance_callback import CustomCallback
+        from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceChecker
 
         if not self._optimization_verbose == 'silent':
             fold_id = kwargs.pop('fold_id')
@@ -68,7 +68,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         callbacks = [tensorflow.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='min'),
                      tensorflow.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3, verbose=1,
                                                                   min_delta=1e-4, mode='min'),
-                     CustomCallback()]
+                     PerformanceChecker()]
 
         graph.compile_model(input_shape=model_requirements.input_shape, loss_function=loss_func, metrics=[metrics],
                             optimizer=optimizer, n_classes=model_requirements.num_of_classes)
@@ -80,6 +80,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         return self._objective(graph, reference_data=test_dataset)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
+        super().evaluate(graph)
         if not self._optimization_verbose == 'silent':
             self._log.info('Fit for graph has started.')
         graph_id = graph.root_node.descriptive_id

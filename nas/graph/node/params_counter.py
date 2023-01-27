@@ -1,15 +1,11 @@
-import datetime
 import math
 from dataclasses import dataclass
 from typing import List, Union
 
 import numpy as np
 
-from nas.composer.nn_composer_requirements import ConvRequirements, BaseLayerRequirements, \
-    ModelRequirements, NNComposerRequirements
-from nas.graph.cnn.resnet_builder import ResNetGenerator
-from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
-from nas.repository.layer_types_enum import ActivationTypesIdsEnum
+from nas.composer.nn_composer_requirements import NNComposerRequirements
+from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 
@@ -20,25 +16,25 @@ def add_shortcut_and_check(input_shape: List, output_shape: List) -> bool:
     layer_type = LayersPoolEnum.conv2d_1x1
     requirements = NNComposerRequirements()
     layer_params = get_node_params_by_type(layer_type, requirements.model_requirements)
-    shortcut_node = NNNode(content={'name': layer_type.value, 'params': layer_params})
+    shortcut_node = NasNode(content={'name': layer_type.value, 'params': layer_params})
     shortcut_node.content['params']['conv_strides'] = [stride, stride]
     shortcut_node.content['params']['neurons'] = output_shape[-1]
     shape = get_shape(input_shape, shortcut_node)
     return shape
 
 
-def get_shape(input_shape: List, node: NNNode) -> List:
+def get_shape(input_shape: List, node: NasNode) -> List:
     return ParamCounter().get_output_shape(node, input_shape)
 
 
-def count_node_params(node: NNNode, input_shape: List) -> List:
+def count_node_params(node: NasNode, input_shape: List) -> List:
     pass
 
 
 @dataclass
 class ParamCounter:
     @staticmethod
-    def _conv(input_shape: Union[List, np.ndarray], node: NNNode) -> Union[np.ndarray, List]:
+    def _conv(input_shape: Union[List, np.ndarray], node: NasNode) -> Union[np.ndarray, List]:
         layer_params = node.content['params']
         stride = layer_params['conv_strides'][0]
         output_array = [math.ceil(i / stride) for i in input_shape[:2]]
@@ -47,13 +43,13 @@ class ParamCounter:
         return output_array
 
     @staticmethod
-    def _fully_connected(input_shape: Union[List, np.ndarray], node: NNNode) -> List:
+    def _fully_connected(input_shape: Union[List, np.ndarray], node: NasNode) -> List:
         layer_params = node.content['params']
         output = layer_params['neurons']
         return [output]
 
     @staticmethod
-    def _pooling(input_shape: List, node: NNNode) -> List:
+    def _pooling(input_shape: List, node: NasNode) -> List:
         layer_params = node.content['params']
         pool_stride = layer_params['pool_strides']
         output = [math.ceil(i / pool_stride[0]) for i in input_shape[:2:]]
@@ -61,7 +57,7 @@ class ParamCounter:
         return output
 
     @staticmethod
-    def _flatten(input_shape: List[float], node: NNNode) -> List:
+    def _flatten(input_shape: List[float], node: NasNode) -> List:
         output = math.prod(input_shape)
         return [output]
 
@@ -76,7 +72,7 @@ class ParamCounter:
         if 'pool' in name:
             return 'pooling'
 
-    def get_output_shape(self, node: NNNode, input_shape) -> Union[np.ndarray, List]:
+    def get_output_shape(self, node: NasNode, input_shape) -> Union[np.ndarray, List]:
         layer_types = {
             'conv': self._conv,
             'fully_connected': self._fully_connected,

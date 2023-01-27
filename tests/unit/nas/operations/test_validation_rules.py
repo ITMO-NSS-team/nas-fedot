@@ -1,7 +1,7 @@
 import pathlib
 
 from nas.composer.nn_composer_requirements import load_default_requirements
-from nas.graph.node.nn_graph_node import get_node_params_by_type, NNNode
+from nas.graph.node.nas_graph_node import get_node_params_by_type, NasNode
 from nas.operations.validation_rules.cnn_val_rules import *
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
@@ -14,7 +14,7 @@ set_root(tests_path)
 def _get_node(node_name: LayersPoolEnum):
     requirements = load_default_requirements()
     node_params = get_node_params_by_type(node_name, requirements.model_requirements)
-    node = NNNode(content={'name': node_name.value, 'params': node_params}, nodes_from=None)
+    node = NasNode(content={'name': node_name.value, 'params': node_params}, nodes_from=None)
     return node
 
 

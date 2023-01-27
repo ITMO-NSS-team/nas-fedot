@@ -2,7 +2,7 @@ from typing import List, Union
 
 from golem.core.dag.graph_node import GraphNode
 
-from nas.graph.node.nn_graph_node import NNNode
+from nas.graph.node.nas_graph_node import NasNode
 
 
 class GraphBranchManager:
@@ -16,16 +16,16 @@ class GraphBranchManager:
     def __setitem__(self, key, value: dict):
         self._streams[key] = value
 
-    def find_by_node(self, node: NNNode) -> int:
+    def find_by_node(self, node: NasNode) -> int:
         for key in self._streams.keys():
             if node == self._streams[key]['node']:
                 return key
 
-    def get_parent_layer(self, node: NNNode) -> dict:
+    def get_parent_layer(self, node: NasNode) -> dict:
         key = self.find_by_node(node)
         return self._streams.pop(key)
 
-    def add_and_update(self, node: NNNode, layer, childrens):
+    def add_and_update(self, node: NasNode, layer, childrens):
         _added_branches_keys = []
         self.update_keys()
         if self._streams:
@@ -35,12 +35,12 @@ class GraphBranchManager:
             for i in range(new_connections):
                 self._add(node, layer, _added_branches_keys)
 
-    def _add(self, node: NNNode, layer, ids: List):
+    def _add(self, node: NasNode, layer, ids: List):
         key = len(self._streams.keys())
         self.__setitem__(key=key, value={'node': node, 'layer': layer})
         ids.append(key)
 
-    def _update(self, current_node: Union[GraphNode, NNNode], layer, new_branches: List):
+    def _update(self, current_node: Union[GraphNode, NasNode], layer, new_branches: List):
         # Update all existed branches where last node == current_node
         # Update branches that have nodes_from[0] as parent
         if len(current_node.nodes_from) > 1:
@@ -67,7 +67,7 @@ class GraphBranchManager:
         nodes = [self._streams[i]['node'] for i in self._streams.keys()]
         return nodes
 
-    def new_connections(self, nodes: List[NNNode]) -> int:
+    def new_connections(self, nodes: List[NasNode]) -> int:
         if not self._streams:
             return len(nodes)
         else:

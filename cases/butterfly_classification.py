@@ -29,10 +29,10 @@ from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
 from nas.data.dataset.builder import BaseNasDatasetBuilder
 from nas.data.preprocessor import Preprocessor
-from nas.graph.cnn.cnn_graph import NNNode
-from nas.graph.cnn.resnet_builder import ResNetGenerator
+from nas.graph.cnn_graph import NasNode
+from nas.graph.graph_builder.resnet_builder import ResNetGenerator
 from nas.graph.graph_builder import NNGraphBuilder
-from nas.graph.node_factory import NNNodeFactory
+from nas.graph.node.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import *
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
@@ -100,7 +100,7 @@ def build_butterfly_cls(save_path=None):
                                                  regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
-        adapter=DirectAdapter(base_graph_class=NasGraph, base_node_class=NNNode),
+        adapter=DirectAdapter(base_graph_class=NasGraph, base_node_class=NasNode),
         rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements.model_requirements,
                                                                           DefaultChangeAdvisor()))
 

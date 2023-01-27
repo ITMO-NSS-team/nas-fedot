@@ -3,9 +3,9 @@ from copy import deepcopy
 from golem.core.dag.graph_node import GraphNode
 
 from nas.composer.nn_composer_requirements import *
-from nas.graph.cnn.cnn_graph import NasGraph
-from nas.graph.grpah_generator import GraphGenerator
-from nas.graph.node.nn_graph_node import NNNode, get_node_params_by_type
+from nas.graph.cnn_graph import NasGraph
+from nas.graph.graph_builder.base_graph_builder import GraphGenerator
+from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
 from nas.repository.existing_cnn_enum import CNNEnum
 from nas.repository.layer_types_enum import LayersPoolEnum, ActivationTypesIdsEnum
 
@@ -27,8 +27,8 @@ class ResNetGenerator(GraphGenerator):
         self._model_requirements.fc_requirements.set_batch_norm_prob(1)
 
     def _add_node(self, node_to_add: LayersPoolEnum, node_requirements: ModelRequirements,
-                  parent_node: List[NNNode] = None, stride: int = None, pool_size: int = None,
-                  pool_stride: int = None) -> NNNode:
+                  parent_node: List[NasNode] = None, stride: int = None, pool_size: int = None,
+                  pool_stride: int = None) -> NasNode:
         layer_requirements = deepcopy(node_requirements)
         if stride:
             layer_requirements.conv_requirements.force_conv_params(stride)
@@ -38,11 +38,11 @@ class ResNetGenerator(GraphGenerator):
             layer_requirements.conv_requirements.set_pooling_params(pool_size, pool_stride)
 
         node_params = get_node_params_by_type(node_to_add, layer_requirements)
-        node = NNNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
+        node = NasNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
     def _add_to_block(self, block: NasGraph, node_to_add, requirements: ModelRequirements,
-                      parent_node: List[Union[GraphNode, NNNode]], stride: int):
+                      parent_node: List[Union[GraphNode, NasNode]], stride: int):
         node_to_add = self._add_node(node_to_add, parent_node=parent_node, node_requirements=requirements,
                                      stride=stride)
         block.add_node(node_to_add)

@@ -13,10 +13,10 @@ from golem.serializers import Serializer
 from golem.visualisation.graph_viz import NodeColorType
 from tensorflow.python.keras.engine.functional import Functional
 
-from nas.graph.node.nn_graph_node import NNNode
-from nas.graph.utils import probs2labels
-from nas.model.nn.tf_model import KerasModelMaker
-from nas.model.utils import converter
+from nas.graph.node.nas_graph_node import NasNode
+from nas.graph.graph_utils import probs2labels
+from nas.model.tensorflow.tf_model import KerasModelMaker
+from nas.model.utils.model_structure import ModelStructure
 # hotfix
 from nas.utils.utils import seed_all, clear_keras_session
 
@@ -24,7 +24,7 @@ seed_all(1)
 
 
 class NasGraph(OptGraph):
-    def __init__(self, nodes: Optional[List[NNNode]] = ()):
+    def __init__(self, nodes: Optional[List[NasNode]] = ()):
         super().__init__(nodes)
         self._model = None
 
@@ -63,7 +63,7 @@ class NasGraph(OptGraph):
                       n_classes: Optional[int] = None, learning_rate: float = 1e-3, optimizer: Callable = None):
         optimizer = optimizer(learning_rate=learning_rate)
 
-        self.model = model_builder(input_shape, self, converter.GraphStruct, n_classes).build()
+        self.model = model_builder(input_shape, self, ModelStructure, n_classes).build()
         self.model.compile(loss=loss_function, optimizer=optimizer, metrics=metrics)
         return self
 
@@ -111,7 +111,7 @@ class NasGraph(OptGraph):
             return json.loads(json_data, cls=Serializer)
 
     @property
-    def graph_struct(self) -> List[Union[NNNode, GraphNode]]:
+    def graph_struct(self) -> List[Union[NasNode, GraphNode]]:
         if 'conv' in self.nodes[0].content['name']:
             return self.nodes
         else:
