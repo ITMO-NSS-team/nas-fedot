@@ -3,14 +3,13 @@ from typing import Tuple
 from fedot.core.composer.metrics import ROCAUC, Logloss, Accuracy
 from fedot.core.data.data import InputData, OutputData
 
-from nas.data.data_generator import DataGenerator
-from nas.data.setup_data import setup_data
+from nas.data.dataset.builder import BaseNasDatasetBuilder
 
 
 # Hotfix
-def get_predictions(graph, data: InputData, data_preprocessor) -> Tuple[OutputData, OutputData]:
+def get_predictions(graph, data: InputData, data_transformer: BaseNasDatasetBuilder) -> Tuple[OutputData, OutputData]:
     multiclass = data.num_classes > 2
-    data_generator_to_predict = setup_data(data, 1, data_preprocessor, 'test', DataGenerator, False)
+    data_generator_to_predict = data_transformer.build(data, batch_size=1, mode='test')
     predicted_labels = graph.predict(data_generator_to_predict, output_mode='labels', is_multiclass=multiclass)
     predicted_probabilities = graph.predict(data_generator_to_predict, output_mode='default', is_multiclass=multiclass)
     return predicted_labels, predicted_probabilities

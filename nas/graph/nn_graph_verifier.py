@@ -1,12 +1,12 @@
 from typing import Sequence, Union, Callable
 
-from fedot.core.dag.graph import Graph
-from fedot.core.log import default_log
-from fedot.core.optimisers.graph import OptGraph
+from golem.core.dag.graph import Graph
+from golem.core.log import default_log
+from golem.core.optimisers.graph import OptGraph
 
-from nas.operations.validation_rules.cnn_val_rules import unique_node_types, flatten_count, has_no_flatten_skip, \
-    graph_has_several_starts, graph_has_wrong_structure
-
+from nas.operations.validation_rules.cnn_val_rules import model_has_several_starts, \
+    model_has_wrong_number_of_flatten_layers, conv_net_check_structure, \
+    model_has_no_conv_layers
 
 # Validation rule can either return False or raise a ValueError to signal a failed check
 VerifierRuleType = Callable[..., bool]
@@ -14,6 +14,7 @@ VerifierRuleType = Callable[..., bool]
 
 class NNGraphVerifier:
     """ Class to verify graph using specified rules """
+
     def __init__(self,
                  rules: Sequence[VerifierRuleType] = ()):
         self._rules = rules
@@ -36,6 +37,6 @@ class NNGraphVerifier:
 
 
 def verifier_with_all_rules():
-    rules = [unique_node_types, flatten_count,
-             has_no_flatten_skip, graph_has_several_starts, graph_has_wrong_structure]
+    rules = [model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
+             model_has_several_starts, conv_net_check_structure]
     return NNGraphVerifier(rules=rules)

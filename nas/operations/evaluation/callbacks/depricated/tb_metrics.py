@@ -8,7 +8,7 @@ import psutil
 import sklearn.metrics as m
 import tensorflow as tf
 
-from nas.operations.evaluation.callbacks.utils import plot2image
+from nas.operations.evaluation.callbacks.depricated.utils import plot2image
 
 
 class CustomCallbacksNas:
