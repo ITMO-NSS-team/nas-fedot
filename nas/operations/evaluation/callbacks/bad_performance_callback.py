@@ -3,7 +3,7 @@ import datetime
 import tensorflow
 
 
-class PerformanceChecker(tensorflow.keras.callbacks.Callback):
+class PerformanceCheckingCallback(tensorflow.keras.callbacks.Callback):
     """
     Callback for model performance evaluation during optimization.
     After each epoch evaluates model performance metrics like runtime, loss and if they are not fit to desired range,

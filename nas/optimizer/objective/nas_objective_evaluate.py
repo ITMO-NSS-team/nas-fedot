@@ -49,7 +49,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
 
     def one_fold_train(self, graph: NasGraph, data: InputData, **kwargs):
         import tensorflow
-        from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceChecker
+        from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
 
         if not self._optimization_verbose == 'silent':
             fold_id = kwargs.pop('fold_id')
@@ -68,7 +68,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         callbacks = [tensorflow.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='min'),
                      tensorflow.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3, verbose=1,
                                                                   min_delta=1e-4, mode='min'),
-                     PerformanceChecker()]
+                     PerformanceCheckingCallback()]
 
         graph.compile_model(input_shape=model_requirements.input_shape, loss_function=loss_func, metrics=[metrics],
                             optimizer=optimizer, n_classes=model_requirements.num_of_classes)
