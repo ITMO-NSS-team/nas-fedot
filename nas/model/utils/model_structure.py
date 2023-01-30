@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union, List, Tuple, Optional
+
+from golem.core.dag.graph_node import GraphNode
 
 if TYPE_CHECKING:
     from nas.graph.cnn_graph import NasGraph
@@ -8,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class ModelStructure:
-    # TODO add dock string
+    """Support class for model building."""
     def __init__(self, graph: NasGraph):
         self.head = graph.graph_struct[0]
         self.graph = graph
@@ -18,11 +20,16 @@ class ModelStructure:
     def __len__(self):
         return len(self.graph.nodes)
 
-    def __getitem__(self, item):
-        """returns all children nodes of node by it's id"""
+    def __getitem__(self, item) -> Union[List, Tuple, GraphNode]:
+        """returns all children nodes of node by node id."""
         return self.graph.graph_struct[item]
 
-    def get_children(self, node: NasNode):
+    def get_children(self, node: NasNode) -> Optional[List, Tuple, GraphNode]:
+        """
+        Returns all children by given node.
+        :param node: node which children should get
+        :return: list of all children nodes.
+        """
         return self.graph.node_children(node)
 
     def reset(self):

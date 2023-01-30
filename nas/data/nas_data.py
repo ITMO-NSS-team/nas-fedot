@@ -6,9 +6,11 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
 from fedot.core.data.data import Data, InputData
 from fedot.core.repository.dataset_types import DataTypesEnum
-from sklearn.preprocessing import LabelEncoder
+from fedot.core.repository.tasks import Task
 
 supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.jpe', '.jp2', '.tiff'}
 

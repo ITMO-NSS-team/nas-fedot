@@ -5,7 +5,7 @@ from golem.core.dag.verification_rules import ERROR_PREFIX
 
 from nas.graph.cnn_graph import NasGraph
 from nas.model.tensorflow.tf_model import KerasModelMaker
-from nas.model.utils import model_structure
+from nas.model.utils.model_structure import ModelStructure
 
 
 def model_has_several_starts(graph: NasGraph):
@@ -68,7 +68,7 @@ class ConvNetChecker:
         input_shape = [12, 12, 3]
         num_classes = 3
         try:
-            ConvNetChecker.model = KerasModelMaker(input_shape, graph, converter.ModelStructure, num_classes).build()
+            ConvNetChecker.model = KerasModelMaker(input_shape, graph, ModelStructure, num_classes).build()
         except Exception as ex:
             ConvNetChecker.error_message = f'Exception {ex} occurred. Model cannot be built. {ERROR_PREFIX}.'
 

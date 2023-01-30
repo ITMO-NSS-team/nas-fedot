@@ -4,8 +4,13 @@ import tensorflow
 
 
 class PerformanceChecker(tensorflow.keras.callbacks.Callback):
-    # TODO add dock string
+    """
+    Callback for model performance evaluation during optimization.
+    After each epoch evaluates model performance metrics like runtime, loss and if they are not fit to desired range,
+    model considered as invalid
+    """
     def __init__(self):
+        super().__init__()
         self.start_time = None
         self.end_time = None
         self.time_restriction = datetime.timedelta(seconds=250)

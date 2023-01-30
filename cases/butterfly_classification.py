@@ -31,7 +31,7 @@ from nas.data.dataset.builder import BaseNasDatasetBuilder
 from nas.data.preprocessor import Preprocessor
 from nas.graph.cnn_graph import NasNode
 from nas.graph.graph_builder.resnet_builder import ResNetGenerator
-from nas.graph.graph_builder import NNGraphBuilder
+from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.node.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import *
@@ -104,7 +104,7 @@ def build_butterfly_cls(save_path=None):
         rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements.model_requirements,
                                                                           DefaultChangeAdvisor()))
 
-    graph_generation_function = NNGraphBuilder()
+    graph_generation_function = BaseGraphBuilder()
     graph_generation_function.set_builder(ResNetGenerator(model_requirements=requirements.model_requirements))
 
     builder = ComposerBuilder(task).with_composer(NasComposer).with_optimizer(NNGraphOptimiser). \
