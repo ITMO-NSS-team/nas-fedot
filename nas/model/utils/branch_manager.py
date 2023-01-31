@@ -21,7 +21,7 @@ class GraphBranchManager:
             if node == self._streams[key]['node']:
                 return key
 
-    def get_parent_layer(self, node: NasNode) -> dict:
+    def get_parent_layer(self, node: Union[GraphNode, NasNode]) -> dict:
         key = self.find_by_node(node)
         return self._streams.pop(key)
 

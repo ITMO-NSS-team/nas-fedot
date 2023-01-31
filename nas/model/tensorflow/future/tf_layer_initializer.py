@@ -2,23 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
+from typing import Union
 
 import tensorflow as tf
+from golem.core.dag.graph_node import GraphNode
 
 from nas.graph.node.nas_graph_node import NasNode
 
 
 @dataclass
 class LayerInitializer:
-    def __init__(self):
-        self._layers_dictionary = {'conv2d': self.conv2d,
-                                   'dense': self.dense,
-                                   'dropout': self.dropout,
-                                   'batch_norm': self.batch_norm,
-                                   'max_pool2d': partial(self.pooling, mode='max'),
-                                   'average_pool2d': partial(self.pooling, mode='avg'),
-                                   'flatten': self.flatten}
-
     @staticmethod
     def conv2d(node: NasNode):
         kernel_size = 3  # TODO
@@ -58,8 +51,17 @@ class LayerInitializer:
     def flatten(node: NasNode):
         return tf.keras.layers.Flatten()
 
-    def initialize_layer(self, node: NasNode):
+    @classmethod
+    def initialize_layer(cls, node: Union[GraphNode, NasNode]):
+        _layers_dictionary = {'conv2d': cls.conv2d,
+                              'dense': cls.dense,
+                              'dropout': cls.dropout,
+                              'batch_norm': cls.batch_norm,
+                              'max_pool2d': partial(cls.pooling, mode='max'),
+                              'average_pool2d': partial(cls.pooling, mode='avg'),
+                              'flatten': cls.flatten}
+
         name = node.content['name']
         if 'conv' in name:
             name = 'conv2d'
-        return self._layers_dictionary[name](node)
+        return _layers_dictionary[name](node)
