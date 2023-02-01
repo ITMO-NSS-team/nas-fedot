@@ -6,6 +6,7 @@ from nas.composer.nn_composer_requirements import load_default_requirements
 from nas.graph.cnn_graph import NasGraph
 from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.graph_builder.resnet_builder import ResNetGenerator
+from nas.model.tensorflow.future.tf_activations_enum import KerasActivations
 from nas.model.tensorflow.future.tf_layer_initializer import LayerInitializer
 from nas.model.utils.branch_manager import GraphBranchManager
 
@@ -31,6 +32,7 @@ class NasModel(tf.keras.Model):
 
     def _one_block_output(self, node):
         pass
+
     def call(self, inputs, training=None, mask=None):
         inputs = self.input_layer(inputs)
         for node_id, layer in enumerate(self.model_structure):
@@ -40,11 +42,9 @@ class NasModel(tf.keras.Model):
                 batch_norm = LayerInitializer.batch_norm(node)
             if len(node.nodes_from) > 1:
                 parent_layer = self.branch_manager.get_parent_layer(node=node.nodes_from[1])['layer']
-                if downsample and parent_layer.shape != inputs.shape:
-                    parent_layer = downsample(parent_layer, layer.shape, node)
                 inputs = tf.keras.layers.Add()([inputs, parent_layer])
             if node.content['params'].get('activation_func'):
-                activation_func = KerasActivationsEnum(node.content['params'].get('activation_func'))
+                activation_func = tf.keras.layers.Activation(node.content['params'].get('activation_func'))
                 inputs = activation_func(inputs)
 
             self.branch_manager.add_and_update(node, inputs, self._graph_nodes.get_children(node))

@@ -16,7 +16,7 @@ class GraphBranchManager:
     def __setitem__(self, key, value: dict):
         self._streams[key] = value
 
-    def find_by_node(self, node: NasNode) -> int:
+    def find_by_node(self, node: Union[GraphNode, NasNode]) -> int:
         for key in self._streams.keys():
             if node == self._streams[key]['node']:
                 return key
@@ -25,7 +25,7 @@ class GraphBranchManager:
         key = self.find_by_node(node)
         return self._streams.pop(key)
 
-    def add_and_update(self, node: NasNode, layer, childrens):
+    def add_and_update(self, node: Union[GraphNode, NasNode], layer, childrens):
         _added_branches_keys = []
         self.update_keys()
         if self._streams:
@@ -35,7 +35,7 @@ class GraphBranchManager:
             for i in range(new_connections):
                 self._add(node, layer, _added_branches_keys)
 
-    def _add(self, node: NasNode, layer, ids: List):
+    def _add(self, node: Union[GraphNode, NasNode], layer, ids: List):
         key = len(self._streams.keys())
         self.__setitem__(key=key, value={'node': node, 'layer': layer})
         ids.append(key)
