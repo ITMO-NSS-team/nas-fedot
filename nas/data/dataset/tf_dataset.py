@@ -28,7 +28,7 @@ class KerasDataset(tf.keras.utils.Sequence):
                    range(batch_id * self.batch_size, (batch_id + 1) * self.batch_size)]
         if self._preprocessor:
             batch_x, batch_y = self._preprocessor.preprocess(batch_x, batch_y)
-        return tf.convert_to_tensor(batch_x), tf.convert_to_tensor(batch_y)
+        return tf.convert_to_tensor(batch_x, dtype=tf.float32), tf.convert_to_tensor(batch_y, dtype=tf.float32)
 
     def on_epoch_end(self):
         if self._shuffle:
