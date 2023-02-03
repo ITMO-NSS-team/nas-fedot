@@ -24,6 +24,7 @@ class ResNetGenerator(GraphGenerator):
     """
     This class generates ResNet-like graph as initial assumption
     """
+
     def __init__(self, model_requirements: ModelRequirements):
         self._model_requirements = deepcopy(model_requirements)
         self._model_requirements.conv_requirements.force_output_shape(64)
@@ -56,12 +57,27 @@ class ResNetGenerator(GraphGenerator):
             block_to_add = self._generate_sub_block(output_shape, stride)
             nodes_to_add = block_to_add.graph_struct
             skip_connection_start = graph.graph_struct[-1]
-            for node in nodes_to_add:
+            last_node = nodes_to_add[-1]
+
+            for n, node in enumerate(nodes_to_add):
+                if n == 1 and stride != 1:
+                    identity_node_requirements = load_default_requirements()
+                    identity_node_requirements.model_requirements.conv_requirements.min_number_of_neurons = output_shape
+                    identity_node_requirements.model_requirements.conv_requirements.max_number_of_neurons = output_shape
+
+                    identity_node = self._add_node(node_to_add=LayersPoolEnum.conv2d_1x1, stride=stride,
+                                                   node_requirements=identity_node_requirements.model_requirements)
+                    identity_node.nodes_from = [skip_connection_start]
+                    graph.add_node(identity_node)
+                    skip_connection_start = graph.graph_struct[-1]
                 if not node.nodes_from:
                     prev_node = graph.graph_struct[-1]
                     node.nodes_from.append(prev_node)
                 graph.add_node(node)
-            graph.graph_struct[-1].nodes_from.append(skip_connection_start)
+            #     graph.graph_struct[-2].nodes_from.append(skip_connection_start)
+            # else:
+            #     graph.graph_struct[-1].nodes_from.append(skip_connection_start)
+            last_node.nodes_from.append(skip_connection_start)
 
     def _generate_sub_block(self, output_shape: int, stride: int) -> NasGraph:
         res_block = NasGraph()

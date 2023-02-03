@@ -11,20 +11,27 @@ from nas.data.dataset.builder import BaseNasDatasetBuilder
 from nas.graph.cnn_graph import NasGraph
 from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.graph_builder.resnet_builder import ResNetGenerator
+from nas.graph.node.nas_graph_node import NasNode
 from nas.model.tensorflow.future.model_skeleton import ModelSkeleton
-from nas.model.tensorflow.future.tf_activations_enum import KerasActivations
-from nas.model.tensorflow.future.tf_layer_initializer import LayerInitializer
-from nas.model.utils.branch_manager import GraphBranchManager
+
+
+def iterate_over_graph(graph: NasGraph):
+    import numpy as np
+    for node in graph.graph_struct:
+        next_nodes = graph.node_children(node)
+        number_of_outputs = np.unique([graph.node_children(n) for n in next_nodes])
+        if len(number_of_outputs) != 1:
+            for n in next_nodes:
+
 
 
 def test_model():
-    import cv2
-
-
     requirements = load_default_requirements()
     graph_generation_function = BaseGraphBuilder()
     graph_generation_function.set_builder(ResNetGenerator(model_requirements=requirements.model_requirements))
     graph = graph_generation_function.build()
+
+    graph.show()
 
     model = NasModel(graph, [224, 224, 3], n_classes=75)
 
@@ -42,7 +49,6 @@ def test_model():
     model.compile(optimizer=tf.keras.optimizers.Adam(), loss='binary_crossentropy', metrics=[tf.metrics.Accuracy()])
     model.fit(data_generator)
 
-
     print('Done')
 
 
@@ -55,25 +61,31 @@ class NasModel(tf.keras.Model):
         output_shape = 1 if not n_classes else n_classes
         self.classifier = tf.keras.layers.Dense(output_shape, activation='softmax')
 
-    def call(self, inputs, training=None, mask=None):
-        # inputs = self._input_layer(inputs)
-        for node in self.model_structure.model_nodes:
-            layer = self.model_structure.model_struct[node]
-            inputs = layer(inputs)
-            if node.content['params'].get('epsilon'):
-                batch_norm = LayerInitializer.batch_norm(node)
-                inputs = batch_norm(inputs)
-            if len(node.nodes_from) > 1:
-                parent_layer = self.model_structure.branch_manager.get_parent_layer(node=node.nodes_from[1])['layer']
-                inputs = tf.keras.layers.Add()([inputs, parent_layer])
-            if node.content['params'].get('activation_func'):
-                activation_func = tf.keras.layers.Activation(node.content['params'].get('activation_func'))
-                inputs = activation_func(inputs)
+    def calculate_output(self, inputs: dict):
+        for node, layer in inputs.items():
+            next_nodes = self.model_structure.get_children(node)
 
-            self.model_structure.branch_manager.add_and_update(node, inputs, self.model_structure.get_children(node))
+    def call(self, inputs, training=None, mask=None):
+        first_node = self.model_structure.model_nodes[0]
+        first_layer = self.model_structure.model_layers[0]
+        inputs = {first_node: first_layer(inputs)}
+        inputs = self.calculate_output(inputs=inputs)
+        # def call(self, inputs, training=None, mask=None):
+        #     # inputs = self._input_layer(inputs)
+        #     for node in self.model_structure.model_nodes:
+        #         layer = self.model_structure.model_struct[node]
+        #         inputs = layer(inputs)
+        #         if node.content['params'].get('epsilon'):
+        #             batch_norm = LayerInitializer.batch_norm(node)
+        #             inputs = batch_norm(inputs)
+        #         if len(node.nodes_from) > 1:
+        #             parent_layer = self.model_structure.branch_manager.get_parent_layer(node=node.nodes_from[1])['layer']
+        #             inputs = tf.keras.layers.Add()([inputs, parent_layer])
+        #         if node.content['params'].get('activation_func'):
+        #             activation_func = tf.keras.layers.Activation(node.content['params'].get('activation_func'))
+        #             inputs = activation_func(inputs)
+        #
+        #         self.model_structure.branch_manager.add_and_update(node, inputs, self.model_structure.get_children(node))
 
         output = self.classifier(inputs)
         return output
-
-
-
