@@ -5,7 +5,7 @@ import cv2
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 from nas.data import BaseNasImageData, Preprocessor
-from nas.data.dataset.builder import BaseNasDatasetBuilder
+from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.data.dataset.tf_dataset import KerasDataset
 from nas.utils.utils import set_root, project_root
 
@@ -46,7 +46,7 @@ def test_preprocessor_mode_switch():
 def test_dataset_batch_size_change():
     data = BaseNasImageData.data_from_folder(pathlib.Path(project_root(), 'example_datasets/butterfly_cls'),
                                              Task(TaskTypesEnum.classification))
-    dataset = BaseNasDatasetBuilder(KerasDataset, batch_size=1)
+    dataset = ImageDatasetBuilder(KerasDataset, batch_size=1)
     generator_1 = dataset.build(data, mode='train')
     generator_2 = dataset.build(data, mode='train', batch_size=2)
     generator_3 = dataset.build(data, mode='train', batch_size=3)
@@ -61,7 +61,7 @@ def test_dataset_mode_switch():
                                              Task(TaskTypesEnum.classification))
     preprocessor = Preprocessor((32, 32))
     preprocessor.set_features_transformations([data_transformation_one, data_transformation_two])
-    dataset = BaseNasDatasetBuilder(KerasDataset, batch_size=1).set_data_preprocessor(preprocessor)
+    dataset = ImageDatasetBuilder(KerasDataset, batch_size=1).set_data_preprocessor(preprocessor)
     dataset_one = dataset.build(data, mode='test')
     dataset_two = dataset.build(data, mode='train')
     assert dataset_one._shuffle is False
