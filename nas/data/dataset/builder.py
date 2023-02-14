@@ -1,22 +1,33 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Callable, Optional, Type
 
+from fedot.core.data.data import InputData
+
 from nas.data import Preprocessor, ImageLoader
+from nas.data.loader import BaseDataLoader
 
 
-class BaseNasDatasetBuilder:
-    def __init__(self, dataset_cls: Callable, batch_size: int = 32, shuffle: bool = True):
-        self._data_preprocessor: Optional[Preprocessor] = None
+class BaseNNDataset(ABC):
+    def __init__(self, dataset_cls: Callable, batch_size: int, loader: Type[BaseDataLoader], shuffle: bool):
+        self.dataset_cls = dataset_cls
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self._data_loader: Type[ImageLoader] = ImageLoader
-        self._dataset_cls: Callable = dataset_cls
+        self.loader = loader
 
-    def set_loader(self, loader: ImageLoader):
-        self._data_loader = loader
-        return self
+    @abstractmethod
+    def build(self, data: InputData, **kwargs):
+        """This method builds tensorflow or pytorch dataset"""
+        raise NotImplementedError
+
+
+class ImageDatasetBuilder(BaseNNDataset):
+    def __init__(self, dataset_cls: Callable, batch_size: int = 32, loader: Type[BaseDataLoader] = ImageLoader,
+                 shuffle: bool = True):
+        super().__init__(dataset_cls, batch_size, loader, shuffle)
+        self._data_preprocessor: Optional[Preprocessor] = None
 
     def set_data_preprocessor(self, preprocessor: Preprocessor):
         self._data_preprocessor = preprocessor
@@ -33,8 +44,8 @@ class BaseNasDatasetBuilder:
         if self._data_preprocessor:
             data_preprocessor = deepcopy(self._data_preprocessor)
             data_preprocessor.mode = 'evaluation' if mode == 'test' else 'default'
-        data_loader = self._data_loader(data)
+        loader = self.loader(data)
 
-        dataset = self._dataset_cls(batch_size=batch_size, shuffle=shuffle,
-                                    preprocessor=data_preprocessor, loader=data_loader)
+        dataset = self.dataset_cls(batch_size=batch_size, shuffle=shuffle,
+                                   preprocessor=data_preprocessor, loader=loader)
         return dataset

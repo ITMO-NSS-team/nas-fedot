@@ -13,7 +13,7 @@ from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
 from golem.core.optimisers.graph import OptGraph
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.dataset.builder import BaseNasDatasetBuilder
+from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.graph.cnn_graph import NasGraph
 from nas.optimizer.objective.nas_objective_evaluate import NasObjectiveEvaluate
 
@@ -27,7 +27,7 @@ class NasComposer(Composer):
         super().__init__(optimizer, composer_requirements)
 
         self.best_models = ()
-        self._data_transformer: Optional[BaseNasDatasetBuilder] = None
+        self._dataset_builder: Optional[ImageDatasetBuilder] = None
         self.pipelines_cache = pipelines_cache
         self.preprocessing_cache = preprocessing_cache
 
@@ -38,8 +38,8 @@ class NasComposer(Composer):
         best_graph = best_graphs if multi_objective else best_graphs[0]
         return best_graph, best_graphs
 
-    def set_data_transformer(self, transformer: BaseNasDatasetBuilder) -> NasComposer:
-        self._data_transformer = transformer
+    def set_dataset_builder(self, dataset_builder: ImageDatasetBuilder) -> NasComposer:
+        self._dataset_builder = dataset_builder
         return self
 
     def set_callbacks(self, callbacks):
@@ -54,7 +54,7 @@ class NasComposer(Composer):
 
         data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
 
-        objective_evaluator = NasObjectiveEvaluate(self.optimizer.objective, data_producer, self._data_transformer,
+        objective_evaluator = NasObjectiveEvaluate(self.optimizer.objective, data_producer, self._dataset_builder,
                                                    self.composer_requirements, self.pipelines_cache,
                                                    self.preprocessing_cache, optimization_verbose)
         objective_function = objective_evaluator.evaluate
