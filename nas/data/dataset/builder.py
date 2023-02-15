@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Callable, Optional, Type
+from typing import Callable, Optional, Type, Union, Tuple, List
 
 from fedot.core.data.data import InputData
 
@@ -24,10 +24,18 @@ class BaseNNDataset(ABC):
 
 
 class ImageDatasetBuilder(BaseNNDataset):
-    def __init__(self, dataset_cls: Callable, batch_size: int = 32, loader: Type[BaseDataLoader] = ImageLoader,
-                 shuffle: bool = True):
+    def __init__(self, dataset_cls: Callable, image_size: Union[Tuple[int, int], List[int, int]],
+                 batch_size: int = 32, loader: Type[BaseDataLoader] = ImageLoader, shuffle: bool = True):
         super().__init__(dataset_cls, batch_size, loader, shuffle)
         self._data_preprocessor: Optional[Preprocessor] = None
+        self._image_size = image_size
+
+    @property
+    def image_size(self) -> Tuple:
+        if type(self._image_size) == tuple:
+            return self._image_size
+        else:
+            return tuple(self._image_size)
 
     def set_data_preprocessor(self, preprocessor: Preprocessor):
         self._data_preprocessor = preprocessor
@@ -40,11 +48,11 @@ class ImageDatasetBuilder(BaseNNDataset):
 
         shuffle = train_mode.get(mode, self.shuffle)
         batch_size = kwargs.pop('batch_size', self.batch_size)
-        data_preprocessor = None
-        if self._data_preprocessor:
-            data_preprocessor = deepcopy(self._data_preprocessor)
-            data_preprocessor.mode = 'evaluation' if mode == 'test' else 'default'
-        loader = self.loader(data)
+        if mode == 'test':
+            data_preprocessor = None
+        else:
+            data_preprocessor = self._data_preprocessor
+        loader = self.loader(data, self.image_size)
 
         dataset = self.dataset_cls(batch_size=batch_size, shuffle=shuffle,
                                    preprocessor=data_preprocessor, loader=loader)

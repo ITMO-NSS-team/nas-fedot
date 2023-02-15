@@ -17,7 +17,7 @@ def _load_dataset_as_input_data():
     path = 'example_datasets/butterfly_cls'
     task = Task(TaskTypesEnum.classification)
     dataset_path = pathlib.Path(path)
-    return nas.data.nas_data.BaseNasImageData.data_from_folder(dataset_path, task)
+    return nas.data.nas_data.InputDataNN.data_from_folder(dataset_path, task)
 
 
 def _make_generator(mode: str):

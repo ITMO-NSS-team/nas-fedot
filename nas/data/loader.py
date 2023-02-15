@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Union, Tuple, List
 
 import cv2
 import numpy as np
@@ -10,7 +11,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 class BaseDataLoader(ABC):
     """Base class that performs data loading from InputData."""
-    def __init__(self, dataset: InputData):
+    def __init__(self, dataset: InputData, *args, **kwargs):
         self.dataset = dataset
 
     @property
@@ -31,22 +32,25 @@ class BaseDataLoader(ABC):
     def __getitem__(self, item):
         raise NotImplementedError
 
+    @abstractmethod
     def __len__(self):
-        return len(self.features)
+        raise NotImplementedError
 
 
 class ImageLoader(BaseDataLoader):
     """Class for loading image dataset from InputData format. Implements loading by batches"""
 
-    def __init__(self, dataset: InputData):
+    def __init__(self, dataset: InputData, image_size: Tuple[int, int]):
         super().__init__(dataset)
+        self._image_size = image_size
 
     @property
     def features(self):
         return self.dataset.features.flatten()
 
     def get_feature(self, idx):
-        return cv2.imread(self.features[idx])
+        feature = cv2.imread(self.features[idx])
+        return cv2.resize(feature, dsize=self._image_size)
 
     def get_target(self, idx):
         return self.target[idx]
@@ -54,3 +58,5 @@ class ImageLoader(BaseDataLoader):
     def __getitem__(self, item):
         return self.get_feature(item), self.get_target(item)
 
+    def __len__(self):
+        return len(self.features)

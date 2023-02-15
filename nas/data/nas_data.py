@@ -16,7 +16,7 @@ supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.s
 
 
 @dataclass
-class BaseNasImageData(Data):
+class InputDataNN(Data):
     """ Class for loading heavy datasets into FEDOT's InputData e.g. image datasets"""
 
     @staticmethod
