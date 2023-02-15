@@ -50,7 +50,7 @@ def build_butterfly_cls(save_path=None):
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
     dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    data = nas.data.nas_data.BaseNasImageData.data_from_folder(dataset_path, task)
+    data = nas.data.nas_data.InputDataNN.data_from_folder(dataset_path, task)
 
     cv_folds = None
     image_side_size = 64
@@ -112,9 +112,9 @@ def build_butterfly_cls(save_path=None):
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
 
-    data_preprocessor = Preprocessor((image_side_size, image_side_size))
+    data_preprocessor = Preprocessor()
 
-    dataset_builder = ImageDatasetBuilder(dataset_cls=KerasDataset,
+    dataset_builder = ImageDatasetBuilder(dataset_cls=KerasDataset, image_size=(image_side_size, image_side_size),
                                           batch_size=requirements.model_requirements.batch_size,
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
