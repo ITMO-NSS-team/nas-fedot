@@ -38,6 +38,7 @@ from nas.operations.validation_rules.cnn_val_rules import *
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
+from nas.data.nas_data import InputDataNN
 
 gpus = tf.config.list_physical_devices('GPU')
 print(gpus)
@@ -46,17 +47,17 @@ set_root(project_root())
 
 
 def build_butterfly_cls(save_path=None):
+    cv_folds = None
+    image_side_size = 128
+    batch_size = 64
+    epochs = 10
+    optimization_epochs = 1
+
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    data = nas.data.nas_data.InputDataNN.data_from_folder(dataset_path, task)
-
-    cv_folds = None
-    image_side_size = 64
-    batch_size = 64
-    epochs = 2
-    optimization_epochs = 1
+    dataset_path = pathlib.Path(f'{project_root()}/../datasets/butterfly_cls/train')
+    data = InputDataNN.data_from_folder(dataset_path, task)
 
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
                         LayersPoolEnum.conv2d_7x7]
@@ -132,6 +133,7 @@ def build_butterfly_cls(save_path=None):
     optimized_network.compile_model(model_requirements.input_shape, 'categorical_crossentropy',
                                     metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
                                     n_classes=model_requirements.num_of_classes)
+
     optimized_network.fit(train_generator, val_generator, model_requirements.epochs, model_requirements.batch_size,
                           [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1,
                                                             mode='min'),

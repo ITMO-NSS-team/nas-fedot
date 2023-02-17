@@ -19,6 +19,9 @@ from nas.composer.nn_composer_requirements import NNComposerRequirements
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.graph.cnn_graph import NasGraph
 
+import tensorflow
+from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
+
 G = TypeVar('G', Graph, OptGraph)
 
 
@@ -48,9 +51,6 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         self._log = default_log(self)
 
     def one_fold_train(self, graph: NasGraph, data: InputData, **kwargs):
-        import tensorflow
-        from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
-
         if not self._optimization_verbose == 'silent':
             fold_id = kwargs.pop('fold_id')
             self._log.message(f'\nTrain fold number: {fold_id}')
