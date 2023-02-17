@@ -8,11 +8,11 @@ HERE = Path(__file__).parent.resolve()
 
 # The text of the README file
 NAME = 'nas-fedot'
-VERSION = '0.1.1'
+VERSION = '0.1.2'
 AUTHOR = 'NSS Lab'
 SHORT_DESCRIPTION = 'Neural architecture search'
 README = Path(HERE, 'README.md').read_text(encoding='utf-8')
-URL = 'https://github.com/ITMO-NSS-team/nas-fedot/archive/resnet_builder.zip'
+URL = 'https://github.com/ITMO-NSS-team/nas-fedot/archive/master.zip'
 REQUIRES_PYTHON = '>=3.9'
 LICENSE = 'BSD 3-Clause'
 
@@ -34,15 +34,11 @@ def _get_requirements(req_name: str):
 
 
 setuptools.setup(
-    install_requires=_get_requirements('new_requirements.txt'),
+    install_requires=_get_requirements('requirements.txt'),
     name=NAME,
     version=VERSION,
     packages=setuptools.find_packages(exclude=['tests*']),
     include_package_data=True,
-    # extras_require={
-    #     key: _get_requirements(Path('other_requirements', f'{key}.txt'))
-    #     for key in ('docs', 'examples', 'extra', 'profilers')
-    # },
     classifiers=[
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.9'

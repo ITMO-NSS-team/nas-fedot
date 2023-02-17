@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from typing import Callable, Optional, Type, Union, Tuple, List
 
 from fedot.core.data.data import InputData
