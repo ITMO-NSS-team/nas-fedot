@@ -57,6 +57,7 @@ def build_butterfly_cls(save_path=None):
     batch_size = 64
     epochs = 2
     optimization_epochs = 1
+
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
                         LayersPoolEnum.conv2d_7x7]
 
