@@ -1,40 +1,62 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+from typing import Union, Tuple, List
+
 import cv2
 import numpy as np
 from fedot.core.data.data import InputData
 from sklearn.preprocessing import OneHotEncoder
 
 
-class ImageLoader:
-    """Class for loading image dataset from InputData format. Implements loading by batches"""
+class BaseDataLoader(ABC):
+    """Base class that performs data loading from InputData."""
+    def __init__(self, dataset: InputData, *args, **kwargs):
+        self.dataset = dataset
 
-    def __init__(self, dataset: InputData):
-        self.idx = dataset.idx
-        self.task = dataset.task
-        self.data_type = dataset.data_type
-        self.features = dataset.features.flatten()
-        self.target = self.transform_targets(dataset.target)
-        self.num_classes = dataset.num_classes
+    @property
+    def features(self):
+        return self.dataset.features
 
-    def get_feature(self, idx):
-        return cv2.imread(self.features[idx])
-
-    def get_target(self, idx):
-        return self.target[idx]
-
-    def __len__(self):
-        return len(self.features)
-
-    def __getitem__(self, item):
-        return self.get_feature(item), self.get_target(item)
-
-    @staticmethod
-    def transform_targets(targets):
-        new_targets = np.reshape(targets, (-1, 1))
-        num_classes = len(np.unique(targets))
+    @property
+    def target(self):
+        new_targets = np.reshape(self.dataset.target, (-1, 1))
+        num_classes = len(np.unique(self.dataset.target))
 
         if num_classes > 2:
             encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse=False)
             new_targets = encoder.fit_transform(new_targets)
         return new_targets
+
+    @abstractmethod
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    @abstractmethod
+    def __len__(self):
+        raise NotImplementedError
+
+
+class ImageLoader(BaseDataLoader):
+    """Class for loading image dataset from InputData format. Implements loading by batches"""
+
+    def __init__(self, dataset: InputData, image_size: Tuple[int, int]):
+        super().__init__(dataset)
+        self._image_size = image_size
+
+    @property
+    def features(self):
+        return self.dataset.features.flatten()
+
+    def get_feature(self, idx):
+        feature = cv2.imread(self.features[idx])
+        return cv2.resize(feature, dsize=self._image_size)
+
+    def get_target(self, idx):
+        return self.target[idx]
+
+    def __getitem__(self, item):
+        return self.get_feature(item), self.get_target(item)
+
+    def __len__(self):
+        return len(self.features)

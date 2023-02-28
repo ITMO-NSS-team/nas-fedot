@@ -40,7 +40,7 @@ class KerasDataset(tf.keras.utils.Sequence):
     # Hotfixes
     @property
     def num_classes(self):
-        return self._loader.num_classes
+        return self._loader.dataset.num_classes
 
     @property
     def target(self):
@@ -52,12 +52,12 @@ class KerasDataset(tf.keras.utils.Sequence):
 
     @property
     def idx(self):
-        return self._loader.idx
+        return self._loader.dataset.idx
 
     @property
     def task(self):
-        return self._loader.task
+        return self._loader.dataset.task
 
     @property
     def data_type(self):
-        return self._loader.data_type
+        return self._loader.dataset.data_type

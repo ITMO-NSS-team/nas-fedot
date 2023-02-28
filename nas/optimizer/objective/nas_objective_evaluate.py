@@ -16,8 +16,11 @@ from golem.core.optimisers.objective import ObjectiveEvaluate
 from golem.core.optimisers.objective.objective import to_fitness, Objective
 
 from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.dataset.builder import BaseNasDatasetBuilder
+from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.graph.cnn_graph import NasGraph
+
+import tensorflow
+from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
 
 G = TypeVar('G', Graph, OptGraph)
 
@@ -34,7 +37,7 @@ def _exceptions_save(graph: NasGraph, error_msg: Exception):
 
 
 class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
-    def __init__(self, objective: Objective, data_producer: DataSource, data_transformer: BaseNasDatasetBuilder,
+    def __init__(self, objective: Objective, data_producer: DataSource, data_transformer: ImageDatasetBuilder,
                  requirements: NNComposerRequirements, pipeline_cache: Any = None,
                  preprocessing_cache: Any = None, eval_n_jobs: int = 1, optimization_verbose=None, **objective_kwargs):
         # Add cache
@@ -48,9 +51,6 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         self._log = default_log(self)
 
     def one_fold_train(self, graph: NasGraph, data: InputData, **kwargs):
-        import tensorflow
-        from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
-
         if not self._optimization_verbose == 'silent':
             fold_id = kwargs.pop('fold_id')
             self._log.message(f'\nTrain fold number: {fold_id}')
@@ -80,7 +80,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         return self._objective(graph, reference_data=test_dataset)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
-        super().evaluate(graph)
+        # super().evaluate(graph)
         if not self._optimization_verbose == 'silent':
             self._log.info('Fit for graph has started.')
         graph_id = graph.root_node.descriptive_id

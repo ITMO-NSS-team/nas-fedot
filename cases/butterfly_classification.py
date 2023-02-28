@@ -27,7 +27,7 @@ from fedot.core.repository.tasks import TaskTypesEnum, Task
 import nas.composer.nn_composer_requirements as nas_requirements
 from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
-from nas.data.dataset.builder import BaseNasDatasetBuilder
+from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.data.preprocessor import Preprocessor
 from nas.graph.cnn_graph import NasNode
 from nas.graph.graph_builder.resnet_builder import ResNetGenerator
@@ -38,6 +38,7 @@ from nas.operations.validation_rules.cnn_val_rules import *
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
+from nas.data.nas_data import InputDataNN
 
 gpus = tf.config.list_physical_devices('GPU')
 print(gpus)
@@ -46,17 +47,18 @@ set_root(project_root())
 
 
 def build_butterfly_cls(save_path=None):
+    cv_folds = None
+    image_side_size = 128
+    batch_size = 64
+    epochs = 10
+    optimization_epochs = 1
+
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('../datasets/butterfly_cls/train')
-    data = nas.data.nas_data.BaseNasImageData.data_from_folder(dataset_path, task)
+    dataset_path = pathlib.Path(f'{project_root()}/../datasets/butterfly_cls/train')
+    data = InputDataNN.data_from_folder(dataset_path, task)
 
-    cv_folds = None
-    image_side_size = 64
-    batch_size = 64
-    epochs = 2
-    optimization_epochs = 1
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
                         LayersPoolEnum.conv2d_7x7]
 
@@ -112,25 +114,26 @@ def build_butterfly_cls(save_path=None):
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
 
-    data_preprocessor = Preprocessor((image_side_size, image_side_size))
+    data_preprocessor = Preprocessor()
 
-    data_transformer = BaseNasDatasetBuilder(dataset_cls=KerasDataset,
-                                             batch_size=requirements.model_requirements.batch_size,
-                                             shuffle=True).set_data_preprocessor(data_preprocessor)
+    dataset_builder = ImageDatasetBuilder(dataset_cls=KerasDataset, image_size=(image_side_size, image_side_size),
+                                          batch_size=requirements.model_requirements.batch_size,
+                                          shuffle=True).set_data_preprocessor(data_preprocessor)
 
     composer = builder.build()
-    composer.set_data_transformer(data_transformer)
+    composer.set_dataset_builder(dataset_builder)
 
     optimized_network = composer.compose_pipeline(train_data)
 
     train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
 
-    train_generator = data_transformer.build(train_data, mode='train')
-    val_generator = data_transformer.build(val_data, mode='val')
+    train_generator = dataset_builder.build(train_data, mode='train')
+    val_generator = dataset_builder.build(val_data, mode='val')
 
     optimized_network.compile_model(model_requirements.input_shape, 'categorical_crossentropy',
                                     metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
                                     n_classes=model_requirements.num_of_classes)
+
     optimized_network.fit(train_generator, val_generator, model_requirements.epochs, model_requirements.batch_size,
                           [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1,
                                                             mode='min'),
@@ -138,7 +141,7 @@ def build_butterfly_cls(save_path=None):
                                                                 verbose=1,
                                                                 min_delta=1e-4, mode='min')])
 
-    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, data_transformer)
+    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, dataset_builder)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
 
