@@ -25,9 +25,9 @@ class Preprocessor(BasePreprocessor):
         super().__init__(transformations)
 
     def transform_sample(self, sample):
+        from functools import reduce
         if self.transformations:
-            for t in self.transformations:
-                sample = t(sample)
+            sample = reduce(lambda res, f: f(res), self.transformations, sample)
         return sample
 
     def preprocess(self, features_batch, targets_batch):
