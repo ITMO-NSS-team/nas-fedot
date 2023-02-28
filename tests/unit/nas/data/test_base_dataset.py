@@ -20,6 +20,16 @@ def data_transformation_two(sample: Any) -> Any:
     return cv2.resize(sample, (5, 5))
 
 
+def test_preprocessor_transformations():
+    data = InputDataNN.data_from_folder(pathlib.Path(project_root(), 'example_datasets/butterfly_cls'),
+                                        Task(TaskTypesEnum.classification))
+    preprocessor = Preprocessor([data_transformation_one, data_transformation_two])
+    dataset = ImageDatasetBuilder(KerasDataset, batch_size=1, image_size=[24, 24]).set_data_preprocessor(preprocessor)
+    generator_1 = dataset.build(data, mode='train')
+    _s = generator_1[0]
+    assert _s[0].shape[1:3] == (5, 5)
+
+
 def test_preprocessor_mode_switch():
     data = InputDataNN.data_from_folder(pathlib.Path(project_root(), 'example_datasets/butterfly_cls'),
                                         Task(TaskTypesEnum.classification))
