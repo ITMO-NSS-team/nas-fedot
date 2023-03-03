@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, List, TYPE_CHECKING
+from abc import abstractmethod, ABC
+from typing import Callable, Optional, List, TYPE_CHECKING, Type
 
 import tensorflow
 
+from nas.model.tensorflow.future.tf_layer_initializer import LayerInitializer
 from nas.model.tensorflow.tf_layers import KerasLayers
 from nas.model.utils.branch_manager import GraphBranchManager
+from nas.model.utils.model_structure import ModelStructure
 
 if TYPE_CHECKING:
     from nas.graph.cnn_graph import NasGraph
@@ -25,7 +28,7 @@ class ModelBuilder:
 
 
 class KerasModelMaker:
-    def __init__(self, input_shape: List, graph: NasGraph, converter: Callable, num_classes: int = None):
+    def __init__(self, input_shape: List, graph: NasGraph, converter: Type[ModelStructure], num_classes: int = None):
         self.num_classes = num_classes
         self._graph_struct = converter(graph)
         self._branch_manager = GraphBranchManager()
@@ -73,3 +76,84 @@ class KerasModelMaker:
         model = tensorflow.keras.Model(inputs=inputs, outputs=output, name='nas_model')
 
         return model
+
+
+class BaseNasModel(ABC):
+    def __init__(self, graph, model_structure_builder, *args, **kwargs):
+        self.model = None
+
+    @property
+    def model_builder_class(self):
+        return self._model_builder_class
+
+    def set_model_builder(self, model_builder_class):
+        self._model_builder_class = model_builder_class
+
+    @abstractmethod
+    def compile_model(self, graph: NasGraph, model_structure_builder: Type[ModelStructure]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def fit(self, train_data, val_data, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self, data):
+        raise NotImplementedError
+
+
+class BaseModelInterface(ABC):
+    def __init__(self, graph: NasGraph, model_struct_builder: Type[ModelStructure]):
+        self.model: BaseNasModel  # TF or Torch model obj
+
+    @abstractmethod
+    def fit(self, train_data, val_data, **additional_params):
+        # train self.model with prerequirements
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self, test_data, **additional_params):
+        raise NotImplementedError
+
+
+
+
+class NasModelInterface(BaseModelInterface):
+    def __init__(self, graph, model_structure_builder):
+        super().__init__()
+
+
+class TensorflowModel(tensorflow.keras.Model):
+    def __init__(self, graph: NasGraph, structure_builder: Type[ModelStructure], input_shape, n_classes: Optional[int] = None):
+        super().__init__()
+        self._model_layers = None
+        self.output_layer = None
+        self._layers_hierarchy = structure_builder(graph)
+        self.initialize_layers(input_shape, n_classes)
+
+    def initialize_layers(self, input_shape, output_shape):
+        output_shape = 1 if output_shape <= 2 else output_shape
+        activation_func = 'sigmoid' if output_shape == 2 else 'softmax'
+        layer_initializer = LayerInitializer()
+
+        self._model_layers = [layer_initializer.initialize_layer(node) for node in self._layers_hierarchy.graph.nodes]
+        self.output_layer = tensorflow.keras.layers.Dense(self._output_shape, activation=activation_func)
+
+    def call(self, inputs, training=None, mask=None):
+        return
+
+
+class TensorflowModelInterface(BaseNasModel):
+    def __init__(self, graph: NasGraph, model_structure_builder: Type[ModelStructure]):
+        super().__init__()
+        self.model = TensorflowModel(graph, model_structure_builder)
+
+    def fit(self, train_data, val_data, dataset_builder):
+        train_dataset = dataset_builder.build(train_data)
+        val_dataset = dataset_builder.build(val_data)
+        self.model.compile()
+        self.model.train(train_dataset, val_dataset)
+        return self
+
+    def predict(self, data):
+        return
