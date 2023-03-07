@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from abc import abstractmethod, ABC
 from typing import Callable, Optional, List, TYPE_CHECKING
 
 import tensorflow
+from fedot.core.data.data import InputData
 
+from nas.model.tensorflow.future.tf_layer_initializer import LayerInitializer
 from nas.model.tensorflow.tf_layers import KerasLayers
 from nas.model.utils.branch_manager import GraphBranchManager
+from nas.model.utils.model_structure import _ModelStructure
 
 if TYPE_CHECKING:
     from nas.graph.cnn_graph import NasGraph
@@ -73,3 +77,73 @@ class KerasModelMaker:
         model = tensorflow.keras.Model(inputs=inputs, outputs=output, name='nas_model')
 
         return model
+
+
+class BaseNasTFModel(tensorflow.keras.Model):
+    def __init__(self, model_struct: _ModelStructure, n_classes: int = None, input_shape=None):
+        super().__init__()
+        self.model_layers = None
+        self.classifier = None
+        self.model_structure = model_struct
+        self.initialize_layers(n_classes)
+
+    def initialize_layers(self, n_classes: int):
+        output_shape = n_classes if n_classes > 2 else 1
+        activation_function = 'categorical_crossentropy' if output_shape > 1 else 'binary_crossentropy'
+        self.model_layers = [LayerInitializer().initialize_layer(node) for node in self.model_structure.graph]
+        self.classifier = tensorflow.keras.layers.Dense(output_shape, activation=activation_function)
+
+    def calculate_one_layer(self, inputs, layers):
+        for layer in layers:
+            inputs.pop(layers)
+
+    def call(self, inputs, training=None, mask=None):
+        input_layer = {self.model_structure.graph.nodes[0]: self.model_layers[0](inputs)}  # TODO
+        for layers_lst in self.model_structure:
+            input_layer = self.calculate_one_layer(input_layer, layers_lst)
+
+
+class BaseModelInterface(ABC):
+    """
+    Class Interface for model handling
+    """
+
+    def __init__(self, model):
+        self.model = model
+
+    @staticmethod
+    @abstractmethod
+    def prepare_data(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def compile_model(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def fit(self, *args, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class NasTFModel(BaseModelInterface):
+    def __init__(self, model: tensorflow.keras.Model):
+        super().__init__(model)
+
+    @staticmethod
+    def prepare_data(*args, **kwargs):
+        pass
+
+    def compile_model(self, callbacks, metrics, **additional_params):
+        pass
+
+    def fit(self, train_data: InputData, val_data: InputData, epochs, batch_size):
+        train_generator = self.prepare_data(train_data)
+        val_generator = self.prepare_data(val_data)
+        pass
+
+    def predict(self, *args, **kwargs):
+        pass
