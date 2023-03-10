@@ -80,27 +80,74 @@ class KerasModelMaker:
 
 
 class BaseNasTFModel(tensorflow.keras.Model):
-    def __init__(self, model_struct: _ModelStructure, n_classes: int = None, input_shape=None):
+    def __init__(self, model_struct: _ModelStructure, n_classes: int = None):
         super().__init__()
         self.model_layers = None
         self.classifier = None
         self.model_structure = model_struct
         self.initialize_layers(n_classes)
 
+        self._inputs_dict = dict()
+
     def initialize_layers(self, n_classes: int):
         output_shape = n_classes if n_classes > 2 else 1
         activation_function = 'categorical_crossentropy' if output_shape > 1 else 'binary_crossentropy'
-        self.model_layers = [LayerInitializer().initialize_layer(node) for node in self.model_structure.graph]
+        self.model_layers = [LayerInitializer().initialize_layer(node) for node in self.model_structure.graph.nodes]
         self.classifier = tensorflow.keras.layers.Dense(output_shape, activation=activation_function)
 
-    def calculate_one_layer(self, inputs, layers):
-        for layer in layers:
-            inputs.pop(layers)
+    def make_one_layer(self, inputs, next_node_ids: List):
+        #  assemble layer
+        tmp_inputs = None  # temporal var for cases where original inputs is required to be saved
+                           # (e.g. sudden switch from main branch to residual)
+        current_node_id = self.model_structure.iterator
+        current_node = self.model_structure.graph.nodes[current_node_id]
+
+        # if current node was part of residual branch (e.g. if there are more than 1 layer in branch)
+        # then INPUT should be returned instead of LAYER_OUTPUT,  and LAYER_OUTPUT should be saved in
+        # SELF._INPUTS_DICT[next_node_ids[0]]
+
+        if current_node_id in self._inputs_dict.keys():
+            tmp_inputs = inputs
+            inputs = self._inputs_dict.pop(current_node_id)
+
+        layer_func = self.model_layers[current_node_id]
+        # if not self._inputs_dict.get(current_node_id) else \
+        # self._inputs_dict.pop(current_node_id)
+
+        layer_output = layer_func(inputs)
+
+        # skip connection assemble
+        if len(current_node.nodes_from) > 1:
+            #  extract layer result for skip connection assemble
+            skip_connection_start_layer = self._inputs_dict.pop(next_node_ids)  # if it is a list,
+            # then iterate over it and extract each layer simultaneously. For cases where
+            # there are more than 1 skip connection for node.
+
+            layer_output = tensorflow.keras.layers.add([layer_output, *skip_connection_start_layer])
+
+        # applying activation function, batch_norm, dropout pooling.
+
+        activation = current_node.content['params']['activation']  # TODO
+
+        layer_output = activation(layer_output)
+
+        # update self._inputs_dict by new id if there are several children for current node.
+        # next_node_ids is a list where 0 id is a main path and other ids are residual path (TODO check it)
+        if len(next_node_ids) > 1 or tmp_inputs:
+            self._inputs_dict[next_node_ids[-1]] = layer_output
+        if tmp_inputs:
+            return tmp_inputs
+        return layer_output
 
     def call(self, inputs, training=None, mask=None):
-        input_layer = {self.model_structure.graph.nodes[0]: self.model_layers[0](inputs)}  # TODO
-        for layers_lst in self.model_structure:
-            input_layer = self.calculate_one_layer(input_layer, layers_lst)
+        _inputs_dict = {}
+        inputs = {self.model_layers.graph.nodes[0]: self.model_layers[0](inputs)}
+        for output_layers_lst in self.model_structure:
+            inputs = self.make_one_layer(inputs, output_layers_lst)
+
+        output = self.classifier(inputs)
+
+        return output
 
 
 class BaseModelInterface(ABC):

@@ -55,6 +55,9 @@ class _ModelStructure:
     def nodes_matrix(self):
         return self._nodes_matrix
 
+    def __len__(self):
+        return len(self.nodes_matrix)
+
     def __iter__(self):
         return self
 
