@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Union, List, Tuple, Optional
 
 import numpy as np
+import tensorflow.python.keras.metrics
+from golem.core.dag.convert import graph_structure_as_nx_graph
 from golem.core.dag.graph_node import GraphNode
 from golem.core.dag.graph_utils import ordered_subnodes_hierarchy
 
@@ -39,21 +42,30 @@ class ModelStructure:
         self._iterator = 0
 
 
+@dataclass
 class _ModelStructure:
-    def __init__(self, graph: NasGraph):
-        self.iterator = 0
-        self.iterator_max_value = len(graph.nodes)
-        self._nodes_matrix = np.zeros((len(graph.nodes), len(graph.nodes)), dtype=int)
-        self._graph = graph
-        self.init_matrix()
+    # def __init__(self, graph: NasGraph):
+    #     self.current_node_id = 0
+    #     self.max_node_id = len(graph.nodes)
+    #     self._nodes_matrix = np.zeros((len(graph.nodes), len(graph.nodes)), dtype=int)
+    #     self._graph = graph
+    #     self.residual_connections = None
+    #     self.initialize_matrix()
+    graph: NasGraph
+    graph_adjacency = None
+    nx_struct = None
+    current_node_id: int = None
+    max_node_id: int = None
+    nodes_matrix: np.ndarray = None
+    nodes_hierarchy = None
 
-    @property
-    def graph(self):
-        return self._graph
-
-    @property
-    def nodes_matrix(self):
-        return self._nodes_matrix
+    def __post_init__(self):
+        nx_graph, self.nx_struct = graph_structure_as_nx_graph(graph)
+        self.graph_adjacency = [(n, nbrdict) for n, nbrdict in graph.adjacency()]
+        # self.graph_adjacency = {hash(self.nx_struct[node]): map(hash, [self.nx_struct[node_uuid] for node_uuid in successors]) for node, successors in nx_graph.adjacency()}
+        self.nodes_matrix = np.zeros((len(graph.nodes), len(graph.nodes)), dtype=int)
+        self.initialize_matrix()
+        self.reset_current_node_id()
 
     def __len__(self):
         return len(self.nodes_matrix)
@@ -61,17 +73,18 @@ class _ModelStructure:
     def __iter__(self):
         return self
 
-    def __next__(self):
-        if self.iterator < self.iterator_max_value:
-            val = self.nodes_matrix[:, self.iterator]
-            self.iterator += 1
-            return self.get_indices_from_vector(val)
+    def __next__(self) -> Tuple:
+        # Returns current node id and indices of its children.
+        if self.current_node_id < self.max_node_id:
+            val = self.nodes_matrix[:, self.current_node_id]
+            self.current_node_id += 1
+            return self.current_node_id, self.get_indices_from_vector(val)
             # mb return non-zero indices instead of vector of numbers.
         else:
-            self.iterator = 0
+            self.current_node_id = 0
             raise StopIteration
 
-    def init_matrix(self):
+    def initialize_matrix(self):
         _nodes_id = {node: node_id for node_id, node in enumerate(self.graph.nodes)}
         for node_id, node in enumerate(self.graph.nodes):
             children_nodes = self.graph.node_children(node)
@@ -82,15 +95,34 @@ class _ModelStructure:
 
     @staticmethod
     def get_indices_from_vector(vector_num: np.ndarray):
-        return np.nonzero(vector_num)
+        return np.nonzero(vector_num)[0]
+
+    def reset_current_node_id(self):
+        self.current_node_id = np.where(~self.nodes_matrix.any(axis=1))[0][0]
+        return self
 
 
 if __name__ == '__main__':
     from nas.graph.cnn_graph import NasGraph
+    from nas.model.tensorflow.tf_model import BaseNasTFModel, NasTFModel
 
     graph = NasGraph.load('/home/staeros/work/nas_graph/skip_connection_parallel/graph.json')
     hierarchy = ordered_subnodes_hierarchy(graph.root_node)
     struct = _ModelStructure(graph)
+
+
+
     for n in struct:
         pass
+
+    model = NasTFModel(model=BaseNasTFModel(struct, n_classes=75))
+
+    model.compile_model(metrics=[tensorflow.keras.metrics.Accuracy()],
+                        optimizer=tensorflow.keras.optimizers.Adam(learning_rate=1e-3),
+                        loss='categorical_crossentropy')
+
+    input_ = tensorflow.keras.layers.Input(shape=(32, 32, 3))
+
+    model.model.build((None, 32, 32, 3))
+
     print(1)

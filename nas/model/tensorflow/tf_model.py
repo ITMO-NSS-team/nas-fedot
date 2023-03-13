@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import Callable, Optional, List, TYPE_CHECKING
+from typing import Callable, Optional, List, TYPE_CHECKING, Union
 
 import tensorflow
 from fedot.core.data.data import InputData
+from golem.core.dag.graph_node import GraphNode
 
 from nas.model.tensorflow.future.tf_layer_initializer import LayerInitializer
 from nas.model.tensorflow.tf_layers import KerasLayers
@@ -91,24 +92,25 @@ class BaseNasTFModel(tensorflow.keras.Model):
 
     def initialize_layers(self, n_classes: int):
         output_shape = n_classes if n_classes > 2 else 1
-        activation_function = 'categorical_crossentropy' if output_shape > 1 else 'binary_crossentropy'
-        self.model_layers = [LayerInitializer().initialize_layer(node) for node in self.model_structure.graph.nodes]
+        activation_function = 'softmax' if output_shape > 1 else 'sigmoid'
+        self.model_layers = {hash(node): LayerInitializer().initialize_layer(node) for node in
+                             self.model_structure.graph.nodes}
         self.classifier = tensorflow.keras.layers.Dense(output_shape, activation=activation_function)
 
     def make_one_layer(self, inputs, next_node_ids: List):
         #  assemble layer
         tmp_inputs = None  # temporal var for cases where original inputs is required to be saved
                            # (e.g. sudden switch from main branch to residual)
-        current_node_id = self.model_structure.iterator
+        current_node_id = self.model_structure.current_node_id
         current_node = self.model_structure.graph.nodes[current_node_id]
 
         # if current node was part of residual branch (e.g. if there are more than 1 layer in branch)
         # then INPUT should be returned instead of LAYER_OUTPUT,  and LAYER_OUTPUT should be saved in
         # SELF._INPUTS_DICT[next_node_ids[0]]
 
-        if current_node_id in self._inputs_dict.keys():
+        if current_node_id in self._inputs_dict.keys() and len(next_node_ids) == 1:
             tmp_inputs = inputs
-            inputs = self._inputs_dict.pop(current_node_id)
+            inputs = self._inputs_dict[current_node_id]
 
         layer_func = self.model_layers[current_node_id]
         # if not self._inputs_dict.get(current_node_id) else \
@@ -127,9 +129,9 @@ class BaseNasTFModel(tensorflow.keras.Model):
 
         # applying activation function, batch_norm, dropout pooling.
 
-        activation = current_node.content['params']['activation']  # TODO
-
-        layer_output = activation(layer_output)
+        activation = current_node.content['params'].get('activation')  # TODO
+        if activation:
+            layer_output = tensorflow.keras.activations.relu(layer_output)
 
         # update self._inputs_dict by new id if there are several children for current node.
         # next_node_ids is a list where 0 id is a main path and other ids are residual path (TODO check it)
@@ -139,9 +141,65 @@ class BaseNasTFModel(tensorflow.keras.Model):
             return tmp_inputs
         return layer_output
 
+    def make_layer_recursive(self, inputs):
+        visited_nodes = set()
+        outputs_to_save = dict() # save output of layers whom have more than 1 outputs in following format: hash(node): layer_output
+        def abs_make_layer(node: Union[NasNode, GraphNode], inputs):
+            # inputs: previous layer output (not shortcut)
+            # get layer func
+            layer_key = hash(node)
+            node_layer = self.model_layers[layer_key]
+
+            # add node to visited
+            visited_nodes.add(node)
+            # store nodes in outputs_to_save if they have more than one successor or if it has more than 1 predecessor
+            if len(self.model_structure.graph.node_children(node)) > 1 or len(node.nodes_from) > 1:
+                outputs_to_save[layer_key] = None
+
+            # if node already in visited, then it has more than 1 child
+            # hence its output already stored in outputs_to_save, and we could reuse it.
+            if node in visited_nodes:
+                output = outputs_to_save[layer_key]
+                return output
+
+            for parent in node.nodes_from:
+                inputs = abs_make_layer(parent)
+
+            # layer output
+            output = node_layer(inputs)
+
+            # if nodes_from > 1, make "residual" block
+            if len(node.nodes_from) > 1:
+                output = tensorflow.keras.layers.Add([output, inputs])
+
+
+            # parse node parameters for activation, batch_norm , etc.
+            node_params = {'activation': node.content['params'].get('activation'),
+                           'batch_norm': node.content['params']}
+
+            output = activation(output)
+            output = bn(output)
+            output = drop(output)
+
+            # at this step we have complete layer output which could be
+            # stored to outputs dict to further skip connections assemble.
+            if layer_key in outputs_to_save.keys():
+                outputs_to_save[layer_key] = output
+
+            return output
+
+        root_node = self.model_structure.graph.root_node
+
+        return abs_make_layer(root_node, inputs)
+
+
+
+
+
+
+
     def call(self, inputs, training=None, mask=None):
-        _inputs_dict = {}
-        inputs = {self.model_layers.graph.nodes[0]: self.model_layers[0](inputs)}
+        inputs = self.model_layers[0](inputs)
         for output_layers_lst in self.model_structure:
             inputs = self.make_one_layer(inputs, output_layers_lst)
 
@@ -184,8 +242,10 @@ class NasTFModel(BaseModelInterface):
     def prepare_data(*args, **kwargs):
         pass
 
-    def compile_model(self, callbacks, metrics, **additional_params):
-        pass
+    def compile_model(self, metrics, optimizer,
+                      loss: Union[str, tensorflow.keras.losses.Loss], eagerly_flag: bool = True):
+        self.model.compile(optimizer=optimizer, loss=loss, metrics=metrics, run_eagerly=eagerly_flag)
+        return self
 
     def fit(self, train_data: InputData, val_data: InputData, epochs, batch_size):
         train_generator = self.prepare_data(train_data)
