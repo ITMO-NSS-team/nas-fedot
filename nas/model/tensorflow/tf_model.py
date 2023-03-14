@@ -100,7 +100,7 @@ class BaseNasTFModel(tensorflow.keras.Model):
     def make_one_layer(self, inputs, next_node_ids: List):
         #  assemble layer
         tmp_inputs = None  # temporal var for cases where original inputs is required to be saved
-                           # (e.g. sudden switch from main branch to residual)
+        # (e.g. sudden switch from main branch to residual)
         current_node_id = self.model_structure.current_node_id
         current_node = self.model_structure.graph.nodes[current_node_id]
 
@@ -141,68 +141,77 @@ class BaseNasTFModel(tensorflow.keras.Model):
             return tmp_inputs
         return layer_output
 
-    def make_layer_recursive(self, inputs):
+    def make_model_forward_pass_recursive(self, data_input):
         visited_nodes = set()
-        outputs_to_save = dict() # save output of layers whom have more than 1 outputs in following format: hash(node): layer_output
-        def abs_make_layer(node: Union[NasNode, GraphNode], inputs):
+        # save output of layers whom have more than 1 outputs in following format: hash(node): layer_output
+        outputs_to_save = dict()
+
+        def abs_make_layer(node: Union[NasNode, GraphNode]):
             # inputs: previous layer output (not shortcut)
             # get layer func
             layer_key = hash(node)
             node_layer = self.model_layers[layer_key]
+            layer_inputs = None
+            # if node is not in visited nodes, we simply calculate its output
+            if node in visited_nodes:
+                return outputs_to_save[layer_key]
 
-            # add node to visited
-            visited_nodes.add(node)
             # store nodes in outputs_to_save if they have more than one successor or if it has more than 1 predecessor
-            if len(self.model_structure.graph.node_children(node)) > 1 or len(node.nodes_from) > 1:
+            first_condition = len(self.model_structure.graph.node_children(node)) > 1 or len(node.nodes_from) > 1
+            second_condition = layer_key not in outputs_to_save.keys()
+            if first_condition and second_condition:
                 outputs_to_save[layer_key] = None
 
-            # if node already in visited, then it has more than 1 child
-            # hence its output already stored in outputs_to_save, and we could reuse it.
-            if node in visited_nodes:
-                output = outputs_to_save[layer_key]
-                return output
+            # to calculate output result we need to know layer_inputs. it could be obtained
+            # by recursive calculating output of parent nodes or
+            # by using inputs which are first layer inputs (original data).
+            layer_inputs = [abs_make_layer(parent) for parent in node.nodes_from] if node.nodes_from else [data_input]
 
-            for parent in node.nodes_from:
-                inputs = abs_make_layer(parent)
+            # if not node.nodes_from:
+            #     layer_inputs = data_input
+            # else:
+            #     for node_parent in node.nodes_from:
+            #         layer_inputs = abs_make_layer(node_parent)
+            #         if len(node.nodes_from) > 1:
+            #             print(1)
 
-            # layer output
-            output = node_layer(inputs)
+            # knowing layer inputs and layer func, calculate output of this layer
+            # if node already in visited, then it has more than 1 child (it has several edges that led to itself)
+            # hence its output already stored in outputs_to_save, and we could reuse its result as output.
+            if len(layer_inputs) > 1:
+                shortcut = layer_inputs[1:]
+                output = node_layer(layer_inputs[0])
+                output = tensorflow.keras.layers.Add()([output, *shortcut])
+            else:
+                output = node_layer(layer_inputs[0])
 
             # if nodes_from > 1, make "residual" block
-            if len(node.nodes_from) > 1:
-                output = tensorflow.keras.layers.Add([output, inputs])
+            # if len(node.nodes_from) > 1:
+            #     stored_shortcut = outputs_to_save[hash(node.nodes_from[-1])]
+            #     output = tensorflow.keras.layers.Add([output, stored_shortcut])
 
+            # applying activation, batch norm or dropout to layer result.
 
-            # parse node parameters for activation, batch_norm , etc.
-            node_params = {'activation': node.content['params'].get('activation'),
-                           'batch_norm': node.content['params']}
-
-            output = activation(output)
-            output = bn(output)
-            output = drop(output)
+            output = LayerInitializer.batch_norm(node)(output) if node.content['params'].get('epsilon') else output
+            output = LayerInitializer.activation(node)(output) if node.content['params'].get('activation') else output
+            output = LayerInitializer.dropout(node)(output) if node.content['params'].get('drop') else output
 
             # at this step we have complete layer output which could be
             # stored to outputs dict to further skip connections assemble.
             if layer_key in outputs_to_save.keys():
                 outputs_to_save[layer_key] = output
 
+            # add node to visited
+            visited_nodes.add(node)
+
             return output
 
         root_node = self.model_structure.graph.root_node
 
-        return abs_make_layer(root_node, inputs)
-
-
-
-
-
-
+        return abs_make_layer(root_node)
 
     def call(self, inputs, training=None, mask=None):
-        inputs = self.model_layers[0](inputs)
-        for output_layers_lst in self.model_structure:
-            inputs = self.make_one_layer(inputs, output_layers_lst)
-
+        inputs = self.make_model_forward_pass_recursive(inputs)
         output = self.classifier(inputs)
 
         return output

@@ -20,6 +20,7 @@ class CNNRepository:
         }
 
 
+# TODO rework resnet builder
 class ResNetGenerator(GraphGenerator):
     """
     This class generates ResNet-like graph as initial assumption
