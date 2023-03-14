@@ -38,7 +38,7 @@ class ResNetGenerator(GraphGenerator):
         elif pool_size or pool_stride:
             layer_requirements.conv_requirements.force_pooling_size(pool_size)
             layer_requirements.conv_requirements.force_pooling_stride(pool_stride)
-            layer_requirements.conv_requirements.set_pooling_params(pool_size, pool_stride)
+            layer_requirements.conv_requirements.set_pooling_params(size=pool_size, stride=pool_stride)
 
         node_params = get_node_params_by_type(node_to_add, layer_requirements)
         node = NasNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)

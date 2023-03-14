@@ -16,6 +16,7 @@ class BaseGraphBuilder:
 
     def set_builder(self, builder: GraphGenerator):
         self._builder = builder
+        return self
 
     def build(self):
         return self._builder.build()
