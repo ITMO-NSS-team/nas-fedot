@@ -44,13 +44,6 @@ class ModelStructure:
 
 @dataclass
 class _ModelStructure:
-    # def __init__(self, graph: NasGraph):
-    #     self.current_node_id = 0
-    #     self.max_node_id = len(graph.nodes)
-    #     self._nodes_matrix = np.zeros((len(graph.nodes), len(graph.nodes)), dtype=int)
-    #     self._graph = graph
-    #     self.residual_connections = None
-    #     self.initialize_matrix()
     graph: NasGraph
     graph_adjacency = None
     nx_struct = None
@@ -62,7 +55,6 @@ class _ModelStructure:
     def __post_init__(self):
         nx_graph, self.nx_struct = graph_structure_as_nx_graph(graph)
         self.graph_adjacency = [(n, nbrdict) for n, nbrdict in nx_graph.adjacency()]
-        # self.graph_adjacency = {hash(self.nx_struct[node]): map(hash, [self.nx_struct[node_uuid] for node_uuid in successors]) for node, successors in nx_graph.adjacency()}
         self.nodes_matrix = np.zeros((len(graph.nodes), len(graph.nodes)), dtype=int)
         self.initialize_matrix()
         self.reset_current_node_id()
@@ -106,25 +98,21 @@ if __name__ == '__main__':
     from nas.graph.cnn_graph import NasGraph
     from nas.model.tensorflow.tf_model import BaseNasTFModel, NasTFModel
     from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
-    from nas.graph.graph_builder.resnet_builder import ResNetGenerator
+    from nas.graph.graph_builder.resnet_builder import ResNetGenerator, _ResNetBuilder
     from nas.composer.nn_composer_requirements import load_default_requirements
 
     # graph = NasGraph.load('/home/staeros/work/nas_graph/skip_connection_parallel/graph.json')
-    builder = BaseGraphBuilder().set_builder(ResNetGenerator(model_requirements=load_default_requirements().model_requirements))
-    graph = builder.build()
+    # builder = BaseGraphBuilder().set_builder(ResNetGenerator(model_requirements=load_default_requirements().model_requirements))
+    builder = BaseGraphBuilder().set_builder(_ResNetBuilder())
+    graph = builder.build('resnet_152')
     hierarchy = ordered_subnodes_hierarchy(graph.root_node)
     struct = _ModelStructure(graph)
-
-    # for n in struct:
-    #     pass
 
     model = NasTFModel(model=BaseNasTFModel(struct, n_classes=75))
 
     model.compile_model(metrics=[tensorflow.keras.metrics.Accuracy()],
                         optimizer=tensorflow.keras.optimizers.Adam(learning_rate=1e-3),
                         loss='categorical_crossentropy')
-
-    # input_ = tensorflow.keras.layers.Input(shape=(32, 32, 3))
 
     model.model.build((None, 224, 224, 3))
 

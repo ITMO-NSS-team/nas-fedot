@@ -147,6 +147,7 @@ class BaseNasTFModel(tensorflow.keras.Model):
         outputs_to_save = dict()
 
         def abs_make_layer(node: Union[NasNode, GraphNode]):
+
             # inputs: previous layer output (not shortcut)
             # get layer func
             layer_key = hash(node)
@@ -165,36 +166,24 @@ class BaseNasTFModel(tensorflow.keras.Model):
             # to calculate output result we need to know layer_inputs. it could be obtained
             # by recursive calculating output of parent nodes or
             # by using inputs which are first layer inputs (original data).
-            layer_inputs = [abs_make_layer(parent) for parent in node.nodes_from] if node.nodes_from else [data_input]
+            if node.parameters.get('neurons') == 128 and len(node.nodes_from) > 1:
+                print()
 
-            # if not node.nodes_from:
-            #     layer_inputs = data_input
-            # else:
-            #     for node_parent in node.nodes_from:
-            #         layer_inputs = abs_make_layer(node_parent)
-            #         if len(node.nodes_from) > 1:
-            #             print(1)
+            layer_inputs = [abs_make_layer(parent) for parent in node.nodes_from] if node.nodes_from else [data_input]
 
             # knowing layer inputs and layer func, calculate output of this layer
             # if node already in visited, then it has more than 1 child (it has several edges that led to itself)
             # hence its output already stored in outputs_to_save, and we could reuse its result as output.
-            if len(layer_inputs) > 1:
-                shortcut = layer_inputs[1:]
-                output = node_layer(layer_inputs[0])
-                output = tensorflow.keras.layers.Add()([output, *shortcut])
-            else:
-                output = node_layer(layer_inputs[0])
 
-            # if nodes_from > 1, make "residual" block
-            # if len(node.nodes_from) > 1:
-            #     stored_shortcut = outputs_to_save[hash(node.nodes_from[-1])]
-            #     output = tensorflow.keras.layers.Add([output, stored_shortcut])
-
-            # applying activation, batch norm or dropout to layer result.
+            output = node_layer(layer_inputs[0])
 
             output = LayerInitializer.batch_norm(node)(output) if node.content['params'].get('epsilon') else output
             output = LayerInitializer.activation(node)(output) if node.content['params'].get('activation') else output
             output = LayerInitializer.dropout(node)(output) if node.content['params'].get('drop') else output
+
+            if len(node.nodes_from) > 1:
+                shortcut = layer_inputs[-1]
+                output = tensorflow.keras.layers.Add()([output, shortcut])
 
             # at this step we have complete layer output which could be
             # stored to outputs dict to further skip connections assemble.

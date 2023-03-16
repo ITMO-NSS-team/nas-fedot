@@ -23,7 +23,7 @@ class LayerInitializer:
 
     @staticmethod
     def conv2d(node: NasNode):
-        padding = 'same' # 'valid'  # TODO
+        padding = 'same'  # 'valid'  # TODO
         kernel_size = node.content['params']['kernel_size']  # TODO
         filters = node.content['params']['neurons']
         strides = node.content['params']['conv_strides']

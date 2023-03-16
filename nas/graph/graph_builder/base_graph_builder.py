@@ -7,7 +7,7 @@ class GraphGenerator(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def build(self):
+    def build(self, *args, **kwargs):
         raise NotImplementedError
 
 
@@ -18,8 +18,8 @@ class BaseGraphBuilder:
         self._builder = builder
         return self
 
-    def build(self):
-        return self._builder.build()
+    def build(self, *args, **kwargs):
+        return self._builder.build(*args, **kwargs)
 
     def set_initial_graph(self, graph_to_set):
         pass
