@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nas.composer.nn_composer_requirements import ModelRequirements
+from nas.composer.requirements import ModelRequirements
 
 
 def test_input_shape():

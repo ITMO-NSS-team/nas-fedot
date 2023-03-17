@@ -4,7 +4,7 @@ import keras.utils.layer_utils
 from golem.core.dag.verification_rules import ERROR_PREFIX
 
 from nas.graph.cnn_graph import NasGraph
-from nas.model.tensorflow.tf_model import KerasModelMaker
+from nas.model.tensorflow.base_model import KerasModelMaker
 from nas.model.utils.model_structure import ModelStructure
 
 

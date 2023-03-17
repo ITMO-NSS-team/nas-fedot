@@ -96,24 +96,24 @@ class _ModelStructure:
 
 if __name__ == '__main__':
     from nas.graph.cnn_graph import NasGraph
-    from nas.model.tensorflow.tf_model import BaseNasTFModel, NasTFModel
+    from nas.model.tensorflow.base_model import BaseNasTFModel
+    from nas.model.model_interface import ModelTF
     from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
-    from nas.graph.graph_builder.resnet_builder import ResNetGenerator, _ResNetBuilder
-    from nas.composer.nn_composer_requirements import load_default_requirements
+    from nas.graph.graph_builder.resnet_builder import ResNetBuilder
 
     # graph = NasGraph.load('/home/staeros/work/nas_graph/skip_connection_parallel/graph.json')
     # builder = BaseGraphBuilder().set_builder(ResNetGenerator(model_requirements=load_default_requirements().model_requirements))
-    builder = BaseGraphBuilder().set_builder(_ResNetBuilder())
-    graph = builder.build('resnet_152')
+    builder = BaseGraphBuilder().set_builder(ResNetBuilder())
+    graph = builder.build('resnet_34')
     hierarchy = ordered_subnodes_hierarchy(graph.root_node)
     struct = _ModelStructure(graph)
 
-    model = NasTFModel(model=BaseNasTFModel(struct, n_classes=75))
+    model = ModelTF(model_class=BaseNasTFModel(struct, n_classes=75))
 
     model.compile_model(metrics=[tensorflow.keras.metrics.Accuracy()],
                         optimizer=tensorflow.keras.optimizers.Adam(learning_rate=1e-3),
                         loss='categorical_crossentropy')
 
-    model.model.build((None, 224, 224, 3))
+    model._model_class.build((None, 224, 224, 3))
 
     print(1)

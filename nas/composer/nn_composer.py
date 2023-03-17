@@ -12,9 +12,10 @@ from fedot.core.optimisers.objective.data_source_splitter import DataSourceSplit
 from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
 from golem.core.optimisers.graph import OptGraph
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements
+from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.graph.cnn_graph import NasGraph
+from nas.model.model_interface import BaseModelInterface
 from nas.optimizer.objective.nas_objective_evaluate import NasObjectiveEvaluate
 
 
@@ -28,8 +29,10 @@ class NasComposer(Composer):
 
         self.best_models = ()
         self._dataset_builder: Optional[ImageDatasetBuilder] = None
+        self.model_interface_class: Optional[BaseModelInterface] = None
         self.pipelines_cache = pipelines_cache
         self.preprocessing_cache = preprocessing_cache
+        self.composer_requirements = composer_requirements
 
     def _convert_opt_results_to_nn_graph(self, graphs: Sequence[OptGraph]) -> Tuple[NasGraph, Sequence[NasGraph]]:
         adapter = self.optimizer.graph_generation_params.adapter
@@ -40,6 +43,10 @@ class NasComposer(Composer):
 
     def set_dataset_builder(self, dataset_builder: ImageDatasetBuilder) -> NasComposer:
         self._dataset_builder = dataset_builder
+        return self
+
+    def set_model_interface(self, model_interface: BaseModelInterface):
+        self.model_interface_class = model_interface
         return self
 
     def set_callbacks(self, callbacks):
@@ -54,9 +61,14 @@ class NasComposer(Composer):
 
         data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
 
-        objective_evaluator = NasObjectiveEvaluate(self.optimizer.objective, data_producer, self._dataset_builder,
-                                                   self.composer_requirements, self.pipelines_cache,
-                                                   self.preprocessing_cache, optimization_verbose)
+        objective_evaluator = NasObjectiveEvaluate(objective=self.optimizer.objective,
+                                                   data_producer=data_producer,
+                                                   requirements=self.composer_requirements,
+                                                   pipeline_cache=self.pipelines_cache,
+                                                   preprocessing_cache=self.preprocessing_cache,
+                                                   optimization_verbose=optimization_verbose,
+                                                   model_interface=self.model_interface_class)
+
         objective_function = objective_evaluator.evaluate
 
         if self.composer_requirements.collect_intermediate_metric:

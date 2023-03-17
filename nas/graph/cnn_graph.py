@@ -13,9 +13,9 @@ from golem.serializers import Serializer
 from golem.visualisation.graph_viz import NodeColorType
 from tensorflow.python.keras.engine.functional import Functional
 
-from nas.graph.node.nas_graph_node import NasNode
 from nas.graph.graph_utils import probs2labels
-from nas.model.tensorflow.tf_model import KerasModelMaker
+from nas.graph.node.nas_graph_node import NasNode
+from nas.model.tensorflow.base_model import KerasModelMaker
 from nas.model.utils.model_structure import ModelStructure
 # hotfix
 from nas.utils.utils import seed_all, clear_keras_session

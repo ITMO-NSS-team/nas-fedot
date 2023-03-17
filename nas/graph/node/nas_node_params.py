@@ -11,7 +11,7 @@ import tensorflow as tf
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 if TYPE_CHECKING:
-    from nas.composer.nn_composer_requirements import ModelRequirements
+    from nas.composer.requirements import ModelRequirements
 
 
 @dataclass

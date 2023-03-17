@@ -5,7 +5,7 @@ from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 from golem.core.optimisers.objective.objective import Objective
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements
+from nas.composer.requirements import NNComposerRequirements
 from nas.graph.cnn_graph import NasGraph
 from nas.utils.utils import seed_all
 

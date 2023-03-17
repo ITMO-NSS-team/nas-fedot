@@ -1,6 +1,6 @@
 import pathlib
 
-from nas.composer.nn_composer_requirements import load_default_requirements
+from nas.composer.requirements import load_default_requirements
 from nas.graph.node.nas_graph_node import get_node_params_by_type, NasNode
 from nas.operations.validation_rules.cnn_val_rules import *
 from nas.repository.layer_types_enum import LayersPoolEnum

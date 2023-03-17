@@ -4,7 +4,7 @@ from typing import List, Union
 
 import numpy as np
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements
+from nas.composer.requirements import NNComposerRequirements
 from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
 from nas.repository.layer_types_enum import LayersPoolEnum
 

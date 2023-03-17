@@ -5,7 +5,7 @@ from typing import Optional, List
 import numpy as np
 from golem.core.optimisers.graph import OptNode
 
-from nas.composer.nn_composer_requirements import ModelRequirements
+from nas.composer.requirements import ModelRequirements
 from nas.graph.node.nas_node_params import GraphLayers
 
 

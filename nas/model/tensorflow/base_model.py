@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from abc import abstractmethod, ABC
 from typing import Callable, Optional, List, TYPE_CHECKING, Union
 
 import tensorflow
-from fedot.core.data.data import InputData
 from golem.core.dag.graph_node import GraphNode
 
-from nas.model.tensorflow.future.tf_layer_initializer import LayerInitializer
-from nas.model.tensorflow.tf_layers import KerasLayers
+from nas.model.tensorflow.layer_initializer import LayerInitializer
+from nas.model.tensorflow.layers import KerasLayers
 from nas.model.utils.branch_manager import GraphBranchManager
 from nas.model.utils.model_structure import _ModelStructure
 
@@ -97,56 +95,12 @@ class BaseNasTFModel(tensorflow.keras.Model):
                              self.model_structure.graph.nodes}
         self.classifier = tensorflow.keras.layers.Dense(output_shape, activation=activation_function)
 
-    def make_one_layer(self, inputs, next_node_ids: List):
-        #  assemble layer
-        tmp_inputs = None  # temporal var for cases where original inputs is required to be saved
-        # (e.g. sudden switch from main branch to residual)
-        current_node_id = self.model_structure.current_node_id
-        current_node = self.model_structure.graph.nodes[current_node_id]
-
-        # if current node was part of residual branch (e.g. if there are more than 1 layer in branch)
-        # then INPUT should be returned instead of LAYER_OUTPUT,  and LAYER_OUTPUT should be saved in
-        # SELF._INPUTS_DICT[next_node_ids[0]]
-
-        if current_node_id in self._inputs_dict.keys() and len(next_node_ids) == 1:
-            tmp_inputs = inputs
-            inputs = self._inputs_dict[current_node_id]
-
-        layer_func = self.model_layers[current_node_id]
-        # if not self._inputs_dict.get(current_node_id) else \
-        # self._inputs_dict.pop(current_node_id)
-
-        layer_output = layer_func(inputs)
-
-        # skip connection assemble
-        if len(current_node.nodes_from) > 1:
-            #  extract layer result for skip connection assemble
-            skip_connection_start_layer = self._inputs_dict.pop(next_node_ids)  # if it is a list,
-            # then iterate over it and extract each layer simultaneously. For cases where
-            # there are more than 1 skip connection for node.
-
-            layer_output = tensorflow.keras.layers.add([layer_output, *skip_connection_start_layer])
-
-        # applying activation function, batch_norm, dropout pooling.
-
-        activation = current_node.content['params'].get('activation')  # TODO
-        if activation:
-            layer_output = tensorflow.keras.activations.relu(layer_output)
-
-        # update self._inputs_dict by new id if there are several children for current node.
-        # next_node_ids is a list where 0 id is a main path and other ids are residual path (TODO check it)
-        if len(next_node_ids) > 1 or tmp_inputs:
-            self._inputs_dict[next_node_ids[-1]] = layer_output
-        if tmp_inputs:
-            return tmp_inputs
-        return layer_output
-
     def make_model_forward_pass_recursive(self, data_input):
         visited_nodes = set()
         # save output of layers whom have more than 1 outputs in following format: hash(node): layer_output
         outputs_to_save = dict()
 
-        def abs_make_layer(node: Union[NasNode, GraphNode]):
+        def _make_one_layer(node: Union[NasNode, GraphNode]):
 
             # inputs: previous layer output (not shortcut)
             # get layer func
@@ -166,10 +120,8 @@ class BaseNasTFModel(tensorflow.keras.Model):
             # to calculate output result we need to know layer_inputs. it could be obtained
             # by recursive calculating output of parent nodes or
             # by using inputs which are first layer inputs (original data).
-            if node.parameters.get('neurons') == 128 and len(node.nodes_from) > 1:
-                print()
 
-            layer_inputs = [abs_make_layer(parent) for parent in node.nodes_from] if node.nodes_from else [data_input]
+            layer_inputs = [_make_one_layer(parent) for parent in node.nodes_from] if node.nodes_from else [data_input]
 
             # knowing layer inputs and layer func, calculate output of this layer
             # if node already in visited, then it has more than 1 child (it has several edges that led to itself)
@@ -197,58 +149,9 @@ class BaseNasTFModel(tensorflow.keras.Model):
 
         root_node = self.model_structure.graph.root_node
 
-        return abs_make_layer(root_node)
+        return _make_one_layer(root_node)
 
     def call(self, inputs, training=None, mask=None):
         inputs = self.make_model_forward_pass_recursive(inputs)
         output = self.classifier(inputs)
-
         return output
-
-
-class BaseModelInterface(ABC):
-    """
-    Class Interface for model handling
-    """
-
-    def __init__(self, model):
-        self.model = model
-
-    @staticmethod
-    @abstractmethod
-    def prepare_data(self, *args, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def compile_model(self, *args, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def fit(self, *args, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def predict(self, *args, **kwargs):
-        raise NotImplementedError
-
-
-class NasTFModel(BaseModelInterface):
-    def __init__(self, model: tensorflow.keras.Model):
-        super().__init__(model)
-
-    @staticmethod
-    def prepare_data(*args, **kwargs):
-        pass
-
-    def compile_model(self, metrics, optimizer,
-                      loss: Union[str, tensorflow.keras.losses.Loss], eagerly_flag: bool = True):
-        self.model.compile(optimizer=optimizer, loss=loss, metrics=metrics, run_eagerly=eagerly_flag)
-        return self
-
-    def fit(self, train_data: InputData, val_data: InputData, epochs, batch_size):
-        train_generator = self.prepare_data(train_data)
-        val_generator = self.prepare_data(val_data)
-        pass
-
-    def predict(self, *args, **kwargs):
-        pass

@@ -3,7 +3,7 @@ from typing import (Optional, List)
 
 from golem.core.optimisers.opt_node_factory import OptNodeFactory
 
-from nas.composer.nn_composer_requirements import ModelRequirements
+from nas.composer.requirements import ModelRequirements
 from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
 from nas.repository.layer_types_enum import LayersPoolEnum
 

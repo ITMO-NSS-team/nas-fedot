@@ -4,6 +4,7 @@ import sys
 from typing import TypeVar, Any
 
 import numpy as np
+import tensorflow
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.objective import DataSource
@@ -15,11 +16,9 @@ from golem.core.optimisers.graph import OptGraph
 from golem.core.optimisers.objective import ObjectiveEvaluate
 from golem.core.optimisers.objective.objective import to_fitness, Objective
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements
-from nas.data.dataset.builder import ImageDatasetBuilder
+from nas.composer.requirements import NNComposerRequirements
 from nas.graph.cnn_graph import NasGraph
-
-import tensorflow
+from nas.model.model_interface import BaseModelInterface
 from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
 
 G = TypeVar('G', Graph, OptGraph)
@@ -37,8 +36,9 @@ def _exceptions_save(graph: NasGraph, error_msg: Exception):
 
 
 class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
-    def __init__(self, objective: Objective, data_producer: DataSource, data_transformer: ImageDatasetBuilder,
-                 requirements: NNComposerRequirements, pipeline_cache: Any = None,
+    def __init__(self, objective: Objective, data_producer: DataSource, model_interface: BaseModelInterface,
+                 requirements: NNComposerRequirements,
+                 pipeline_cache: Any = None,
                  preprocessing_cache: Any = None, eval_n_jobs: int = 1, optimization_verbose=None, **objective_kwargs):
         # Add cache
         super().__init__(objective, eval_n_jobs, **objective_kwargs)
@@ -46,8 +46,8 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         self._requirements = requirements
         self._pipeline_cache = pipeline_cache
         self._preprocessing_cache = preprocessing_cache
-        self._data_transformer = data_transformer
         self._optimization_verbose = optimization_verbose
+        self.model_interface = model_interface
         self._log = default_log(self)
 
     def one_fold_train(self, graph: NasGraph, data: InputData, **kwargs):
@@ -58,6 +58,9 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
         data_to_train, data_to_validate = train_test_data_setup(data, shuffle_flag=shuffle, stratify=data.target)
 
+        # TODO Additional parameters in compile will be parsed from requirements may be.
+        model = self.model_interface.compile_model(graph, output_shape=data_to_train.num_classes, optimizer=None,
+                                                   metrics=None, loss=None)
         train_dataset = self._data_transformer.build(data_to_train, mode='train')
         validation_dataset = self._data_transformer.build(data_to_validate, mode='val')
         model_requirements = self._requirements.model_requirements

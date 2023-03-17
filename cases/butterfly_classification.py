@@ -4,7 +4,8 @@ import pathlib
 
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 
-import nas.data.nas_data
+from nas.model.model_interface import ModelTF
+from nas.model.tensorflow.base_model import BaseNasTFModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
@@ -24,13 +25,13 @@ from golem.core.optimisers.optimizer import GraphGenerationParams
 from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
-import nas.composer.nn_composer_requirements as nas_requirements
+import nas.composer.requirements as nas_requirements
 from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.data.preprocessor import Preprocessor
 from nas.graph.cnn_graph import NasNode
-from nas.graph.graph_builder.resnet_builder import ResNetGenerator
+from nas.graph.graph_builder.resnet_builder import ResNetBuilder
 from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.node.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
@@ -56,7 +57,7 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path(f'{project_root()}/../datasets/butterfly_cls/train')
+    dataset_path = pathlib.Path(f'{project_root()}/example_datasets/butterfly_cls')
     data = InputDataNN.data_from_folder(dataset_path, task)
 
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
@@ -93,7 +94,7 @@ def build_butterfly_cls(save_path=None):
                                                            n_jobs=1,
                                                            cv_folds=cv_folds)
 
-    validation_rules = [ConvNetChecker.check_cnn, has_no_cycle, has_no_self_cycled_nodes, ]
+    validation_rules = [ConvNetChecker.check_cnn, has_no_cycle, has_no_self_cycled_nodes]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,
@@ -107,7 +108,8 @@ def build_butterfly_cls(save_path=None):
                                                                           DefaultChangeAdvisor()))
 
     graph_generation_function = BaseGraphBuilder()
-    graph_generation_function.set_builder(ResNetGenerator(model_requirements=requirements.model_requirements))
+    graph_generation_function.set_builder(ResNetBuilder(model_requirements=requirements.model_requirements,
+                                                        model_type='resnet_34'))
 
     builder = ComposerBuilder(task).with_composer(NasComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
@@ -121,7 +123,7 @@ def build_butterfly_cls(save_path=None):
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
     composer = builder.build()
-    composer.set_dataset_builder(dataset_builder)
+    composer.set_model_interface(ModelTF(model_class=BaseNasTFModel, data_transformer=dataset_builder))
 
     optimized_network = composer.compose_pipeline(train_data)
 
