@@ -51,8 +51,8 @@ def build_butterfly_cls(save_path=None):
     cv_folds = None
     image_side_size = 24
     batch_size = 128
-    epochs = 1
-    optimization_epochs = 1
+    epochs = 5
+    optimization_epochs = 2
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -86,8 +86,8 @@ def build_butterfly_cls(save_path=None):
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
-                                                           timeout=datetime.timedelta(minutes=5),
-                                                           num_of_generations=3,
+                                                           timeout=datetime.timedelta(minutes=60),
+                                                           num_of_generations=10,
                                                            early_stopping_iterations=100,
                                                            early_stopping_timeout=float(datetime.timedelta(minutes=30).
                                                                                         total_seconds()),
@@ -100,7 +100,7 @@ def build_butterfly_cls(save_path=None):
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,
                                                  crossover_types=[CrossoverTypesEnum.subtree],
-                                                 pop_size=2,
+                                                 pop_size=4,
                                                  regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
@@ -138,16 +138,6 @@ def build_butterfly_cls(save_path=None):
     optimized_network.model_interface.compile_model(optimized_network, train_data.num_classes)
 
     optimized_network.fit(new_train_data, new_test_data, epochs=epochs, batch_size=batch_size)
-    # optimized_network.compile_model(model_requirements.input_shape, 'categorical_crossentropy',
-    #                                 metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
-    #                                 n_classes=model_requirements.num_of_classes)
-    #
-    # optimized_network.fit(train_generator, val_generator, model_requirements.epochs, model_requirements.batch_size,
-    #                       [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1,
-    #                                                         mode='min'),
-    #                        tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3,
-    #                                                             verbose=1,
-    #                                                             min_delta=1e-4, mode='min')])
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, dataset_builder)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
