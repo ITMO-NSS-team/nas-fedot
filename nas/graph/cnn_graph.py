@@ -2,7 +2,7 @@ import gc
 import json
 import os
 import pathlib
-from typing import List, Union, Optional, Tuple, Callable, Annotated
+from typing import List, Union, Optional
 
 import keras.backend
 import tensorflow as tf
@@ -11,12 +11,10 @@ from golem.core.dag.graph_node import GraphNode
 from golem.core.optimisers.graph import OptGraph
 from golem.serializers import Serializer
 from golem.visualisation.graph_viz import NodeColorType
-from tensorflow.python.keras.engine.functional import Functional
 
 from nas.graph.graph_utils import probs2labels
 from nas.graph.node.nas_graph_node import NasNode
-from nas.model.tensorflow.base_model import KerasModelMaker
-from nas.model.utils.model_structure import ModelStructure
+from nas.model.model_interface import BaseModelInterface
 # hotfix
 from nas.utils.utils import seed_all, clear_keras_session
 
@@ -26,7 +24,7 @@ seed_all(1)
 class NasGraph(OptGraph):
     def __init__(self, nodes: Optional[List[NasNode]] = ()):
         super().__init__(nodes)
-        self._model = None
+        self._model_interface: Optional[BaseModelInterface] = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
@@ -40,45 +38,37 @@ class NasGraph(OptGraph):
         super().show(save_path, engine, node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
 
     @property
-    def model(self) -> Functional:
-        return self._model
+    def model_interface(self) -> BaseModelInterface:
+        return self._model_interface
 
-    @model.setter
-    def model(self, value: Union[Functional]):
-        self._model = value
-
-    @model.deleter
-    def model(self):
-        del self._model
-        self._model = None
-        gc.collect()
+    @model_interface.setter
+    def model_interface(self, value):
+        self._model_interface = value
 
     @property
     def cnn_depth(self):
         flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
         return flatten_id
 
-    def compile_model(self, input_shape: Union[Annotated[List[int], 3], Annotated[Tuple[int], 3]], loss_function: str,
-                      metrics: Optional[List] = None, model_builder: Callable = KerasModelMaker,
-                      n_classes: Optional[int] = None, learning_rate: float = 1e-3, optimizer: Callable = None):
-        optimizer = optimizer(learning_rate=learning_rate)
-
-        self.model = model_builder(input_shape, self, ModelStructure, n_classes).build()
-        self.model.compile(loss=loss_function, optimizer=optimizer, metrics=metrics)
+    def compile_model(self, output_shape: int = 1, **additional_params):
+        # self.model_interface = model_builder(input_shape, self, ModelStructure, n_classes).build()
+        # self.model_interface.compile(loss=loss_function, optimizer=optimizer, metrics=metrics)
+        self.model_interface.compile_model(self, output_shape, **additional_params)
         return self
 
-    def fit(self, train_generator, validation_generator, epoch_num: int = 5, batch_size: int = 32,
+    def fit(self, train_data, val_data, epochs: int = 5, batch_size: int = 32,
             callbacks: List = None, verbose='auto', **kwargs):
         tf.keras.backend.clear_session()
-        self.model.fit(train_generator, batch_size=batch_size, epochs=epoch_num, verbose=verbose,
-                       validation_data=validation_generator, callbacks=callbacks)
+        self.model_interface.fit(train_data, val_data, batch_size=batch_size, epochs=epochs, verbose=verbose,
+                                 callbacks=callbacks)
+        return self
 
     def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs) -> OutputData:
-        if not self.model:
+        if not self.model_interface:
             raise AttributeError("Graph doesn't have a model yet")
 
         is_multiclass = test_data.num_classes > 2
-        predictions = self.model.predict(test_data, batch_size)
+        predictions = self.model_interface.predict(test_data, batch_size)
         if output_mode == 'labels':
             predictions = probs2labels(predictions, is_multiclass)
 
@@ -95,9 +85,10 @@ class NasGraph(OptGraph):
         full_path = full_path.resolve()
 
         model_path = full_path / 'fitted_model.h5'
-        if self.model:
-            self.model.save(model_path)
-            self.model = None
+        if self.model_interface:
+            self.model_interface.save(model_path)
+            del self._model_interface
+            self.model_interface = None
 
         graph = json.dumps(self, indent=4, cls=Serializer)
         with open(full_path / 'graph.json', 'w') as f:
@@ -123,8 +114,7 @@ class NasGraph(OptGraph):
         # gc.collect()
 
     def unfit(self, **kwargs):
-        if self.model:
-            del self.model
-        if hasattr(self, '_weights'):
-            del self._weights
+        del self._model_interface
+        self.model_interface = None
         keras.backend.clear_session()
+        gc.collect()

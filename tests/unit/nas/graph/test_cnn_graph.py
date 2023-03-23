@@ -34,8 +34,8 @@ def test_graph_model_build():
     for _ in range(100):
         graph = get_graph()
         try:
-            graph.model = graph.compile_model([32, 32, 3], 'binary_crossentropy',
-                                              optimizer=tf.keras.optimizers.Adam, n_classes=3)
+            graph.model_interface = graph.compile_model([32, 32, 3], 'binary_crossentropy',
+                                                        optimizer=tf.keras.optimizers.Adam, n_classes=3)
         except ValueError:
             assert False
     assert True

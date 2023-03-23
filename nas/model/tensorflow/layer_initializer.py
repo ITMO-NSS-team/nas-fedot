@@ -66,7 +66,12 @@ class LayerInitializer:
         return tf.keras.layers.Activation(activation=activation_function_name)
 
     def initialize_layer(self, node: Union[NasNode, GraphNode]):
+        node_layers = []
         name = node.content['name']
         if 'conv' in name:
             name = 'conv2d'
-        return self._layers_dictionary[name](node)
+        node_layers.append(self._layers_dictionary[name](node))
+        if 'epsilon' in node.parameters.keys():
+            node_layers.append(self.batch_norm(node))
+
+        return node_layers

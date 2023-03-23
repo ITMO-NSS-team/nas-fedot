@@ -45,6 +45,20 @@ def model_has_no_conv_layers(graph: NasGraph):
         raise ValueError(f'{ERROR_PREFIX} model has no convolutional layers.')
 
 
+# TODO change checker into recursive(?) output_shape calculation.
+def model_has_dimensional_conflict(graph: NasGraph):
+    for node in graph.graph_struct:
+        if len(node.nodes_from) > 1:
+            not_conv_node = ['conv' not in n.content['name'] for n in node.nodes_from]
+            if not_conv_node:
+                raise ValueError(f'{ERROR_PREFIX} model has has different layer output shapes which may lead to error.')
+            has_different_shapes = node.nodes_from[-1].parameters['neurons'] != node.parameters['neurons']
+            has_fmap_decrease = node.nodes_from[-1].parameters['conv_strides'] != [1, 1]
+            if any([has_fmap_decrease, has_different_shapes]):
+                raise ValueError(f'{ERROR_PREFIX} model has has different layer output shapes which may lead to error.')
+    return True
+
+
 class ConvNetChecker:
     params_limit: int = 5e7
     error_message: Optional[str] = None

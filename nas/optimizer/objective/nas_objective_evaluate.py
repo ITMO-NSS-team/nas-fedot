@@ -58,35 +58,27 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         shuffle = True if data.task != Task(TaskTypesEnum.ts_forecasting) else False
         data_to_train, data_to_validate = train_test_data_setup(data, shuffle_flag=shuffle, stratify=data.target)
 
-        # TODO Additional parameters in compile will be parsed from requirements may be.
-        model = self.model_interface.compile_model(graph, output_shape=data_to_train.num_classes, optimizer=None,
-                                                   metrics=None, loss=None)
-        train_dataset = self._data_transformer.build(data_to_train, mode='train')
-        validation_dataset = self._data_transformer.build(data_to_validate, mode='val')
-        model_requirements = self._requirements.model_requirements
-
-        loss_func = 'binary_crossentropy' if model_requirements.num_of_classes == 2 else 'categorical_crossentropy'
-        metrics = tensorflow.keras.metrics.Accuracy()
-        optimizer = tensorflow.keras.optimizers.Adam
+        # TODO also adapt output_shape to regression task.
+        graph.model_interface.compile_model(graph, output_shape=data_to_train.num_classes)
         callbacks = [tensorflow.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='min'),
                      tensorflow.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3, verbose=1,
                                                                   min_delta=1e-4, mode='min'),
                      PerformanceCheckingCallback()]
-
-        graph.compile_model(input_shape=model_requirements.input_shape, loss_function=loss_func, metrics=[metrics],
-                            optimizer=optimizer, n_classes=model_requirements.num_of_classes)
-        graph.fit(train_dataset, validation_dataset, epoch_num=self._requirements.opt_epochs,
-                  batch_size=model_requirements.batch_size, callbacks=callbacks, **kwargs)
+        epochs = self._requirements.opt_epochs
+        batch_size = self._requirements.model_requirements.batch_size
+        graph.fit(data_to_train, data_to_validate, callbacks=callbacks, epochs=epochs, batch_size=batch_size)
 
     def calculate_objective(self, graph: NasGraph, reference_data: InputData) -> Fitness:
-        test_dataset = self._data_transformer.build(reference_data, mode='test', batch_size=1)
-        return self._objective(graph, reference_data=test_dataset)
+        # test_dataset = self._data_transformer.build(reference_data, mode='test', batch_size=1)
+        # pred = graph.predict(reference_data)
+        return self._objective(graph, reference_data=reference_data)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
         # super().evaluate(graph)
         if not self._optimization_verbose == 'silent':
             self._log.info('Fit for graph has started.')
         graph_id = graph.root_node.descriptive_id
+        graph.model_interface = self.model_interface
         folds_metrics = []
 
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):

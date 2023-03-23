@@ -77,25 +77,27 @@ class KerasModelMaker:
 
         return model
 
+from functools import partial
+
 
 class BaseNasTFModel(tensorflow.keras.Model):
-    def __init__(self, model_struct: _ModelStructure, n_classes: int = None):
+    def __init__(self, graph: NasGraph, n_classes: int = None):
         super().__init__()
         self.model_layers = None
         self.classifier = None
-        self.model_structure = model_struct
-        self.initialize_layers(n_classes)
-
+        # self.graph = graph
+        self.initialize_layers(n_classes, graph)
+        self.forward_pass = partial(self.make_model_forward_pass_recursive, graph=graph)
         self._inputs_dict = dict()
 
-    def initialize_layers(self, n_classes: int):
+    def initialize_layers(self, n_classes: int, graph):
         output_shape = n_classes if n_classes > 2 else 1
         activation_function = 'softmax' if output_shape > 1 else 'sigmoid'
         self.model_layers = {hash(node): LayerInitializer().initialize_layer(node) for node in
-                             self.model_structure.graph.nodes}
+                             graph.nodes}
         self.classifier = tensorflow.keras.layers.Dense(output_shape, activation=activation_function)
 
-    def make_model_forward_pass_recursive(self, data_input):
+    def make_model_forward_pass_recursive(self, data_input, graph: NasGraph):
         visited_nodes = set()
         # save output of layers whom have more than 1 outputs in following format: hash(node): layer_output
         outputs_to_save = dict()
@@ -112,7 +114,7 @@ class BaseNasTFModel(tensorflow.keras.Model):
                 return outputs_to_save[layer_key]
 
             # store nodes in outputs_to_save if they have more than one successor or if it has more than 1 predecessor
-            first_condition = len(self.model_structure.graph.node_children(node)) > 1 or len(node.nodes_from) > 1
+            first_condition = len(graph.node_children(node)) > 1 or len(node.nodes_from) > 1
             second_condition = layer_key not in outputs_to_save.keys()
             if first_condition and second_condition:
                 outputs_to_save[layer_key] = None
@@ -127,15 +129,16 @@ class BaseNasTFModel(tensorflow.keras.Model):
             # if node already in visited, then it has more than 1 child (it has several edges that led to itself)
             # hence its output already stored in outputs_to_save, and we could reuse its result as output.
 
-            output = node_layer(layer_inputs[0])
-
-            output = LayerInitializer.batch_norm(node)(output) if node.content['params'].get('epsilon') else output
-            output = LayerInitializer.activation(node)(output) if node.content['params'].get('activation') else output
-            output = LayerInitializer.dropout(node)(output) if node.content['params'].get('drop') else output
+            output = node_layer[0](layer_inputs[0])
 
             if len(node.nodes_from) > 1:
                 shortcut = layer_inputs[-1]
                 output = tensorflow.keras.layers.Add()([output, shortcut])
+                # Have to move BN, activation and dropout after add
+
+            output = node_layer[1](output) if len(node_layer) > 1 else output
+            output = LayerInitializer.activation(node)(output) if node.content['params'].get('activation') else output
+            output = LayerInitializer.dropout(node)(output) if node.content['params'].get('drop') else output
 
             # at this step we have complete layer output which could be
             # stored to outputs dict to further skip connections assemble.
@@ -147,11 +150,12 @@ class BaseNasTFModel(tensorflow.keras.Model):
 
             return output
 
-        root_node = self.model_structure.graph.root_node
+        root_node = graph.root_node
 
         return _make_one_layer(root_node)
 
     def call(self, inputs, training=None, mask=None):
-        inputs = self.make_model_forward_pass_recursive(inputs)
+        inputs = tensorflow.cast(inputs, dtype='float32')
+        inputs = self.forward_pass(inputs)
         output = self.classifier(inputs)
         return output

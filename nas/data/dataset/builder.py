@@ -11,6 +11,7 @@ from nas.data.loader import BaseDataLoader
 
 class BaseNNDataset(ABC):
     def __init__(self, dataset_cls: Callable, batch_size: int, loader: Type[BaseDataLoader], shuffle: bool):
+        # TODO remove batch size from parameters and add it directly when calling build() method.
         self.dataset_cls = dataset_cls
         self.batch_size = batch_size
         self.shuffle = shuffle

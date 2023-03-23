@@ -59,7 +59,8 @@ class NasComposer(Composer):
         if self.history:
             self.history.clean_results()
 
-        data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
+        data_producer = DataSourceSplitter(self.composer_requirements.cv_folds,
+                                           split_ratio=self.composer_requirements.split_ratio).build(data)
 
         objective_evaluator = NasObjectiveEvaluate(objective=self.optimizer.objective,
                                                    data_producer=data_producer,

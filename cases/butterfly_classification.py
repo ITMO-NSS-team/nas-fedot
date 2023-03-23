@@ -7,7 +7,7 @@ from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 from nas.model.model_interface import ModelTF
 from nas.model.tensorflow.base_model import BaseNasTFModel
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 import tensorflow as tf
 
@@ -49,15 +49,15 @@ set_root(project_root())
 
 def build_butterfly_cls(save_path=None):
     cv_folds = None
-    image_side_size = 128
-    batch_size = 64
-    epochs = 10
+    image_side_size = 24
+    batch_size = 128
+    epochs = 1
     optimization_epochs = 1
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path(f'{project_root()}/example_datasets/butterfly_cls')
+    dataset_path = pathlib.Path(f'{project_root()}/../datasets/butterfly_cls/train')
     data = InputDataNN.data_from_folder(dataset_path, task)
 
     conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
@@ -82,7 +82,7 @@ def build_butterfly_cls(save_path=None):
                                                             primary=conv_layers_pool,
                                                             secondary=[LayersPoolEnum.dense],
                                                             epochs=epochs, batch_size=batch_size,
-                                                            max_nn_depth=1, max_num_of_conv_layers=36)
+                                                            max_nn_depth=1, max_num_of_conv_layers=40)
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
@@ -94,12 +94,13 @@ def build_butterfly_cls(save_path=None):
                                                            n_jobs=1,
                                                            cv_folds=cv_folds)
 
-    validation_rules = [ConvNetChecker.check_cnn, has_no_cycle, has_no_self_cycled_nodes]
+    validation_rules = [model_has_dimensional_conflict, model_has_no_conv_layers, conv_net_check_structure,
+                        model_has_wrong_number_of_flatten_layers, model_has_several_starts]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,
                                                  crossover_types=[CrossoverTypesEnum.subtree],
-                                                 pop_size=10,
+                                                 pop_size=2,
                                                  regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
@@ -123,25 +124,30 @@ def build_butterfly_cls(save_path=None):
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
     composer = builder.build()
-    composer.set_model_interface(ModelTF(model_class=BaseNasTFModel, data_transformer=dataset_builder))
 
+    new_train_data, new_test_data = train_test_data_setup(train_data, shuffle_flag=True)
+
+    # TODO may be add additional parameters to requirements class instead of passing them directly to model init method.
+    model_interface = ModelTF(model_class=BaseNasTFModel, data_transformer=dataset_builder,
+                              lr=1e-4, optimizer=tf.keras.optimizers.Adam,
+                              metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')])
+    composer.set_model_interface(model_interface)
     optimized_network = composer.compose_pipeline(train_data)
 
-    train_data, val_data = train_test_data_setup(train_data, shuffle_flag=True)
+    optimized_network.model_interface = model_interface
+    optimized_network.model_interface.compile_model(optimized_network, train_data.num_classes)
 
-    train_generator = dataset_builder.build(train_data, mode='train')
-    val_generator = dataset_builder.build(val_data, mode='val')
-
-    optimized_network.compile_model(model_requirements.input_shape, 'categorical_crossentropy',
-                                    metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
-                                    n_classes=model_requirements.num_of_classes)
-
-    optimized_network.fit(train_generator, val_generator, model_requirements.epochs, model_requirements.batch_size,
-                          [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1,
-                                                            mode='min'),
-                           tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3,
-                                                                verbose=1,
-                                                                min_delta=1e-4, mode='min')])
+    optimized_network.fit(new_train_data, new_test_data, epochs=epochs, batch_size=batch_size)
+    # optimized_network.compile_model(model_requirements.input_shape, 'categorical_crossentropy',
+    #                                 metrics=[tf.metrics.Accuracy()], optimizer=tf.keras.optimizers.Adam,
+    #                                 n_classes=model_requirements.num_of_classes)
+    #
+    # optimized_network.fit(train_generator, val_generator, model_requirements.epochs, model_requirements.batch_size,
+    #                       [tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, verbose=1,
+    #                                                         mode='min'),
+    #                        tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=.1, patience=3,
+    #                                                             verbose=1,
+    #                                                             min_delta=1e-4, mode='min')])
 
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, dataset_builder)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \

@@ -227,6 +227,7 @@ class ModelRequirements:
 class NNComposerRequirements(PipelineComposerRequirements):
     model_requirements: ModelRequirements = None
     opt_epochs: int = 5
+    split_ratio: float = .8
 
     def __post_init__(self):
         # TODO type fix
@@ -234,6 +235,8 @@ class NNComposerRequirements(PipelineComposerRequirements):
         self.secondary = self.model_requirements.secondary
         self.max_depth = self.model_requirements.max_depth
         self.mutation_strength = MutationStrengthEnum.strong
+        if not 0 < self.split_ratio < 1:
+            raise ValueError(f'{self.split_ratio} is unacceptable.')
         if self.opt_epochs < 1:
             raise ValueError(f'{self.opt_epochs} is unacceptable number of optimization epochs.')
 
