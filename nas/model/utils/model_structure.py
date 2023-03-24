@@ -104,7 +104,7 @@ if __name__ == '__main__':
     # graph = NasGraph.load('/home/staeros/work/nas_graph/skip_connection_parallel/graph.json')
     # builder = BaseGraphBuilder().set_builder(ResNetGenerator(model_requirements=load_default_requirements().model_requirements))
     builder = BaseGraphBuilder().set_builder(ResNetBuilder())
-    graph = builder.build('resnet_34')
+    graph = builder.build('resnet_152')
     hierarchy = ordered_subnodes_hierarchy(graph.root_node)
     struct = _ModelStructure(graph)
 

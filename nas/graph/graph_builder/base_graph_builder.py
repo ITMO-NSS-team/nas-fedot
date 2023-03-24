@@ -10,9 +10,6 @@ class GraphGenerator(ABC):
     def build(self, *args, **kwargs):
         raise NotImplementedError
 
-    def load_graph(self, *args, **kwargs):
-        raise NotImplementedError
-
 
 class BaseGraphBuilder:
     _builder = None
