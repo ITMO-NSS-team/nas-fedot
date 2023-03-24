@@ -35,7 +35,7 @@ def _exceptions_save(graph: NasGraph, error_msg: Exception):
     graph.save(save_path)
 
 
-class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
+class NasObjectiveEvaluate(ObjectiveEvaluate):
     def __init__(self, objective: Objective, data_producer: DataSource, model_interface: BaseModelInterface,
                  requirements: NNComposerRequirements,
                  pipeline_cache: Any = None,
@@ -68,16 +68,14 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
         batch_size = self._requirements.model_requirements.batch_size
         graph.fit(data_to_train, data_to_validate, callbacks=callbacks, epochs=epochs, batch_size=batch_size)
 
-    def calculate_objective(self, graph: NasGraph, reference_data: InputData) -> Fitness:
-        # test_dataset = self._data_transformer.build(reference_data, mode='test', batch_size=1)
-        # pred = graph.predict(reference_data)
+    def objective_on_fold(self, graph: NasGraph, reference_data: InputData) -> Fitness:
         return self._objective(graph, reference_data=reference_data)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
-        # super().evaluate(graph)
         if not self._optimization_verbose == 'silent':
             self._log.info('Fit for graph has started.')
         graph_id = graph.root_node.descriptive_id
+
         graph.model_interface = self.model_interface
         folds_metrics = []
 
@@ -90,7 +88,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate[G]):
                 self._log.warning(f'\nContinuing after graph fit error {ex}\n '
                                   f'In {file_name}\n line {exc_tb.tb_lineno}\n.')
             else:
-                evaluated_fitness = self.calculate_objective(graph, reference_data=test_data)
+                evaluated_fitness = self.objective_on_fold(graph, reference_data=test_data)
                 if evaluated_fitness.valid:
                     folds_metrics.append(evaluated_fitness.values)
                     if not self._optimization_verbose == 'silent':

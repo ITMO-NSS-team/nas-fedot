@@ -52,7 +52,9 @@ def build_butterfly_cls(save_path=None):
     image_side_size = 24
     batch_size = 128
     epochs = 5
-    optimization_epochs = 2
+    optimization_epochs = 1
+    num_of_generations = 2
+    population_size = 1
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -74,6 +76,7 @@ def build_butterfly_cls(save_path=None):
         min_number_of_neurons=32, max_number_of_neurons=256,
         conv_strides=[[1, 1]],
         pool_size=[[2, 2]], pool_strides=[[2, 2]])
+
     model_requirements = nas_requirements.ModelRequirements(input_data_shape=[image_side_size, image_side_size],
                                                             color_mode='color',
                                                             num_of_classes=data.num_classes,
@@ -87,20 +90,31 @@ def build_butterfly_cls(save_path=None):
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
                                                            timeout=datetime.timedelta(minutes=60),
-                                                           num_of_generations=10,
+                                                           num_of_generations=num_of_generations,
                                                            early_stopping_iterations=100,
                                                            early_stopping_timeout=float(datetime.timedelta(minutes=30).
                                                                                         total_seconds()),
                                                            n_jobs=1,
                                                            cv_folds=cv_folds)
 
+    data_preprocessor = Preprocessor()
+    dataset_builder = ImageDatasetBuilder(dataset_cls=KerasDataset, image_size=(image_side_size, image_side_size),
+                                          batch_size=requirements.model_requirements.batch_size,
+                                          shuffle=True).set_data_preprocessor(data_preprocessor)
+
+    # TODO may be add additional parameters to requirements class instead of passing them directly to model init method.
+    model_interface = ModelTF(model_class=BaseNasTFModel, data_transformer=dataset_builder,
+                              lr=1e-4, optimizer=tf.keras.optimizers.Adam,
+                              metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')])
+
     validation_rules = [model_has_dimensional_conflict, model_has_no_conv_layers, conv_net_check_structure,
-                        model_has_wrong_number_of_flatten_layers, model_has_several_starts]
+                        model_has_wrong_number_of_flatten_layers, model_has_several_starts,
+                        has_no_cycle, has_no_self_cycled_nodes]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,
                                                  crossover_types=[CrossoverTypesEnum.subtree],
-                                                 pop_size=4,
+                                                 pop_size=population_size,
                                                  regularization_type=RegularizationTypesEnum.none)
 
     graph_generation_parameters = GraphGenerationParams(
@@ -110,27 +124,16 @@ def build_butterfly_cls(save_path=None):
 
     graph_generation_function = BaseGraphBuilder()
     graph_generation_function.set_builder(ResNetBuilder(model_requirements=requirements.model_requirements,
-                                                        model_type='resnet_34'))
+                                                        model_type='resnet_18'))
 
     builder = ComposerBuilder(task).with_composer(NasComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
 
-    data_preprocessor = Preprocessor()
-
-    dataset_builder = ImageDatasetBuilder(dataset_cls=KerasDataset, image_size=(image_side_size, image_side_size),
-                                          batch_size=requirements.model_requirements.batch_size,
-                                          shuffle=True).set_data_preprocessor(data_preprocessor)
-
     composer = builder.build()
 
     new_train_data, new_test_data = train_test_data_setup(train_data, shuffle_flag=True)
-
-    # TODO may be add additional parameters to requirements class instead of passing them directly to model init method.
-    model_interface = ModelTF(model_class=BaseNasTFModel, data_transformer=dataset_builder,
-                              lr=1e-4, optimizer=tf.keras.optimizers.Adam,
-                              metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')])
     composer.set_model_interface(model_interface)
     optimized_network = composer.compose_pipeline(train_data)
 
@@ -138,7 +141,6 @@ def build_butterfly_cls(save_path=None):
     optimized_network.model_interface.compile_model(optimized_network, train_data.num_classes)
 
     optimized_network.fit(new_train_data, new_test_data, epochs=epochs, batch_size=batch_size)
-
     predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, dataset_builder)
     roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
         calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)

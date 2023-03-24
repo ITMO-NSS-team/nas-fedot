@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import Type, List, TYPE_CHECKING, Union
+from typing import Type, List, TYPE_CHECKING, Union, Optional
 
-import tensorflow
+import tensorflow as tf
 from fedot.core.data.data import InputData
 
 from nas.data.dataset.builder import BaseNNDataset
@@ -47,8 +47,9 @@ class BaseModelInterface(ABC):
         raise NotImplementedError
 
 
+# TODO docstrings
 class ModelTF(BaseModelInterface):
-    def __init__(self, model_class: Type[tensorflow.keras.Model], data_transformer, **additional_model_params):
+    def __init__(self, model_class: Type[tf.keras.Model], data_transformer, **additional_model_params):
         super().__init__(model_class, data_transformer, **additional_model_params)
 
     @staticmethod
@@ -56,15 +57,18 @@ class ModelTF(BaseModelInterface):
         data_generator = data_transformer.build(data, mode=mode, batch_size=batch_size)
         return data_generator
 
-    def compile_model(self, graph: NasGraph, output_shape: int = 1, eagerly_flag: bool = None):
-        learning_rate = self.additional_model_params.get('lr', 1e-3)
-        optimizer = self.additional_model_params.get('optimizer', tensorflow.keras.optimizers.Adam)(learning_rate)
-        metrics = self.additional_model_params.get('metrics', [tensorflow.keras.metrics.Accuracy()])
-        loss = self.additional_model_params.get('loss')
+    def compile_model(self, graph: NasGraph, output_shape: int = 1, eagerly_flag: bool = None,
+                      lr: Optional[float] = None, optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
+                      metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+                      loss: Optional[str, tf.keras.losses.Loss] = None):
+        learning_rate = lr if lr else self.additional_model_params.get('lr', 1e-3)
+        metrics = metrics if metrics else self.additional_model_params.get('metrics', [tf.keras.metrics.Accuracy()])
+        loss = loss if loss else self.additional_model_params.get('loss')
+        optimizer = optimizer if optimizer \
+            else self.additional_model_params.get('optimizer', tf.keras.optimizers.Adam)(learning_rate)
         if not loss:
-            loss = tensorflow.keras.losses.BinaryCrossentropy() if output_shape == 1 \
-                else tensorflow.keras.losses.CategoricalCrossentropy()
-            # loss = 'binary_crossentropy' if output_shape == 1 else 'categorical_crossentropy'
+            loss = tf.keras.losses.BinaryCrossentropy() if output_shape == 1 \
+                else tf.keras.losses.CategoricalCrossentropy()
 
         self.model = self._model_class(graph, output_shape)
         self.model.compile(optimizer=optimizer, loss=loss, metrics=metrics, run_eagerly=eagerly_flag)
