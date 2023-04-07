@@ -14,7 +14,7 @@ from golem.core.optimisers.graph import OptGraph
 
 from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import ImageDatasetBuilder
-from nas.graph.cnn_graph import NasGraph
+from nas.graph.BaseGraph import NasGraph
 from nas.model.model_interface import BaseModelInterface
 from nas.optimizer.objective.nas_objective_evaluate import NasObjectiveEvaluate
 

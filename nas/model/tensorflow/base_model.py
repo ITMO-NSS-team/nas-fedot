@@ -9,7 +9,7 @@ from golem.core.dag.graph_node import GraphNode
 from nas.model.tensorflow.layer_initializer import LayerInitializer
 
 if TYPE_CHECKING:
-    from nas.graph.cnn_graph import NasGraph
+    from nas.graph.BaseGraph import NasGraph
     from nas.graph.node.nas_graph_node import NasNode
 
 

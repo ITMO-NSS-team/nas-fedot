@@ -1,5 +1,5 @@
 from nas.composer.requirements import load_default_requirements
-from nas.graph.cnn_graph import NasGraph
+from nas.graph.BaseGraph import NasGraph
 from tests.unit.nas.utilities import get_graph
 
 

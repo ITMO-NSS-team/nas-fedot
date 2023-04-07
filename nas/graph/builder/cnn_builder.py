@@ -2,8 +2,8 @@ import random
 from typing import List, Optional
 
 from nas.composer.requirements import ModelRequirements
-from nas.graph.cnn_graph import NasGraph
-from nas.graph.graph_builder.base_graph_builder import GraphGenerator
+from nas.graph.BaseGraph import NasGraph
+from nas.graph.builder.base_graph_builder import GraphGenerator
 from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
 from nas.operations.validation_rules.cnn_val_rules import model_has_several_starts, \
     model_has_wrong_number_of_flatten_layers, conv_net_check_structure, model_has_no_conv_layers

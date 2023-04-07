@@ -17,7 +17,7 @@ from golem.core.optimisers.objective import ObjectiveEvaluate
 from golem.core.optimisers.objective.objective import to_fitness, Objective
 
 from nas.composer.requirements import NNComposerRequirements
-from nas.graph.cnn_graph import NasGraph
+from nas.graph.BaseGraph import NasGraph
 from nas.model.model_interface import BaseModelInterface
 from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
 

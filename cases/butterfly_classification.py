@@ -30,9 +30,9 @@ from nas.composer.nn_composer import NasComposer
 from nas.data import KerasDataset
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.data.preprocessor import Preprocessor
-from nas.graph.cnn_graph import NasNode
-from nas.graph.graph_builder.resnet_builder import ResNetBuilder
-from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
+from nas.graph.BaseGraph import NasNode
+from nas.graph.builder.resnet_builder import ResNetBuilder
+from nas.graph.builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.node.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import *

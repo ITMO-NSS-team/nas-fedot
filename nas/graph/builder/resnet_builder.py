@@ -1,8 +1,8 @@
 from golem.core.dag.graph_node import GraphNode
 
 from nas.composer.requirements import *
-from nas.graph.cnn_graph import NasGraph
-from nas.graph.graph_builder.base_graph_builder import GraphGenerator
+from nas.graph.BaseGraph import NasGraph
+from nas.graph.builder.base_graph_builder import GraphGenerator
 from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
 from nas.repository.existing_cnn_enum import CNNEnum
 from nas.repository.layer_types_enum import LayersPoolEnum

@@ -11,7 +11,7 @@ from fedot.core.data.data import InputData
 from nas.data.dataset.builder import BaseNNDataset
 
 if TYPE_CHECKING:
-    from nas.graph.cnn_graph import NasGraph
+    from nas.graph.BaseGraph import NasGraph
 
 
 class BaseModelInterface(ABC):

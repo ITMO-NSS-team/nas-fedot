@@ -1,5 +1,5 @@
-from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
-from nas.graph.graph_builder.resnet_builder import ResNetBuilder
+from nas.graph.builder.base_graph_builder import BaseGraphBuilder
+from nas.graph.builder.resnet_builder import ResNetBuilder
 
 
 def test_resnet_builder_inputs():

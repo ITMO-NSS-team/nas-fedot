@@ -3,7 +3,7 @@ from typing import Union, List
 from golem.core.dag.graph_node import GraphNode
 from golem.core.dag.verification_rules import ERROR_PREFIX
 
-from nas.graph.cnn_graph import NasGraph
+from nas.graph.BaseGraph import NasGraph
 from nas.graph.node.nas_graph_node import NasNode
 
 

@@ -10,7 +10,7 @@ from golem.core.dag.graph_node import GraphNode
 from golem.core.dag.graph_utils import ordered_subnodes_hierarchy
 
 if TYPE_CHECKING:
-    from nas.graph.cnn_graph import NasGraph
+    from nas.graph.BaseGraph import NasGraph
     from nas.graph.node.nas_graph_node import NasNode
 
 
@@ -95,11 +95,11 @@ class _ModelStructure:
 
 
 if __name__ == '__main__':
-    from nas.graph.cnn_graph import NasGraph
+    from nas.graph.BaseGraph import NasGraph
     from nas.model.tensorflow.base_model import BaseNasTFModel
     from nas.model.model_interface import ModelTF
-    from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
-    from nas.graph.graph_builder.resnet_builder import ResNetBuilder
+    from nas.graph.builder.base_graph_builder import BaseGraphBuilder
+    from nas.graph.builder.resnet_builder import ResNetBuilder
 
     # graph = NasGraph.load('/home/staeros/work/nas_graph/skip_connection_parallel/graph.json')
     # builder = BaseGraphBuilder().set_builder(ResNetGenerator(
