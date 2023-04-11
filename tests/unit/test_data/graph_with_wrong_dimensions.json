@@ -1,0 +1,553 @@
+{
+    "_model_interface": null,
+    "operator": {
+        "_nodes": [
+            {
+                "_input_shape": null,
+                "_nodes_from": [],
+                "content": {
+                    "name": "conv2d_7x7",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 64,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            7,
+                            7
+                        ]
+                    }
+                },
+                "uid": "4aa7ed7a-61a6-43ba-a48b-5f7ca0a7f25d",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "4aa7ed7a-61a6-43ba-a48b-5f7ca0a7f25d"
+                ],
+                "content": {
+                    "name": "max_pool2d",
+                    "params": {
+                        "pool_size": [
+                            3,
+                            3
+                        ],
+                        "pool_strides": [
+                            2,
+                            2
+                        ],
+                        "pool_stride": [
+                            2,
+                            2
+                        ]
+                    }
+                },
+                "uid": "c412ad05-a52f-442d-8c08-1ca48e3b6111",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "c412ad05-a52f-442d-8c08-1ca48e3b6111"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 64,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "d506d05b-00ee-4a0e-a368-75ce9dedfa52",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "d506d05b-00ee-4a0e-a368-75ce9dedfa52",
+                    "c412ad05-a52f-442d-8c08-1ca48e3b6111"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 64,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "d2da6bf1-2fce-4da5-ac4f-32ac10d5b2db",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "d2da6bf1-2fce-4da5-ac4f-32ac10d5b2db"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 64,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "0535430c-3e50-42ff-a951-dad888b18ba6",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "0535430c-3e50-42ff-a951-dad888b18ba6",
+                    "d2da6bf1-2fce-4da5-ac4f-32ac10d5b2db"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 64,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "c8c03e0d-6712-4ed2-9f7c-9a7eb8971173",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "c8c03e0d-6712-4ed2-9f7c-9a7eb8971173"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 128,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "748e6e8e-3ed3-40d4-afb1-2f41a4202212",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "748e6e8e-3ed3-40d4-afb1-2f41a4202212",
+                    "be3694f8-f431-4e3b-8742-7911e47887f4"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 128,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "f89fd00e-4bc8-44de-8b22-e618d7aef1ca",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "c8c03e0d-6712-4ed2-9f7c-9a7eb8971173"
+                ],
+                "content": {
+                    "name": "conv2d_1x1",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 128,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            1,
+                            1
+                        ]
+                    }
+                },
+                "uid": "be3694f8-f431-4e3b-8742-7911e47887f4",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "f89fd00e-4bc8-44de-8b22-e618d7aef1ca"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 128,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "91fd3db8-9ead-465c-b361-dca289a5293f",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "91fd3db8-9ead-465c-b361-dca289a5293f",
+                    "f89fd00e-4bc8-44de-8b22-e618d7aef1ca"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 128,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "2e0ead8f-209a-4e63-b097-8a95d7e17dfb",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "2e0ead8f-209a-4e63-b097-8a95d7e17dfb"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 256,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "03cf6e12-42a8-40f7-a38f-444861974309",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "03cf6e12-42a8-40f7-a38f-444861974309",
+                    "abd0f270-d549-4382-bbdb-462b4164b979"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 256,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "04531204-00a3-41c0-9a51-5e0856ff892e",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "2e0ead8f-209a-4e63-b097-8a95d7e17dfb"
+                ],
+                "content": {
+                    "name": "conv2d_1x1",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 256,
+                        "padding": "same",
+                        "kernel_size": [
+                            1,
+                            1
+                        ]
+                    }
+                },
+                "uid": "abd0f270-d549-4382-bbdb-462b4164b979",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "04531204-00a3-41c0-9a51-5e0856ff892e"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 256,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "5b000b25-fb0d-451a-a445-78a225146d75",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "5b000b25-fb0d-451a-a445-78a225146d75",
+                    "04531204-00a3-41c0-9a51-5e0856ff892e"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 256,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "46fd53ef-7c1d-41e3-996a-ca7a94575133",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "46fd53ef-7c1d-41e3-996a-ca7a94575133"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 512,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "80abbcf6-0462-4315-b3ec-5eea2966ceb7",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "80abbcf6-0462-4315-b3ec-5eea2966ceb7",
+                    "86649c4e-0f86-450d-857a-ebea1a03af0c"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 512,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "698e25e6-90bc-4350-b725-3208e10b2135",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "46fd53ef-7c1d-41e3-996a-ca7a94575133"
+                ],
+                "content": {
+                    "name": "conv2d_1x1",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            2,
+                            2
+                        ],
+                        "neurons": 512,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            1,
+                            1
+                        ]
+                    }
+                },
+                "uid": "86649c4e-0f86-450d-857a-ebea1a03af0c",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "698e25e6-90bc-4350-b725-3208e10b2135"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 512,
+                        "padding": "same",
+                        "momentum": 0.99,
+                        "epsilon": 0.001,
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "e1887074-45f4-4535-9efd-27bbd657be6f",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "e1887074-45f4-4535-9efd-27bbd657be6f",
+                    "698e25e6-90bc-4350-b725-3208e10b2135"
+                ],
+                "content": {
+                    "name": "conv2d_3x3",
+                    "params": {
+                        "activation": "relu",
+                        "conv_strides": [
+                            1,
+                            1
+                        ],
+                        "neurons": 512,
+                        "padding": "same",
+                        "kernel_size": [
+                            3,
+                            3
+                        ]
+                    }
+                },
+                "uid": "84d4f3e0-6e1e-4783-a045-b7bfdbef863f",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            },
+            {
+                "_input_shape": null,
+                "_nodes_from": [
+                    "84d4f3e0-6e1e-4783-a045-b7bfdbef863f"
+                ],
+                "content": {
+                    "name": "flatten",
+                    "params": {
+                        "n_jobs": 1
+                    }
+                },
+                "uid": "55f725cd-2548-45f5-9fb4-f056116f2274",
+                "_class_path": "nas.graph.node.nas_graph_node/NasNode"
+            }
+        ],
+        "_postprocess_nodes": {
+            "_class_path": "golem.core.dag.linked_graph/LinkedGraph._empty_postprocess"
+        },
+        "_class_path": "golem.core.dag.linked_graph/LinkedGraph"
+    },
+    "_class_path": "nas.graph.BaseGraph/NasGraph"
+}

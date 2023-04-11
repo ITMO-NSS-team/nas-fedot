@@ -10,7 +10,7 @@ from nas.graph.node.nas_node_params import GraphLayers
 
 
 def get_node_params_by_type(node, requirements: ModelRequirements):
-    return GraphLayers().layer_by_type(node, requirements)
+    return GraphLayers().layer_params_by_type(node, requirements)
 
 
 def calculate_output_shape(node: NasNode) -> np.ndarray:

@@ -48,6 +48,8 @@ class GraphLayers:
         layer_parameters['activation'] = random.choice(requirements.fc_requirements.activation_types).value
         layer_parameters['conv_strides'] = random.choice(requirements.conv_requirements.conv_strides)
         layer_parameters['neurons'] = random.choice(requirements.conv_requirements.neurons_num)
+        layer_parameters['padding'] = 'same' if not requirements.conv_requirements.padding else random.choice(
+            requirements.conv_requirements.padding)
         return GraphLayers._batch_normalization(requirements, layer_parameters)
 
     @staticmethod
@@ -104,7 +106,7 @@ class GraphLayers:
     def _flatten(*args, **kwargs) -> dict:
         return {'n_jobs': 1}
 
-    def layer_by_type(self, layer_type: LayersPoolEnum, requirements: ModelRequirements) -> dict:
+    def layer_params_by_type(self, layer_type: LayersPoolEnum, requirements: ModelRequirements) -> dict:
         layers = {
             LayersPoolEnum.conv2d_1x1: self._conv2d_1x1,
             LayersPoolEnum.conv2d_3x3: self._conv2d_3x3,

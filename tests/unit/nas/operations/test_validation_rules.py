@@ -70,3 +70,13 @@ def test_model_has_no_conv_layers():
     except ValueError:
         success = True
     assert success
+
+
+def test_shapes_checker():
+    graph = NasGraph.load(tests_path / 'graph_with_wrong_dimensions.json')
+    success = False
+    try:
+        _ = check_dimensions(graph)
+    except ValueError:
+        success = True
+    assert success

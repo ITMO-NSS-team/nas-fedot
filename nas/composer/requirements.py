@@ -103,6 +103,7 @@ class ConvRequirements(BaseLayerRequirements):
     pool_size: Optional[List[List[int]]] = None
     pool_strides: Optional[List[List[int]]] = None
     dilation_rate: Optional[List[int]] = None
+    padding: Union[str, tuple[int]] = None
 
     def __post_init__(self):
         if not self.dilation_rate:

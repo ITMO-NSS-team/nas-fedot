@@ -1,10 +1,13 @@
 from typing import Union, List
 
+import numpy as np
 from golem.core.dag.graph_node import GraphNode
 from golem.core.dag.verification_rules import ERROR_PREFIX
 
 from nas.graph.BaseGraph import NasGraph
+from nas.graph.builder.resnet_builder import ResNetBuilder
 from nas.graph.node.nas_graph_node import NasNode
+from nas.operations.utils.ShapeCalculator import ShapeCalculator
 
 
 def model_has_several_starts(graph: NasGraph):
@@ -59,19 +62,30 @@ def model_has_dimensional_conflict(graph: NasGraph):
 
 
 def check_dimensions(graph: NasGraph):
-    _shape=[]
+    shaper = ShapeCalculator()
+    input_shape = [8, 8]
+
     def _shape_calc_recursive(node: Union[NasNode, GraphNode]):
-        node_type = node.name
-        neurons_num = node.parameters.get('neurons')
-        kernel_size = node.parameters.get('kernel_size')
+        if node.nodes_from:
+            node_input_shapes = [_shape_calc_recursive(ancestor_node) for ancestor_node in node.nodes_from]
+        else:
+            node_input_shapes = [input_shape]
+        # add shape check
+        is_all_equal = all([np.array_equal(node_input_shapes[0], i) for i in node_input_shapes])
+        if not is_all_equal:
+            raise ValueError(f'{ERROR_PREFIX} graph has dimension conflict.')
 
-        # padding = 1 in fact padding SAME
-        if not node.nodes_from:
-            input_shapes = [_shape_calc_recursive(ancestor_node) if node.nodes_from else
-                            _shape for ancestor_node in node.nodes_from]
+        node_input_shape = node_input_shapes[0]  # TODO implement case with concat
+        node_output_shape = shaper(node, node_input_shape)
 
-        # conv2d case
-        output_shape = None
+        return node_output_shape
+
+    _ = _shape_calc_recursive(graph.root_node)
+    return True
 
 
-    return _shape_calc_recursive(graph.root_node)
+if __name__ == '__main__':
+    graph = ResNetBuilder().build('resnet_18')
+
+    a = check_dimensions(graph)
+    pass
