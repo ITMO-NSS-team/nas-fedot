@@ -41,6 +41,7 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
 from nas.data.nas_data import InputDataNN
 
+tf.config.experimental.set_memory_growth = True
 gpus = tf.config.list_physical_devices('GPU')
 print(gpus)
 
@@ -50,11 +51,11 @@ set_root(project_root())
 def build_butterfly_cls(save_path=None):
     cv_folds = None
     image_side_size = 24
-    batch_size = 128
+    batch_size = 32
     epochs = 5
     optimization_epochs = 1
     num_of_generations = 2
-    population_size = 1
+    population_size = 2
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -105,11 +106,11 @@ def build_butterfly_cls(save_path=None):
     # TODO may be add additional parameters to requirements class instead of passing them directly to model init method.
     model_interface = ModelTF(model_class=BaseNasTFModel, data_transformer=dataset_builder,
                               lr=1e-4, optimizer=tf.keras.optimizers.Adam,
-                              metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')])
+                              metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')],
+                              loss='categorical_crossentropy')
 
-    validation_rules = [model_has_dimensional_conflict, model_has_no_conv_layers, conv_net_check_structure,
-                        model_has_wrong_number_of_flatten_layers, model_has_several_starts,
-                        has_no_cycle, has_no_self_cycled_nodes]
+    validation_rules = [model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers, model_has_several_starts,
+                        has_no_cycle, has_no_self_cycled_nodes, check_dimensions]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,
@@ -124,7 +125,7 @@ def build_butterfly_cls(save_path=None):
 
     graph_generation_function = BaseGraphBuilder()
     graph_generation_function.set_builder(ResNetBuilder(model_requirements=requirements.model_requirements,
-                                                        model_type='resnet_18'))
+                                                        model_type='resnet_34'))
 
     builder = ComposerBuilder(task).with_composer(NasComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \

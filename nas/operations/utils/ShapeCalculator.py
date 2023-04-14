@@ -56,7 +56,7 @@ class ShapeCalculator:
     @staticmethod
     def dense(input_shape: Union[np.ndarray, List], node_params: Dict):
         input_features = node_params.get('neurons')
-        return [input_features[0], input_shape[1]]
+        return [input_features, input_shape[1]]
 
     @staticmethod
     def pooling(input_shape: Union[np.ndarray, List], node_params: Dict):
