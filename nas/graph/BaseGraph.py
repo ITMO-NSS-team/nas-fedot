@@ -4,8 +4,6 @@ import os
 import pathlib
 from typing import List, Union, Optional
 
-import keras.backend
-import tensorflow as tf
 from fedot.core.data.data import OutputData
 from golem.core.dag.graph_node import GraphNode
 from golem.core.optimisers.graph import OptGraph
@@ -16,7 +14,7 @@ from nas.graph.graph_utils import probs2labels
 from nas.graph.node.nas_graph_node import NasNode
 from nas.model.model_interface import BaseModelInterface
 # hotfix
-from nas.utils.utils import seed_all, clear_keras_session
+from nas.utils.utils import seed_all
 
 seed_all(1)
 
@@ -45,10 +43,10 @@ class NasGraph(OptGraph):
     def model_interface(self, value):
         self._model_interface = value
 
-    @property
-    def cnn_depth(self):
-        flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
-        return flatten_id
+    # @property
+    # def cnn_depth(self):
+    #     flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
+    #     return flatten_id
 
     def compile_model(self, output_shape: int = 1, **additional_params):
         # self.model_interface = model_builder(input_shape, self, ModelStructure, n_classes).build()
@@ -58,7 +56,7 @@ class NasGraph(OptGraph):
 
     def fit(self, train_data, val_data, epochs: int = 5, batch_size: int = 32,
             callbacks: List = None, verbose='auto', **kwargs):
-        tf.keras.backend.clear_session()
+        # tf.keras.backend.clear_session()
         self.model_interface.fit(train_data, val_data, batch_size=batch_size, epochs=epochs, verbose=verbose,
                                  callbacks=callbacks)
         return self
@@ -101,20 +99,21 @@ class NasGraph(OptGraph):
             json_data = json_file.read()
             return json.loads(json_data, cls=Serializer)
 
-    @property
-    def graph_struct(self) -> List[Union[NasNode, GraphNode]]:
-        if 'conv' in self.nodes[0].content['name']:
-            return self.nodes
-        else:
-            return self.nodes[::-1]
+    # @property
+    # def graph_struct(self) -> List[Union[NasNode, GraphNode]]:
+    #     if 'conv' in self.nodes[0].content['name']:
+    #         return self.nodes
+    #     else:
+    #         return self.nodes[::-1]
 
     @staticmethod
     def release_memory(**kwargs):
-        clear_keras_session(**kwargs)
+        pass
+        # clear_keras_session(**kwargs)
         # gc.collect()
 
     def unfit(self, **kwargs):
         del self._model_interface
         self.model_interface = None
-        keras.backend.clear_session()
+        # keras.backend.clear_session()
         gc.collect()

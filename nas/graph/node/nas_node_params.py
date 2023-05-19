@@ -4,14 +4,111 @@ import random
 from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-from typing import TYPE_CHECKING
-
-import tensorflow as tf
+from typing import TYPE_CHECKING, Dict
 
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 if TYPE_CHECKING:
     from nas.composer.requirements import ModelRequirements
+
+
+class NasNodeFactory:
+    def __init__(self, requirements: ModelRequirements = None):
+        self.global_requirements = requirements
+
+    def get_node_params(self, node_name: LayersPoolEnum, **params):
+        supportable_nodes = {'conv2d': self.conv2d,
+                             'linear': self.linear,
+                             'dropout': self.dropout,
+                             'max_pool2d': self.pooling,
+                             'average_pool2d': self.pooling,
+                             'batch_norm2d': self.batch_normalization,
+                             'flatten': self.flatten}
+        layer_params_fun = supportable_nodes.get(node_name.value)
+        if layer_params_fun is None:
+            raise ValueError(f'Wrong node name {node_name}')
+        layer_params = layer_params_fun(self.global_requirements, **params)
+        bn_prob = .5 if self.global_requirements is None else self.global_requirements.fc_requirements.batch_norm_prob
+        if random.uniform(0, 1) < bn_prob or 'momentum' in params.items():
+            layer_params = {**layer_params, **self.batch_normalization(self.global_requirements, **params)}
+
+        return layer_params
+
+    @staticmethod
+    def conv2d(requirements: ModelRequirements = None, **kwargs) -> Dict:
+        params = {}
+        if requirements is not None:
+            out_shape = random.choice(requirements.conv_requirements.neurons_num)
+            kernel_size = random.choice(requirements.conv_requirements.kernel_size)
+            activation = random.choice(requirements.fc_requirements.activation_types).value
+            stride = random.choice(requirements.conv_requirements.conv_strides)
+            padding = 'same' if requirements.conv_requirements.padding is None \
+                else random.choice(requirements.conv_requirements.padding)
+        else:
+            out_shape = kwargs.get('out_shape')
+            kernel_size = kwargs.get('kernel_size')
+            activation = kwargs.get('activation', 'relu')
+            stride = kwargs.get('stride', [1, 1])
+            padding = kwargs.get('padding', 0)
+        params['out_shape'] = out_shape
+        params['kernel_size'] = kernel_size
+        params['activation'] = activation
+        params['stride'] = stride
+        params['padding'] = padding
+        return params
+
+    @staticmethod
+    def pooling(requirements: ModelRequirements, **kwargs) -> Dict:
+        params = {}
+        if requirements is not None:
+            pooling_size = random.choice(requirements.conv_requirements.pool_size)
+            pooling_stride = random.choice(requirements.conv_requirements.pool_strides)
+        else:
+            pooling_size = kwargs.get('pool_size')
+            pooling_stride = kwargs.get('pool_stride')
+        params['pool_size'] = pooling_size
+        params['pool_stride'] = pooling_stride
+        return params
+
+    @staticmethod
+    def linear(requirements: ModelRequirements = None, **kwargs) -> Dict:
+        params = {}
+        if requirements is not None:
+            out_shape = random.choice(requirements.fc_requirements.neurons_num)
+            activation = random.choice(requirements.fc_requirements.activation_types).value
+        else:
+            out_shape = kwargs.get('out_shape')
+            activation = kwargs.get('activation', 'relu')
+        params['out_shape'] = out_shape
+        params['activation'] = activation
+        return params
+
+    @staticmethod
+    def batch_normalization(requirements: ModelRequirements = None, **kwargs) -> Dict:
+        params = {}
+        if requirements is not None:
+            momentum = .99
+            epsilon = .001
+        else:
+            momentum = kwargs.get('momentum', .99)
+            epsilon = kwargs.get('epsilon', .001)
+        params['momentum'] = momentum
+        params['epsilon'] = epsilon
+        return params
+
+    @staticmethod
+    def dropout(requirements: ModelRequirements = None, **kwargs) -> Dict:
+        params = {}
+        if requirements is not None:
+            drop_proba = random.randint(0, int(requirements.fc_requirements.max_dropout_val * 100)) / 100
+        else:
+            drop_proba = kwargs.get('drop', .8)
+        params['drop'] = drop_proba
+        return params
+
+    @staticmethod
+    def flatten(*args, **kwargs) -> Dict:
+        return {}
 
 
 @dataclass
@@ -108,10 +205,10 @@ class GraphLayers:
 
     def layer_params_by_type(self, layer_type: LayersPoolEnum, requirements: ModelRequirements) -> dict:
         layers = {
-            LayersPoolEnum.conv2d_1x1: self._conv2d_1x1,
-            LayersPoolEnum.conv2d_3x3: self._conv2d_3x3,
-            LayersPoolEnum.conv2d_5x5: self._conv2d_5x5,
-            LayersPoolEnum.conv2d_7x7: self._conv2d_7x7,
+            # LayersPoolEnum.conv2d_1x1: self._conv2d_1x1,
+            # LayersPoolEnum.conv2d_3x3: self._conv2d_3x3,
+            # LayersPoolEnum.conv2d_5x5: self._conv2d_5x5,
+            # LayersPoolEnum.conv2d_7x7: self._conv2d_7x7,
             LayersPoolEnum.dilation_conv2d: self._dilation_conv2d,
             LayersPoolEnum.flatten: self._flatten,
             LayersPoolEnum.dense: self._dense,
@@ -124,12 +221,3 @@ class GraphLayers:
             return layers[layer_type](requirements)
         else:
             raise NotImplementedError
-
-
-class KerasLayersEnum(Enum):
-    conv2d = tf.keras.layers.Conv2D
-    dense = tf.keras.layers.Dense
-    dilation_conv = partial(tf.keras.layers.Conv2D, dilation_rate=(2, 2))
-    flatten = tf.keras.layers.Flatten
-    batch_normalization = tf.keras.layers.BatchNormalization
-    dropout = tf.keras.layers.Dropout

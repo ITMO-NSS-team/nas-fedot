@@ -5,8 +5,8 @@ from typing import Callable, Optional, Type, Union, Tuple, List
 
 from fedot.core.data.data import InputData
 
-from nas.data import Preprocessor, ImageLoader
-from nas.data.loader import BaseDataLoader
+from nas.data.loader import BaseDataLoader, ImageLoader
+from nas.data.preprocessor import Preprocessor
 
 
 class BaseNNDataset(ABC):

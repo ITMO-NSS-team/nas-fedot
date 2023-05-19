@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from math import log2
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 from fedot.core.pipelines.pipeline_composer_requirements import PipelineComposerRequirements
 from golem.core.optimisers.genetic.operators.mutation import MutationStrengthEnum
@@ -104,6 +104,7 @@ class ConvRequirements(BaseLayerRequirements):
     pool_strides: Optional[List[List[int]]] = None
     dilation_rate: Optional[List[int]] = None
     padding: Union[str, tuple[int]] = None
+    kernel_size: Union[List[int], Tuple[int]] = None
 
     def __post_init__(self):
         if not self.dilation_rate:
