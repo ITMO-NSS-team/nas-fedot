@@ -20,8 +20,9 @@ class NasNodeFactory:
         supportable_nodes = {'conv2d': self.conv2d,
                              'linear': self.linear,
                              'dropout': self.dropout,
-                             'max_pool2d': self.pooling,
-                             'average_pool2d': self.pooling,
+                             'pooling2d': self.pooling,
+                             'adaptive_pool2d': self.ada_pool2d,
+                             # 'average_pool2d': self.pooling,
                              'batch_norm2d': self.batch_normalization,
                              'flatten': self.flatten}
         layer_params_fun = supportable_nodes.get(node_name.value)
@@ -63,11 +64,28 @@ class NasNodeFactory:
         if requirements is not None:
             pooling_size = random.choice(requirements.conv_requirements.pool_size)
             pooling_stride = random.choice(requirements.conv_requirements.pool_strides)
+            mode = random.choice(requirements.conv_requirements.pooling_mode)
+            padding = random.choice(requirements.conv_requirements.padding)
         else:
             pooling_size = kwargs.get('pool_size')
             pooling_stride = kwargs.get('pool_stride')
+            padding = kwargs.get('padding', 0)
         params['pool_size'] = pooling_size
         params['pool_stride'] = pooling_stride
+        params['mode'] = kwargs['mode']
+        params['padding'] = padding
+        return params
+
+    @staticmethod
+    def ada_pool2d(requirements: ModelRequirements=None, **kwargs):
+        params = {}
+        if requirements is not None:
+            out_shape = (1, 1)
+            mode = random.choice(requirements.conv_requirements.pooling_mode)
+        else:
+            out_shape = kwargs.get('out_shape')
+        params['out_shape'] = out_shape
+        params['mode'] = kwargs['mode']
         return params
 
     @staticmethod

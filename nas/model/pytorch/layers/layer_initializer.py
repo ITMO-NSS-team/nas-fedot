@@ -6,23 +6,25 @@ from golem.core.dag.graph_node import GraphNode
 from nas.graph.node.nas_graph_node import NasNode
 
 
-def conv2d(input_dim: int, node: NasNode, **kwargs):
+def conv2d(node: NasNode, **inputs_dict):
     """
     TODO
     """
-    out_shape = node.parameters.get('neurons')
+    input_dim = inputs_dict.get('input_dim')
+    out_shape = node.parameters.get('out_shape')
     kernel_size = node.parameters.get('kernel_size')
-    stride = node.parameters.get('conv_strides', 1)
+    stride = node.parameters.get('stride', 1)
     padding = node.parameters.get('padding')
-    return nn.Conv2d(input_dim, out_shape, kernel_size, stride, padding, **kwargs)
+    return nn.Conv2d(input_dim, out_shape, kernel_size, stride, padding)
 
 
-def linear(input_dim: int, node: NasNode, **kwargs):
+def linear(node: NasNode, **inputs_dict):
     """
     TODO
     """
+    input_dim = inputs_dict.get('input_dim')
     out_shape = node.parameters.get('neurons')
-    return nn.Linear(input_dim, out_shape, **kwargs)
+    return nn.Linear(input_dim, out_shape, **inputs_dict)
 
 
 def dropout(node: NasNode, **kwargs):
@@ -30,17 +32,19 @@ def dropout(node: NasNode, **kwargs):
     return nn.Dropout(p=dropout_prob)
 
 
-def batch_norm(input_shape: int, node: NasNode, **kwargs):
+def batch_norm(node: NasNode, **inputs_dict):
+    input_dim = inputs_dict.get('input_dim')
     eps = node.parameters.get('epsilon')
     momentum = node.parameters.get('momentum')
-    return nn.BatchNorm2d(input_shape, eps, momentum, **kwargs)
+    return nn.BatchNorm2d(input_dim, eps, momentum)
 
 
-def pooling(node: NasNode, **kwargs):
+def pooling(node: NasNode, **inputs_dict):
     kernel_size = node.parameters.get('pool_size')
-    stride = node.parameters.get('pool_strides')
-    pool_layer = nn.MaxPool2d if node.name == 'max_pool2d' else nn.AvgPool2d
-    return pool_layer(kernel_size, stride, **kwargs)
+    stride = node.parameters.get('pool_stride')
+    padding = node.parameters.get('padding', 0)
+    pool_layer = nn.MaxPool2d if node.parameters['mode'] == 'max' else nn.AvgPool2d
+    return pool_layer(kernel_size, stride, padding=padding)
 
 
 def flatten(*args, **kwargs):
@@ -54,15 +58,17 @@ class TorchLayerFactory:
                    'linear': linear,
                    'dropout': dropout,
                    'batch_norm': batch_norm,
-                   'pooling': pooling,
+                   'pooling2d': pooling,
                    'flatten': flatten}
+        layer = {}
         layer_type = node.name
-        layer_fun = {'weighted_layer': _layers.get(layer_type)}
+        layer_fun = _layers.get(layer_type)
+        layer['weighted_layer'] = layer_fun  # TODO rename 'weighted layer' to more appropriate name
         if layer_fun is None:
             raise ValueError(f'Wrong layer type: {layer_type}')
         if 'momentum' in node.parameters:
-            layer_fun['normalization'] = _layers.get('batch_norm')
-        return layer_fun
+            layer['normalization'] = _layers.get('batch_norm')
+        return layer
 
     @staticmethod
     def get_activation(activation_name: str):

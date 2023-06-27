@@ -102,6 +102,7 @@ class ConvRequirements(BaseLayerRequirements):
     conv_strides: Optional[List[List[int]]] = None
     pool_size: Optional[List[List[int]]] = None
     pool_strides: Optional[List[List[int]]] = None
+    pooling_mode: Optional[List[str], Tuple[str]] = None
     dilation_rate: Optional[List[int]] = None
     padding: Union[str, tuple[int]] = None
     kernel_size: Union[List[int], Tuple[int]] = None
@@ -115,6 +116,8 @@ class ConvRequirements(BaseLayerRequirements):
             self.pool_size = [[2, 2]]
         if not self.pool_strides:
             self.pool_strides = copy.deepcopy(self.pool_size)
+        if self.pooling_mode is None:
+            self.pooling_mode = ['max', 'avg']
 
         if not hasattr(self.conv_strides, '__iter__'):
             raise ValueError('Pool of possible strides must be an iterable object')
