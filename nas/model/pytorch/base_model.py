@@ -69,6 +69,10 @@ class NASTorchModel(torch.nn.Module):
             if node.name not in ['pooling2d', 'dropout', 'adaptive_pool2d', 'flatten']:
                 output = TorchLayerFactory.get_activation(node.parameters['activation'])()(output)
             # output = dropout(node)(output)
+            if node in node_to_save.keys():
+                node_to_save[node] = output
+
+            visited_nodes.add(node)
             return output
         out = _forward_pass_one_layer_recursive(graph.root_node)
         return self.output_layer(out)

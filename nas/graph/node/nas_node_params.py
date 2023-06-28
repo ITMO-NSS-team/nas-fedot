@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from enum import Enum
-from functools import partial
 from typing import TYPE_CHECKING, Dict
 
 from nas.repository.layer_types_enum import LayersPoolEnum
@@ -12,6 +10,7 @@ if TYPE_CHECKING:
     from nas.composer.requirements import ModelRequirements
 
 
+# TODO rewrite with builder pattern
 class NasNodeFactory:
     def __init__(self, requirements: ModelRequirements = None):
         self.global_requirements = requirements
@@ -30,7 +29,10 @@ class NasNodeFactory:
             raise ValueError(f'Wrong node name {node_name}')
         layer_params = layer_params_fun(self.global_requirements, **params)
         bn_prob = .5 if self.global_requirements is None else self.global_requirements.fc_requirements.batch_norm_prob
-        if random.uniform(0, 1) < bn_prob or 'momentum' in params.items():
+        bn_cond1 = random.uniform(0, 1) < bn_prob or 'momentum' in params.items()
+        bn_cond2 = node_name not in [LayersPoolEnum.adaptive_pool2d, LayersPoolEnum.pooling2d,
+                                     LayersPoolEnum.flatten, LayersPoolEnum.dropout, LayersPoolEnum.batch_norm2d]
+        if bn_cond1 and bn_cond2:
             layer_params = {**layer_params, **self.batch_normalization(self.global_requirements, **params)}
 
         return layer_params
@@ -77,7 +79,7 @@ class NasNodeFactory:
         return params
 
     @staticmethod
-    def ada_pool2d(requirements: ModelRequirements=None, **kwargs):
+    def ada_pool2d(requirements: ModelRequirements = None, **kwargs):
         params = {}
         if requirements is not None:
             out_shape = (1, 1)

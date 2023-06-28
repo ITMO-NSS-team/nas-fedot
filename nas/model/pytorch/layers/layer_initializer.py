@@ -47,6 +47,13 @@ def pooling(node: NasNode, **inputs_dict):
     return pool_layer(kernel_size, stride, padding=padding)
 
 
+def ada_pool2d(node: NasNode, **inputs_dict):
+    out_shape = node.parameters.get('out_shape')
+    mode = node.parameters.get('mode')
+    pool_layer = nn.AdaptiveMaxPool2d if mode == 'max' else nn.AdaptiveAvgPool2d
+    return pool_layer(out_shape)
+
+
 def flatten(*args, **kwargs):
     return nn.Flatten
 
@@ -59,6 +66,7 @@ class TorchLayerFactory:
                    'dropout': dropout,
                    'batch_norm': batch_norm,
                    'pooling2d': pooling,
+                   'adaptive_pool2d': ada_pool2d,
                    'flatten': flatten}
         layer = {}
         layer_type = node.name

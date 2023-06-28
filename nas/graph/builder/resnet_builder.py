@@ -111,6 +111,6 @@ class ResNetBuilder(GraphGenerator):
                         block_expansion=block_expansion, conv_stride=2)
         self._add_block(512, blocks_num=ResnetConfig.blocks_num[self.resnet_type][3],
                         block_expansion=block_expansion, conv_stride=2)
-        self._add_node(LayersPoolEnum.pooling2d, out_shape=[1, 1], mode='avg', parent_node=self._graph.root_node)
+        self._add_node(LayersPoolEnum.adaptive_pool2d, out_shape=[1, 1], mode='avg', parent_node=self._graph.root_node)
         self._add_node(LayersPoolEnum.flatten, parent_node=self._graph.root_node)
         return self._graph
