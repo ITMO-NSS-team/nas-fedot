@@ -3,15 +3,9 @@ from __future__ import annotations
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import Type, TYPE_CHECKING, Union, Optional
-
-import numpy as np
-import torch.nn
-import tqdm
-from torch.utils.data import Dataset
+from typing import Type, TYPE_CHECKING, Union
 
 from nas.data.dataset.builder import BaseNNDataset
-from nas.graph.BaseGraph import NasGraph
 
 if TYPE_CHECKING:
     pass
@@ -48,41 +42,6 @@ class BaseModelInterface(ABC):
     @abstractmethod
     def save(self, save_path: Union[str, os.PathLike, pathlib.Path]):
         raise NotImplementedError
-
-
-class TorchModel(BaseModelInterface):
-    def __init__(self, model_class: torch.nn.Module, graph: NasGraph, input_shape: int, out_shape: int):
-        super().__init__(model_class)
-        self._device = None
-        self._writer = None
-        self._model = model_class().init_model(input_shape, out_shape, graph)
-
-    def __call__(self, data: Optional[torch.Tensor, np.ndarray], **kwargs):
-        data = torch.Tensor(data)
-        self.model.eval()
-        data = data.to(self._device)
-        with torch.no_grad():
-            return self.model(data)
-
-    def fit(self, train_data: Dataset, batch_size: int, train_parameters, opt_epochs: int = None,
-            val_data: Optional[Dataset] = None):
-        epochs = opt_epochs if opt_epochs is not None else train_parameters.epochs
-        callbacks = train_parameters.callbacks
-        scheduler = train_parameters.scheduler
-        optimizer = train_parameters.optimizer
-        metrics = train_parameters.metrics
-        loss = train_parameters.loss_func
-
-        train_loop = tqdm.trange(epochs, position=0)
-        for epoch in train_loop:
-            train_loop.set_description(f'Epoch [{epoch + 1}/{epochs}')
-            train_logs = self._one_epoch_train(train_data, loss, optimizer, scheduler, metrics)
-            val_logs = {} if val_data is None else self._one_epochs_val(val_data, loss, metrics)
-            train_loop.set_postfix(learning_rate=optimizer.param_groups[0]['lr'],
-                                   **train_logs, **val_logs)
-
-    def predict(self, *args, **kwargs):
-        pass
 
 # TODO docstrings
 # class ModelTF(BaseModelInterface):
