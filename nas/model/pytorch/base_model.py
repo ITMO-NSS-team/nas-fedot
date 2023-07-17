@@ -44,7 +44,6 @@ class NASTorchModel(torch.nn.Module):
             input_shape = parent_node.parameters.get('out_shape')
         return input_shape
 
-
     def build_forward_pass(self, inputs: torch.Tensor, graph: NasGraph):
         visited_nodes = set()
         node_to_save = dict()

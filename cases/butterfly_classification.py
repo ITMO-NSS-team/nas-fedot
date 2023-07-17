@@ -5,6 +5,7 @@ import pathlib
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 
 from nas.model.model_interface import ModelTF
+from nas.model.pytorch.base_model import NASTorchModel
 from nas.model.tensorflow.base_model import BaseNasTFModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -104,7 +105,7 @@ def build_butterfly_cls(save_path=None):
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
     # TODO may be add additional parameters to requirements class instead of passing them directly to model init method.
-    model_interface = ModelTF(model_class=BaseNasTFModel, data_transformer=dataset_builder,
+    model_interface = ModelTF(model_class=NASTorchModel, data_transformer=dataset_builder,
                               lr=1e-4, optimizer=tf.keras.optimizers.Adam,
                               metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')],
                               loss='categorical_crossentropy')

@@ -54,6 +54,5 @@ class ImageDatasetBuilder(BaseNNDataset):
             data_preprocessor = self._data_preprocessor
         loader = self.loader(data, self.image_size)
 
-        dataset = self.dataset_cls(batch_size=batch_size, shuffle=shuffle,
-                                   preprocessor=data_preprocessor, loader=loader)
+        dataset = self.dataset_cls(preprocessor=data_preprocessor, loader=loader)
         return dataset
