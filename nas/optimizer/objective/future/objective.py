@@ -1,5 +1,6 @@
-from golem.core.optimisers.objective import Objective
 from typing import Dict, Callable, Any, Optional
+
+from golem.core.optimisers.objective import Objective
 
 
 class NasObjective(Objective):

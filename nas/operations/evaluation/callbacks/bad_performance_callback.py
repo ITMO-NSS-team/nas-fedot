@@ -9,6 +9,7 @@ class PerformanceCheckingCallback(tensorflow.keras.callbacks.Callback):
     After each epoch evaluates model performance metrics like runtime, loss and if they are not fit to desired range,
     model considered as invalid
     """
+
     def __init__(self):
         super().__init__()
         self.start_time = None

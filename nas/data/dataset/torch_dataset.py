@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import Dataset
-import torchvision.transforms
 
 from nas.data.loader import ImageLoader
 from nas.data.preprocessor import Preprocessor

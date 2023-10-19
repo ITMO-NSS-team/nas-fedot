@@ -2,7 +2,6 @@ import datetime
 import os
 import pathlib
 
-import torch.optim
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 
 from nas.composer.future.nn_composer import NNComposer
@@ -10,7 +9,7 @@ from nas.data.dataset.torch_dataset import TorchDataset
 from nas.model.constructor import ModelConstructor
 from nas.model.model_interface import NeuralSearchModel
 # from nas.model.model_interface import ModelTF
-from nas.model.pytorch.base_model import NASTorchModel, TorchModel
+from nas.model.pytorch.base_model import NASTorchModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -31,7 +30,6 @@ from fedot.core.repository.quality_metrics_repository import ClassificationMetri
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.requirements as nas_requirements
-from nas.composer.nn_composer import NasComposer
 # from nas.data import KerasDataset
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.data.preprocessor import Preprocessor

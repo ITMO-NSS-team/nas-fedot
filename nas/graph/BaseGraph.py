@@ -5,7 +5,6 @@ import pathlib
 from typing import List, Union, Optional
 
 from fedot.core.data.data import OutputData
-from golem.core.dag.graph_node import GraphNode
 from golem.core.optimisers.graph import OptGraph
 from golem.serializers import Serializer
 from golem.visualisation.graph_viz import NodeColorType

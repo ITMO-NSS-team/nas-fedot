@@ -1,10 +1,11 @@
 import os
-import os
 import random
 import sys
 from pathlib import Path
 
 import numpy as np
+
+
 # import nvidia_smi
 # import tensorflow
 # from keras.backend import get_session, clear_session
@@ -23,7 +24,6 @@ def seed_all(random_seed: int):
 def project_root() -> Path:
     """Returns NAS project root folder."""
     return Path(__file__).parent.parent.parent
-
 
 # def clear_session():
 #     session = tensorflow.compat.v1.Session()

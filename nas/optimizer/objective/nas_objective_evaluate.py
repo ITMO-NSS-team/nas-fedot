@@ -1,9 +1,6 @@
-import os
 import pathlib
-import sys
 from typing import TypeVar, Any
 
-import numpy as np
 import torch.nn
 # import tensorflow
 from fedot.core.data.data import InputData
@@ -22,6 +19,7 @@ from torch.utils.data import DataLoader
 from nas.composer.requirements import NNComposerRequirements
 from nas.graph.BaseGraph import NasGraph
 from nas.model.model_interface import BaseModelInterface
+
 # from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback
 
 G = TypeVar('G', Graph, OptGraph)
@@ -91,7 +89,6 @@ class NasObjectiveEvaluate(ObjectiveEvaluate):
         test_data = DataLoader(self._dataset_builder.build(reference_data))
         predictions = trainer.predict(test_data)
         print()
-
 
     def evaluate(self, graph: NasGraph) -> Fitness:
         if not self._optimization_verbose == 'silent':

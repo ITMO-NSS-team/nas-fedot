@@ -1,6 +1,5 @@
-from typing import Optional, Sequence, Type
+from typing import Optional, Sequence
 
-import torch.optim
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.objective import DataSource
@@ -24,6 +23,7 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
     """
     This class defines how Objective will be evaluated for neural network like graph structure.
     """
+
     def __init__(self,
                  objective: Objective,
                  optimizer,
@@ -91,4 +91,3 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         # test_dataset = DataLoader(self._dataset_builder.build(test_data))
         # predictions = fitted_model.predict(test_data)
         # for metric in self._objective.metrics:
-

@@ -53,4 +53,4 @@ class NNNodeFactory(OptNodeFactory):
         layer_name = choice(candidates)
         layer_params = get_node_params_by_type(layer_name, self.requirements)
         return NasNode(content={'name': layer_name.value,
-                               'params': layer_params})
+                                'params': layer_params})

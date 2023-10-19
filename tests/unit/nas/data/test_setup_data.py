@@ -1,6 +1,5 @@
 import pathlib
 
-import tensorflow as tf
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 
 import nas

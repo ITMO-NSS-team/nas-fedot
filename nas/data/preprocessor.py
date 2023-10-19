@@ -31,6 +31,7 @@ class Preprocessor(BasePreprocessor):
         return sample
 
     def preprocess(self, features, targets):
-        new_features_batch = self.transform_sample(features)  # [self.transform_sample(sample) for sample in features_batch]
+        new_features_batch = self.transform_sample(
+            features)  # [self.transform_sample(sample) for sample in features_batch]
         new_targets_batch = targets
         return new_features_batch, new_targets_batch

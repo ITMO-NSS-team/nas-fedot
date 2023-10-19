@@ -1,9 +1,8 @@
+from math import floor
 from typing import Callable, Dict, List, Union
 
-from math import floor, ceil
 import numpy as np
 
-from nas.graph.builder.resnet_builder import ResNetBuilder
 from nas.graph.node.nas_graph_node import NasNode
 
 

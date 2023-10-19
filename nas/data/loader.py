@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Union, Tuple, List
+from typing import Tuple
 
 import cv2
 import numpy as np
@@ -11,6 +11,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 class BaseDataLoader(ABC):
     """Base class that performs data loading from InputData."""
+
     def __init__(self, dataset: InputData, *args, **kwargs):
         self.dataset = dataset
 

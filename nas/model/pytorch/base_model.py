@@ -148,6 +148,7 @@ class TorchModel(BaseModelInterface):
     """
     Base class that implements all required logic to work with NasGraphs as it was torch models.
     """
+
     def __init__(self, model_class: torch.nn.Module, graph: NasGraph, input_shape: int, out_shape: int):
         super().__init__(model_class)
         self._device = None
