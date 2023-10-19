@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, List, Optional
 
-from nas.data.dataset.builder import BaseNNDataset
+from nas.graph.BaseGraph import NasGraph
 
 if TYPE_CHECKING:
     pass
@@ -16,14 +16,24 @@ class BaseModelInterface(ABC):
     Class Interface for model handling
     """
 
-    def __init__(self, model_class, data_transformer: Type[BaseNNDataset], **additional_model_params):
-        self.data_transformer = data_transformer
-        self._model_class = model_class
-        self.model = None
-        self.additional_model_params = additional_model_params
+    def __init__(self, model, device, loss_func=None, optimizer=None, **kwargs):
+        self.model = model
+        self.device = device
+        self.optimizer = optimizer
+        self.loss_function = loss_func
+        self.callbacks = None
+
+        self.additional_model_params = kwargs
+
+    def set_callbacks(self, callbacks_lst: List):
+        self.callbacks = callbacks_lst
+
+    def set_fit_params(self, optimizer, loss_func):
+        self.loss_function = loss_func
+        self.optimizer = optimizer
 
     @staticmethod
-    @abstractmethod
+    # @abstractmethod
     def prepare_data(*args, **kwargs):
         raise NotImplementedError
 
@@ -32,17 +42,48 @@ class BaseModelInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def fit(self, *args, **kwargs):
+    def fit_model(self, *args, **kwargs):
         raise NotImplementedError
 
-    @abstractmethod
+    # @abstractmethod
     def predict(self, *args, **kwargs):
         raise NotImplementedError
 
-    @abstractmethod
+    # @abstractmethod
     def save(self, save_path: Union[str, os.PathLike, pathlib.Path]):
         raise NotImplementedError
 
+
+class NeuralSearchModel(BaseModelInterface):
+    """
+    Class to handle all required logic to evaluate graph as neural network regardless of  framework.
+    """
+
+    def __init__(self, model, device: str = 'cpu', **kwargs):
+        super().__init__(model, device=device, **kwargs)
+
+    def compile_model(self, graph: NasGraph, input_shape, output_shape, **kwargs):
+        """
+        This method builds model from given graph.
+        """
+        self.model = self.model()  # TODO: implement defined argument passing instead of kwargs
+        self.model.init_model(graph=graph, input_shape=input_shape, out_shape=output_shape, **kwargs)
+        self.set_computation_device()
+
+    def set_computation_device(self):
+        self.model.set_device(self.device)
+
+    def fit_model(self, train_data, val_data: Optional = None, epochs: int = 1, **kwargs):
+        self.model.fit(train_data,
+                       val_data=val_data,
+                       optmizer=self.optimizer,
+                       loss=self.loss_function,
+                       epochs=epochs,
+                       device=self.device,
+                       **kwargs)
+
+    def predict(self, test_data, **kwargs):
+        return self.model.predict(test_data, self.device)
 # TODO docstrings
 # class ModelTF(BaseModelInterface):
 #     def __init__(self, model_class: Type[tf.keras.Model], data_transformer, **additional_model_params):

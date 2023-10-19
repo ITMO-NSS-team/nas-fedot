@@ -12,7 +12,7 @@ from golem.visualisation.graph_viz import NodeColorType
 
 from nas.graph.graph_utils import probs2labels
 from nas.graph.node.nas_graph_node import NasNode
-from nas.model.model_interface import BaseModelInterface
+# from nas.model.model_interface import BaseModelInterface
 # hotfix
 from nas.utils.utils import seed_all
 
@@ -22,7 +22,7 @@ seed_all(1)
 class NasGraph(OptGraph):
     def __init__(self, nodes: Optional[List[NasNode]] = ()):
         super().__init__(nodes)
-        self._model_interface: Optional[BaseModelInterface] = None
+        self._model_interface = None
 
     def __repr__(self):
         return f"{self.depth}:{self.length}:{self.cnn_depth[0]}"
@@ -36,7 +36,7 @@ class NasGraph(OptGraph):
         super().show(save_path, engine, node_color, dpi, node_size_scale, font_size_scale, edge_curvature_scale)
 
     @property
-    def model_interface(self) -> BaseModelInterface:
+    def model_interface(self):
         return self._model_interface
 
     @model_interface.setter

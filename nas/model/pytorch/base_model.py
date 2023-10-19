@@ -7,7 +7,7 @@ import torch
 import torch.nn
 import tqdm
 from golem.core.dag.graph_node import GraphNode
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 from nas.graph.BaseGraph import NasGraph
 from nas.graph.node.nas_graph_node import NasNode
@@ -16,32 +16,16 @@ from nas.model.pytorch.layers.layer_initializer import TorchLayerFactory
 
 
 class NASTorchModel(torch.nn.Module):
-    def __init__(self):
+    """
+    Implementation of Pytorch model class for graph described architectures.
+    """
+
+    def __init__(self, **kwargs):
         super().__init__()
         self.model_layers = None
         self.output_layer = None
-        self._forward_pass = None
-        self._inputs_dict = None
 
-    def init_model(self, input_shape: int, out_shape: int, graph: NasGraph, **kwargs):
-        output_shape = out_shape if out_shape > 2 else 1
-        model_state = {}
-        for node in graph.nodes:
-            if node.name == 'flatten':
-                continue
-
-            # layer = LayerInitializer(node, input_shape)
-
-            # TODO rewrite it with custom layers
-            layer_dict = TorchLayerFactory.get_layer(node)
-            input_shape = self.get_input_shape(node) if self.get_input_shape(node) is not None else input_shape
-            layer_dict['weighted_layer'] = layer_dict['weighted_layer'](node, input_dim=input_shape)
-            if layer_dict.get('normalization') is not None:
-                out_shape = node.parameters.get('out_shape', input_shape)
-                layer_dict['normalization'] = layer_dict['normalization'](node, input_dim=out_shape)
-            model_state[node] = layer_dict
-        self.model_layers = model_state
-        self.output_layer = torch.nn.Linear(input_shape, output_shape)
+        self._graph = None
 
     @staticmethod
     def get_input_shape(node: NasNode):
@@ -51,41 +35,119 @@ class NASTorchModel(torch.nn.Module):
             input_shape = parent_node.parameters.get('out_shape')
         return input_shape
 
-    def build_forward_pass(self, inputs: torch.Tensor, graph: NasGraph):
+    def set_device(self, device):
+        self.to(device)
+
+    def init_model(self, input_shape: int, out_shape: int, graph: NasGraph, **kwargs):
+        output_shape = out_shape if out_shape > 2 else 1
+        for node in graph.nodes:
+            if node.name == 'flatten':
+                continue
+            layer_dict = TorchLayerFactory.get_layer(node)
+            input_shape = self.get_input_shape(node) if self.get_input_shape(node) is not None else input_shape
+            self.__setattr__(f'node_{node.uid}', layer_dict['weighted_layer'](node, input_dim=input_shape))
+            if layer_dict.get('normalization') is not None:
+                out_shape = node.parameters.get('out_shape', input_shape)
+                self.__setattr__(f'node_{node.uid}_n', layer_dict['normalization'](node, input_dim=out_shape))
+        self.output_layer = torch.nn.Linear(input_shape, output_shape)
+        self._graph = graph
+
+    def forward(self, inputs: torch.Tensor):
         visited_nodes = set()
         node_to_save = dict()
 
         def _forward_pass_one_layer_recursive(node: Union[GraphNode, NasNode]):
-            layer_state_dict = self.model_layers[node] if node.name != 'flatten' else \
-                {'weighted_layer': torch.nn.Flatten()}
+            layer_name = f'node_{node.uid}'
+            layer_state_dict = self.__getattr__(layer_name) if node.name != 'flatten' else \
+                torch.nn.Flatten()
             if node in visited_nodes:
                 return node_to_save[node]
-            first_save_cond = len(graph.node_children(node)) > 1 or len(node.nodes_from) > 1
+            first_save_cond = len(self._graph.node_children(node)) > 1 or len(node.nodes_from) > 1
             second_save_cond = node not in node_to_save.keys()
             if first_save_cond and second_save_cond:
                 node_to_save[node] = None
             layer_inputs = [_forward_pass_one_layer_recursive(parent) for parent in node.nodes_from] \
                 if node.nodes_from else [inputs]
-            output = layer_state_dict['weighted_layer'](layer_inputs[0])
-            if layer_state_dict.get('normalization') is not None:
-                output = layer_state_dict['normalization'](output)
+            output = layer_state_dict(layer_inputs[0])
+            if hasattr(self, f'{layer_name}_n'):
+                output = self.__getattr__(f'{layer_name}_n')(output)
             if len(node.nodes_from) > 1:
                 shortcut = layer_inputs[-1]
                 output += shortcut
             if node.name not in ['pooling2d', 'dropout', 'adaptive_pool2d', 'flatten']:
                 output = TorchLayerFactory.get_activation(node.parameters['activation'])()(output)
-            # output = dropout(node)(output)
             if node in node_to_save.keys():
                 node_to_save[node] = output
-
             visited_nodes.add(node)
             return output
 
-        out = _forward_pass_one_layer_recursive(graph.root_node)
+        out = _forward_pass_one_layer_recursive(self._graph.root_node)
         return self.output_layer(out)
+
+    def _one_epoch_train(self, train_data: DataLoader, optimizer, loss_fn, device):
+        running_loss = 0
+        for batch_id, (features_batch, targets_batch) in enumerate(train_data):
+            features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
+            optimizer.zero_grad()
+            outputs = self.__call__(features_batch)
+            loss = loss_fn(outputs, targets_batch)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        running_loss = running_loss / len(train_data)
+        # TODO add tb writer
+        return running_loss
+
+    def _one_epoch_val(self, val_data: DataLoader, loss_fn, device):
+        running_loss = 0
+        for batch_id, (features_batch, targets_batch) in enumerate(val_data):
+            features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
+            outputs = self.__call__(features_batch)
+            loss = loss_fn(outputs, targets_batch)
+            running_loss += loss.item()
+        return running_loss / len(val_data)
+
+    def fit(self, train_data: DataLoader,
+            loss,
+            val_data: Optional[DataLoader] = None,
+            optimizer=torch.optim.AdamW,
+            epochs: int = 1,
+            device: str = 'cpu',
+            **kwargs):
+        self.set_device(device)
+        metrics = dict()
+        optim = optimizer(self.parameters(), lr=kwargs.get('lr', 1e-3))
+        pbar = tqdm.trange(epochs, desc='Fitting graph', leave=False)
+        for epoch in pbar:
+            self.train(mode=True)
+            prefix = f'Epoch {epoch} / {epochs}:'
+            pbar.set_description(f'{prefix} Train')
+            train_loss = self._one_epoch_train(train_data, optim, loss, device)
+            metrics['train_loss'] = train_loss
+            if val_data:
+                pbar.set_description(f'{prefix} Validation')
+                with torch.no_grad():
+                    self.eval()
+                    val_loss = self._one_epoch_val(val_data, loss, device)
+                metrics['val_loss'] = val_loss
+            pbar.set_postfix(**metrics)
+
+    def predict(self, test_data: DataLoader, device: str = 'cpu'):
+        self.set_device(device)
+        self.eval()
+        results = []
+        with torch.no_grad():
+            for features, targets in test_data:
+                features, targets = features.to(device), targets.to(device)
+                predictions = self.__call__(features)
+                results.append(torch.argmax(predictions, dim=-1).item())
+        return np.array(results)
 
 
 class TorchModel(BaseModelInterface):
+    """
+    Base class that implements all required logic to work with NasGraphs as it was torch models.
+    """
     def __init__(self, model_class: torch.nn.Module, graph: NasGraph, input_shape: int, out_shape: int):
         super().__init__(model_class)
         self._device = None

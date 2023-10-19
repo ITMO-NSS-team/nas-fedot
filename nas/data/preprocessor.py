@@ -30,7 +30,7 @@ class Preprocessor(BasePreprocessor):
             sample = reduce(lambda res, f: f(res), self.transformations, sample)
         return sample
 
-    def preprocess(self, features_batch, targets_batch):
-        new_features_batch = [self.transform_sample(sample) for sample in features_batch]
-        new_targets_batch = targets_batch
+    def preprocess(self, features, targets):
+        new_features_batch = self.transform_sample(features)  # [self.transform_sample(sample) for sample in features_batch]
+        new_targets_batch = targets
         return new_features_batch, new_targets_batch

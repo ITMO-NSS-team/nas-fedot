@@ -24,7 +24,7 @@ class BaseDataLoader(ABC):
         num_classes = len(np.unique(self.dataset.target))
 
         if num_classes > 2:
-            encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse=False)
+            encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse_output=False)
             new_targets = encoder.fit_transform(new_targets)
         return new_targets
 

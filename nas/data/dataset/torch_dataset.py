@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import torchvision.transforms
 
@@ -15,7 +16,7 @@ class TorchDataset(Dataset):
 
     def __getitem__(self, item):
         x = self._loader.get_feature(item)
-        y = self._loader.get_feature(item)
+        y = self._loader.get_target(item)
         if self._preprocessor:
             x, y = self._preprocessor.preprocess(x, y)
-        return torchvision.transforms.ToTensor()(x), torchvision.transforms.ToTensor()(y)
+        return torch.Tensor(x), torch.Tensor(y)

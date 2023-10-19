@@ -2,15 +2,19 @@ import datetime
 import os
 import pathlib
 
+import torch.optim
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 
-from nas.model.model_interface import ModelTF
-from nas.model.pytorch.base_model import NASTorchModel
-from nas.model.tensorflow.base_model import BaseNasTFModel
+from nas.composer.future.nn_composer import NNComposer
+from nas.data.dataset.torch_dataset import TorchDataset
+from nas.model.constructor import ModelConstructor
+from nas.model.model_interface import NeuralSearchModel
+# from nas.model.model_interface import ModelTF
+from nas.model.pytorch.base_model import NASTorchModel, TorchModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-import tensorflow as tf
+# import tensorflow as tf
 
 from golem.core.adapter.adapter import DirectAdapter
 from golem.core.optimisers.advisor import DefaultChangeAdvisor
@@ -28,11 +32,9 @@ from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.requirements as nas_requirements
 from nas.composer.nn_composer import NasComposer
-from nas.data import KerasDataset
+# from nas.data import KerasDataset
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.data.preprocessor import Preprocessor
-from nas.graph.BaseGraph import NasNode
-from nas.graph.builder.resnet_builder import ResNetBuilder
 from nas.graph.builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.node.node_factory import NNNodeFactory
 from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
@@ -42,9 +44,9 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
 from nas.data.nas_data import InputDataNN
 
-tf.config.experimental.set_memory_growth = True
-gpus = tf.config.list_physical_devices('GPU')
-print(gpus)
+# tf.config.experimental.set_memory_growth = True
+# gpus = tf.config.list_physical_devices('GPU')
+# print(gpus)
 
 set_root(project_root())
 
@@ -61,11 +63,10 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path(f'{project_root()}/../datasets/butterfly_cls/train')
+    dataset_path = pathlib.Path('/home/staeros/datasets/butterfly/')
     data = InputDataNN.data_from_folder(dataset_path, task)
 
-    conv_layers_pool = [LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_5x5,
-                        LayersPoolEnum.conv2d_7x7]
+    conv_layers_pool = [LayersPoolEnum.conv2d]
 
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
                  MutationTypesEnum.single_change]
@@ -100,15 +101,17 @@ def build_butterfly_cls(save_path=None):
                                                            cv_folds=cv_folds)
 
     data_preprocessor = Preprocessor()
-    dataset_builder = ImageDatasetBuilder(dataset_cls=KerasDataset, image_size=(image_side_size, image_side_size),
+    dataset_builder = ImageDatasetBuilder(dataset_cls=TorchDataset, image_size=(image_side_size, image_side_size),
                                           batch_size=requirements.model_requirements.batch_size,
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
     # TODO may be add additional parameters to requirements class instead of passing them directly to model init method.
-    model_interface = ModelTF(model_class=NASTorchModel, data_transformer=dataset_builder,
-                              lr=1e-4, optimizer=tf.keras.optimizers.Adam,
-                              metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')],
-                              loss='categorical_crossentropy')
+    # model_interface = TorchModel(model_class=NASTorchModel, data_transformer=dataset_builder,
+    #                              lr=1e-4, optimizer=torch.optim.Adam,#tf.keras.optimizers.Adam,
+    #                              # metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')],
+    #                              loss='categorical_crossentropy')
+    model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda:0')
+    model_interface = NeuralSearchModel(model=NASTorchModel, device='cuda:0')
 
     validation_rules = [model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers, model_has_several_starts,
                         has_no_cycle, has_no_self_cycled_nodes, check_dimensions]
@@ -128,15 +131,16 @@ def build_butterfly_cls(save_path=None):
     graph_generation_function.set_builder(ResNetBuilder(model_requirements=requirements.model_requirements,
                                                         model_type='resnet_34'))
 
-    builder = ComposerBuilder(task).with_composer(NasComposer).with_optimizer(NNGraphOptimiser). \
+    builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
         with_initial_pipelines(graph_generation_function.build()). \
         with_graph_generation_param(graph_generation_parameters)
 
     composer = builder.build()
+    composer.set_trainer(model_trainer)
+    composer.set_dataset_builder(dataset_builder)
 
     new_train_data, new_test_data = train_test_data_setup(train_data, shuffle_flag=True)
-    composer.set_model_interface(model_interface)
     optimized_network = composer.compose_pipeline(train_data)
 
     optimized_network.model_interface = model_interface
