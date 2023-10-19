@@ -9,7 +9,7 @@ from nas.data.loader import BaseDataLoader, ImageLoader
 from nas.data.preprocessor import Preprocessor
 
 
-class BaseNNDataset(ABC):
+class BaseNNDatasetBuilder(ABC):
     def __init__(self, dataset_cls: Callable, batch_size: int, loader: Type[BaseDataLoader], shuffle: bool):
         # TODO remove batch size from parameters and add it directly when calling build() method.
         self.dataset_cls = dataset_cls
@@ -23,7 +23,7 @@ class BaseNNDataset(ABC):
         raise NotImplementedError
 
 
-class ImageDatasetBuilder(BaseNNDataset):
+class ImageDatasetBuilder(BaseNNDatasetBuilder):
     def __init__(self, dataset_cls: Callable, image_size: Union[Tuple[int, int], List[int, int]],
                  batch_size: int = 32, loader: Type[BaseDataLoader] = ImageLoader, shuffle: bool = True):
         super().__init__(dataset_cls, batch_size, loader, shuffle)

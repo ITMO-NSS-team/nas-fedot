@@ -1,31 +1,94 @@
+from typing import Optional, Sequence, Type
+
+import torch.optim
+from fedot.core.data.data import InputData
+from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.objective import DataSource
+from fedot.core.repository.tasks import Task, TaskTypesEnum
+from golem.core.log import default_log
 from golem.core.optimisers.fitness import Fitness
-from golem.core.optimisers.objective import ObjectiveEvaluate
-from tqdm import tqdm
+from golem.core.optimisers.objective import ObjectiveEvaluate, Objective
+from torch.utils.data import DataLoader
 
+from nas.composer.requirements import NNComposerRequirements
+from nas.data.dataset.builder import BaseNNDatasetBuilder
 from nas.graph.BaseGraph import NasGraph
+from nas.model.constructor import ModelConstructor
+from nas.model.model_interface import NeuralSearchModel
 
 
-class ObjectiveEvaluate(ObjectiveEvaluate):
+# OPT_TYPES = Union[Type[torch.optim.Optimizer, torch.optim.AdamW]]
+
+# TODO rewrite dock strings; pass flag to Dataset builder to disable data transformations.
+class NASObjectiveEvaluate(ObjectiveEvaluate):
     """
     This class defines how Objective will be evaluated for neural network like graph structure.
     """
     def __init__(self,
-                 objective,
+                 objective: Objective,
+                 optimizer,
+                 loss_func,
                  data_producer: DataSource,
-                 model_handler,
-                 requirements,
-                 verbose_level = None,
+                 model_trainer_builder: ModelConstructor,
+                 requirements: NNComposerRequirements,
+                 nn_dataset_builder: BaseNNDatasetBuilder,
+                 verbose_level=None,
                  eval_n_jobs: int = 1,
+                 callbacks: Optional[Sequence] = None,
                  **objective_kwargs):
         super().__init__(objective=objective, eval_n_jobs=eval_n_jobs, **objective_kwargs)
+        self.verbose_level = verbose_level
         self._data_producer = data_producer
-        self._model_handler = model_handler
-
+        self._dataset_builder = nn_dataset_builder
+        self._model_trainer_builder = model_trainer_builder
+        self._requirements = requirements
+        self._callbacks = callbacks
+        self._optimizer = optimizer
+        self._loss_func = loss_func
+        self._log = default_log(self)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
         # create pbar only if there is evaluation on folds
-        fold_pbar = tqdm(self._data_producer) if folds else self._data_producer
-        for fold_id, (train_data, test_data) in enumerate(fold_pbar):
-            pass
+        # pbar = tqdm(self._data_producer()) if self._requirements.cv_folds > 1 else self._data_producer()
+        for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
+            fitted_model = self._graph_fit(graph, train_data, log=self._log, fold_id=fold_id + 1)
+            fold_fitness = self._evaluate_fitted_model(fitted_model, test_data, log=self._log, fold_id=fold_id + 1)
+
+    def _graph_fit(self, graph: NasGraph, train_data: InputData, log, fold_id) -> NeuralSearchModel:
+        """
+        This method compiles and fits a neural network based on given parameters and graph structure.
+
+        Args:
+             graph - Graph with defined search space of operations to apply during training process;
+             train_data - dataset used as an entry point into the pipeline fitting procedure;
+
+         Returns:
+             Fitted model object
+        """
+        shuffle_flag = train_data.task != Task(TaskTypesEnum.ts_forecasting)
+        classes = train_data.num_classes
+        batch_size = self._requirements.model_requirements.batch_size
+        opt_epochs = self._requirements.opt_epochs
+
+        opt_data, val_data = train_test_data_setup(train_data, shuffle_flag=shuffle_flag, stratify=train_data.target)
+        opt_dataset = DataLoader(self._dataset_builder.build(opt_data), batch_size=batch_size)
+        val_dataset = DataLoader(self._dataset_builder.build(val_data), batch_size=batch_size)
+
+        input_shape = self._requirements.model_requirements.input_shape[0]
+        trainer = self._model_trainer_builder.build(input_shape=input_shape, output_shape=classes, graph=graph)
+        trainer.set_callbacks(self._callbacks)
+        trainer.set_fit_params(optimizer=self._optimizer, loss_func=self._loss_func)
+        trainer.fit_model(train_data=opt_dataset, val_data=val_dataset, epochs=opt_epochs)
+        return trainer
+
+    def _evaluate_fitted_model(self, fitted_model: NeuralSearchModel, test_data: InputData, log, fold_id):
+        """
+        Method for graph's fitness estimation on given data. Estimates fitted model fitness.
+        """
+        return self._objective(fitted_model, reference_data=test_data)
+        # shuffle_flag = test_data.task != Task(TaskTypesEnum.ts_forecasting)
+        # batch_size = self._requirements.model_requirements.batch_size
+        # test_dataset = DataLoader(self._dataset_builder.build(test_data))
+        # predictions = fitted_model.predict(test_data)
+        # for metric in self._objective.metrics:
 
