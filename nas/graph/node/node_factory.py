@@ -5,6 +5,7 @@ from golem.core.optimisers.opt_node_factory import OptNodeFactory
 
 from nas.composer.requirements import ModelRequirements
 from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
+from nas.graph.node.nas_node_params import NasNodeFactory
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 
@@ -51,6 +52,6 @@ class NNNodeFactory(OptNodeFactory):
         if not candidates:
             return None
         layer_name = choice(candidates)
-        layer_params = get_node_params_by_type(layer_name, self.requirements)
+        layer_params = NasNodeFactory().get_node_params(layer_name)
         return NasNode(content={'name': layer_name.value,
                                 'params': layer_params})

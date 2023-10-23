@@ -1,4 +1,7 @@
-from typing import Type
+from typing import Type, Union, Callable, Optional, List, Tuple
+
+from torch.nn import Module
+from torch.optim import Optimizer, AdamW
 
 from nas.graph.BaseGraph import NasGraph
 from nas.model.model_interface import BaseModelInterface
@@ -9,8 +12,21 @@ class ModelConstructor:
     Class that creates a new instance of a model from given parameters.
     """
 
-    def __init__(self, trainer: Type[BaseModelInterface], model_class, **additional_model_parameters):
-        self.trainer = trainer(model_class, **additional_model_parameters)
+    def __init__(self,
+                 trainer: Type[BaseModelInterface],
+                 model_class,
+                 loss_function: Union[Callable, Module],
+                 optimizer: Type[Optimizer],
+                 callbacks_lst: Optional[Union[List, Tuple]] = None,
+                 device: str = 'cpu',
+                 **additional_model_parameters):
+        self.trainer = trainer
+        self._model_class = model_class
+        self._loss_function = loss_function
+        self._optimizer = optimizer
+        self._callbacks = callbacks_lst
+        self._device = device
+        self._additional_model_parameters = additional_model_parameters
 
     def build(self, input_shape: int, output_shape: int, graph: NasGraph):
         """
@@ -21,5 +37,10 @@ class ModelConstructor:
         :param graph (NASGraph object) -
         :return class with compiled keras or pytorch model
         """
-        self.trainer.compile_model(graph=graph, input_shape=input_shape, output_shape=output_shape)
-        return self.trainer
+        trainer = self.trainer(model=self._model_class, **self._additional_model_parameters)
+        trainer.compile_model(graph=graph, input_shape=input_shape, output_shape=output_shape)
+        trainer.set_computation_device(self._device)
+        trainer.set_loss(self._loss_function)
+        trainer.set_optimizer(self._optimizer)
+        trainer.set_callbacks(self._callbacks)
+        return trainer

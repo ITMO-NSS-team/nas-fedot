@@ -17,7 +17,7 @@ def model_has_several_starts(graph: NasGraph):
 
 def model_has_wrong_number_of_flatten_layers(graph: NasGraph):
     flatten_count = 0
-    for node in graph.graph_struct[::-1]:
+    for node in graph.nodes:
         if node.content['name'] == 'flatten':
             flatten_count += 1
     if flatten_count != 1:
@@ -26,7 +26,7 @@ def model_has_wrong_number_of_flatten_layers(graph: NasGraph):
 
 def conv_net_check_structure(graph: NasGraph):
     prohibited_node_types = ['average_pool2d', 'max_pool2d', 'conv2d']
-    for node in graph.graph_struct[::-1]:
+    for node in graph.nodes:
         node_name = 'conv2d' if 'conv' in node.content['name'] else node.content['name']
         if node_name == 'flatten':
             return True
@@ -37,7 +37,7 @@ def conv_net_check_structure(graph: NasGraph):
 def model_has_no_conv_layers(graph: NasGraph):
     was_flatten = False
     was_conv = False
-    for node in graph.graph_struct:
+    for node in graph.nodes:
         node_name = 'conv2d' if 'conv' in node.content['name'] else node.content['name']
         if node_name == 'conv2d':
             was_conv = True
@@ -49,7 +49,7 @@ def model_has_no_conv_layers(graph: NasGraph):
 
 # TODO change checker into recursive(?) output_shape calculation.
 def model_has_dimensional_conflict(graph: NasGraph):
-    for node in graph.graph_struct:
+    for node in graph.nodes:
         if len(node.nodes_from) > 1:
             not_conv_node = ['conv' not in n.content['name'] for n in node.nodes_from]
             if not_conv_node:

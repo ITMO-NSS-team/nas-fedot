@@ -19,7 +19,9 @@ class InputDataNN(Data):
     """ Class for loading heavy datasets into FEDOT's InputData e.g. image datasets"""
 
     @staticmethod
-    def data_from_folder(data_path: os.PathLike, task: Task) -> InputData:
+    def data_from_folder(data_path: os.PathLike, task: Task, csv_labels: str = None) -> InputData:
+        if csv_labels:
+            labels = pd.read_csv(csv_labels)
         data_path = pathlib.Path(data_path) if not isinstance(data_path, pathlib.Path) else data_path
         data_type = DataTypesEnum.image
         features = []
@@ -27,7 +29,10 @@ class InputDataNN(Data):
         for item in data_path.rglob('*.*'):
             if item.suffix in supported_images:
                 features.append(str(item))
-                target.append(item.parent.name)
+                if csv_labels:
+                    target.extend(labels[labels['id'] == int(item.name[:-4])]['label'].values)
+                else:
+                    target.append(item.parent.name)
         target = LabelEncoder().fit_transform(target)
         features = np.reshape(features, (-1, 1))
         idx = np.arange(0, len(features))

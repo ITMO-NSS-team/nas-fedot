@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Union, List, Optional
+from typing import TYPE_CHECKING, Union, List, Optional, Type
+
+from torch.optim import Optimizer
 
 from nas.graph.BaseGraph import NasGraph
 
@@ -16,7 +18,7 @@ class BaseModelInterface(ABC):
     Class Interface for model handling
     """
 
-    def __init__(self, model, device, loss_func=None, optimizer=None, **kwargs):
+    def __init__(self, model, **kwargs):
         """
         Initialize the Model class with a specified architecture and training parameters.
         Args
@@ -26,11 +28,23 @@ class BaseModelInterface(ABC):
             :param optimizer(): Optimizer used during backpropagation
         """
         self.model = model
-        self.device = device
-        self.optimizer = optimizer
-        self.loss_function = loss_func
+        self.device = None
+        self.optimizer = None
+        self.loss_function = None
         self.callbacks = None
         self.additional_model_params = kwargs
+
+    def set_computation_device(self, device: str):
+        self.device = device
+        return self
+
+    def set_loss(self, loss):
+        self.loss_function = loss
+        return self
+
+    def set_optimizer(self, optimizer):
+        self.optimizer = optimizer
+        return self
 
     def set_callbacks(self, callbacks_lst: List):
         """
@@ -81,8 +95,8 @@ class NeuralSearchModel(BaseModelInterface):
     Class to handle all required logic to evaluate graph as neural network regardless of  framework.
     """
 
-    def __init__(self, model, device: str = 'cpu', **kwargs):
-        super().__init__(model, device=device, **kwargs)
+    def __init__(self, model, **kwargs):
+        super().__init__(model, **kwargs)
 
     def compile_model(self, graph: NasGraph, input_shape, output_shape, **kwargs):
         """
@@ -90,10 +104,6 @@ class NeuralSearchModel(BaseModelInterface):
         """
         self.model = self.model()  # TODO: implement defined argument passing instead of kwargs
         self.model.init_model(graph=graph, input_shape=input_shape, out_shape=output_shape, **kwargs)
-        self.set_computation_device()
-
-    def set_computation_device(self):
-        self.model.set_device(self.device)
 
     def fit_model(self, train_data, val_data: Optional = None, epochs: int = 1, **kwargs):
         self.model.fit(train_data,

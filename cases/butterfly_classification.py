@@ -3,6 +3,8 @@ import os
 import pathlib
 
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
+from torch.nn import CrossEntropyLoss
+from torch.optim import AdamW
 
 from nas.composer.future.nn_composer import NNComposer
 from nas.data.dataset.torch_dataset import TorchDataset
@@ -53,16 +55,16 @@ def build_butterfly_cls(save_path=None):
     cv_folds = None
     image_side_size = 24
     batch_size = 32
-    epochs = 5
-    optimization_epochs = 1
+    epochs = 50
+    optimization_epochs = 10
     num_of_generations = 2
     population_size = 2
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('/home/staeros/datasets/butterfly/')
-    data = InputDataNN.data_from_folder(dataset_path, task)
+    dataset_path = pathlib.Path('/home/staeros/datasets/CIFAR-10/train')
+    data = InputDataNN.data_from_folder(dataset_path, task, csv_labels='/home/staeros/datasets/CIFAR-10/trainLabels.csv')
 
     conv_layers_pool = [LayersPoolEnum.conv2d]
 
@@ -85,8 +87,10 @@ def build_butterfly_cls(save_path=None):
                                                             fc_requirements=fc_requirements,
                                                             primary=conv_layers_pool,
                                                             secondary=[LayersPoolEnum.dense],
-                                                            epochs=epochs, batch_size=batch_size,
-                                                            max_nn_depth=1, max_num_of_conv_layers=40)
+                                                            epochs=epochs,
+                                                            batch_size=batch_size,
+                                                            max_nn_depth=1,
+                                                            max_num_of_conv_layers=40)
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
@@ -108,11 +112,12 @@ def build_butterfly_cls(save_path=None):
     #                              lr=1e-4, optimizer=torch.optim.Adam,#tf.keras.optimizers.Adam,
     #                              # metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')],
     #                              loss='categorical_crossentropy')
-    model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda:0')
+    model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda:0',
+                                     loss_function=CrossEntropyLoss(), optimizer=AdamW)
     model_interface = NeuralSearchModel(model=NASTorchModel, device='cuda:0')
 
     validation_rules = [model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers, model_has_several_starts,
-                        has_no_cycle, has_no_self_cycled_nodes, check_dimensions]
+                        has_no_cycle, has_no_self_cycled_nodes]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,

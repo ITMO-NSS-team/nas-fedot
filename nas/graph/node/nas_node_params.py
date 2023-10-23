@@ -142,7 +142,7 @@ class GraphLayers:
         return layer_params
 
     @staticmethod
-    def _get_pool_params(requirements: ModelRequirements) -> dict:
+    def _pool2d(requirements: ModelRequirements) -> dict:
         layer_params = dict()
         layer_params['pool_size'] = random.choice(requirements.conv_requirements.pool_size)
         layer_params['pool_strides'] = random.choice(requirements.conv_requirements.pool_strides)
@@ -150,12 +150,12 @@ class GraphLayers:
 
     @staticmethod
     def _max_pool2d(requirements: ModelRequirements) -> dict:
-        layer_params = GraphLayers._get_pool_params(requirements)
+        layer_params = GraphLayers._pool2d(requirements)
         return layer_params
 
     @staticmethod
     def _average_pool2d(requirements: ModelRequirements) -> dict:
-        layer_params = GraphLayers._get_pool_params(requirements)
+        layer_params = GraphLayers._pool2d(requirements)
         return layer_params
 
     @staticmethod
@@ -233,8 +233,9 @@ class GraphLayers:
             LayersPoolEnum.flatten: self._flatten,
             LayersPoolEnum.dense: self._dense,
             LayersPoolEnum.dropout: self._dropout,
-            LayersPoolEnum.max_pool2d: self._max_pool2d,
-            LayersPoolEnum.average_poold2: self._average_pool2d
+            LayersPoolEnum.pooling2d: self._pool2d,
+            # LayersPoolEnum.max_pool2d: self._max_pool2d,
+            # LayersPoolEnum.average_poold2: self._average_pool2d
         }
 
         if layer_type in layers:

@@ -12,6 +12,7 @@ from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
 from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.model.model_interface import BaseModelInterface
+from nas.optimizer.objective.future.nas_objective_evaluate import NASObjectiveEvaluate
 from nas.optimizer.objective.nas_objective_evaluate import NasObjectiveEvaluate
 
 
@@ -52,13 +53,13 @@ class NNComposer(Composer):
 
         # Data preparation phase
         data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
-        objective_eval = NasObjectiveEvaluate(objective=self.optimizer.objective,
+        objective_eval = NASObjectiveEvaluate(objective=self.optimizer.objective,
                                               data_producer=data_producer,
-                                              model_interface=self.trainer,
+                                              model_trainer_builder=self.trainer,
                                               pipeline_cache=self.pipeline_cache,
                                               preprocessing_cache=self.preprocessing_cache,
                                               requirements=self.composer_requirements,
-                                              dataset_builder=self.dataset_builder)
+                                              nn_dataset_builder=self.dataset_builder)
 
         if self.composer_requirements.collect_intermediate_metric:
             self.optimizer.set_evaluation_callback(objective_eval.evaluate_intermediate_metrics)

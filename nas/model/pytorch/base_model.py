@@ -140,7 +140,8 @@ class NASTorchModel(torch.nn.Module):
             for features, targets in test_data:
                 features, targets = features.to(device), targets.to(device)
                 predictions = self.__call__(features)
-                results.append(torch.argmax(predictions, dim=-1).item())
+                results.extend(torch.argmax(predictions, dim=-1).cpu().detach().tolist())
+                # results.append(torch.argmax(predictions, dim=-1).item())
         return np.array(results)
 
 
