@@ -15,6 +15,13 @@ from nas.model.model_interface import BaseModelInterface
 from nas.model.pytorch.layers.layer_initializer import TorchLayerFactory
 
 
+def get_node_input_channels(node: Union[GraphNode, NasNode]):
+    n = node.nodes_from[0]
+    while not n.parameters.get('out_shape'):
+        n = n.nodes_from[0]
+    return n.parameters.get('out_shape')
+
+
 class NASTorchModel(torch.nn.Module):
     """
     Implementation of Pytorch model class for graph described architectures.
@@ -27,30 +34,79 @@ class NASTorchModel(torch.nn.Module):
 
         self._graph = None
 
-    @staticmethod
-    def get_input_shape(node: NasNode):
-        input_shape = None
-        parent_node = [] if not node.nodes_from else node.nodes_from[0]
-        if parent_node:
-            input_shape = parent_node.parameters.get('out_shape')
-        return input_shape
+    # def get_input_shape(self, node: NasNode):
+    #     input_shape = None
+    #     parent_node = [] if not node.nodes_from else node.nodes_from[0]
+    #     parent_layer = self.__getattr__(f'node_{parent_node.uid}_n') if hasattr(self,
+    #                                                                             f'node_{parent_node.uid}_n') else self.__getattr__(
+    #         f'node_{parent_node.uid}')
+    #     if parent_node:
+    #         input_shape = parent_node.parameters.get('out_shape')
+    #     return input_shape
 
     def set_device(self, device):
         self.to(device)
 
-    def init_model(self, input_shape: int, out_shape: int, graph: NasGraph, **kwargs):
-        output_shape = out_shape if out_shape > 2 else 1
-        for node in graph.nodes:
-            if node.name == 'flatten':
-                continue
-            layer_dict = TorchLayerFactory.get_layer(node)
-            input_shape = self.get_input_shape(node) if self.get_input_shape(node) is not None else input_shape
-            self.__setattr__(f'node_{node.uid}', layer_dict['weighted_layer'](node, input_dim=input_shape))
-            if layer_dict.get('normalization') is not None:
-                out_shape = node.parameters.get('out_shape', input_shape)
-                self.__setattr__(f'node_{node.uid}_n', layer_dict['normalization'](node, input_dim=out_shape))
-        self.output_layer = torch.nn.Linear(input_shape, output_shape)
+    def get_input_shape(self, node: Union[NasNode, GraphNode]):
+        w_node = node
+        dim_node = None
+        while w_node.name in ['flatten', 'pooling2d', 'adaptive_pool2d', 'batch_norm2d']:
+            if w_node.name in ['pooling2d', 'adaptive_pool2d', 'batch_norm2d']:
+                dim_node = w_node
+            w_node = w_node.nodes_from[0]
+        name_to_search = f'node_{w_node.uid}'
+        layer_name = self.__getattr__(f'{name_to_search}_n') if hasattr(self, f'{name_to_search}_n') \
+            else self.__getattr__(f'{name_to_search}')
+
+        if dim_node:
+            pool_layer = self.__getattr__(f'node_{dim_node.uid}_n') if hasattr(self, f'node_{dim_node.uid}_n') \
+                else self.__getattr__(f'node_{dim_node.uid}')
+            return np.dot(*pool_layer.output_size) * layer_name.out_channels
+        else:
+            return np.dot(*layer_name.kernel_size) * layer_name.out_channels
+
+    def init_model(self, in_shape: int, out_shape: int, graph: NasGraph, **kwargs):
         self._graph = graph
+        visited_nodes = set()
+        out_shape = out_shape if out_shape > 2 else 1
+
+        def _init_layer(node: Union[GraphNode, NasNode]):
+            if node.nodes_from:
+                for n in node.nodes_from:
+                    _init_layer(n)
+            if node not in visited_nodes:
+                layer_func = TorchLayerFactory.get_layer(node)
+                input_shape = in_shape if not node.nodes_from else get_node_input_channels(node)
+                layer = layer_func['weighted_layer'](node, input_dim=input_shape)
+                self.__setattr__(f'node_{node.uid}', layer)
+                if layer_func.get('normalization'):
+                    output_shape = layer.out_channels
+                    self.__setattr__(f'node_{node.uid}_n', layer_func['normalization'](node, input_dim=output_shape))
+                visited_nodes.add(node)
+
+        _init_layer(graph.root_node)
+        linear_input = self.get_input_shape(graph.root_node)
+        # node = graph.root_node if not graph.root_node.name == 'flatten' else graph.root_node.nodes_from[0]
+        # name_to_search = f'node_{node.uid}'
+        # layer_name = self.__getattr__(f'{name_to_search}_n') if hasattr(self, f'{name_to_search}_n') \
+        #     else self.__getattr__(f'{name_to_search}')
+
+        self.output_layer = torch.nn.Linear(linear_input, out_shape)
+
+    # def init_model(self, input_shape: int, out_shape: int, graph: NasGraph, **kwargs):
+    #     output_shape = out_shape if out_shape > 2 else 1
+    #     for node in graph.nodes:
+    #         if node.name == 'flatten':
+    #             continue
+    #         layer_dict = TorchLayerFactory.get_layer(node)
+    #         input_shape = self.get_input_shape(node) if self.get_input_shape(node) is not None else input_shape
+    #         layer = layer_dict['weighted_layer'](node, input_dim=input_shape)
+    #         self.__setattr__(f'node_{node.uid}', layer)
+    #         if layer_dict.get('normalization') is not None:
+    #             out_shape = layer.out_channel  # node.parameters.get('out_shape', input_shape)
+    #             self.__setattr__(f'node_{node.uid}_n', layer_dict['normalization'](node, input_dim=out_shape))
+    #     self.output_layer = torch.nn.Linear(input_shape, output_shape)
+    #     self._graph = graph
 
     def forward(self, inputs: torch.Tensor):
         visited_nodes = set()

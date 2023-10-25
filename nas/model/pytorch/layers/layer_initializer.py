@@ -55,7 +55,7 @@ def ada_pool2d(node: NasNode, **inputs_dict):
 
 
 def flatten(*args, **kwargs):
-    return nn.Flatten
+    return nn.Flatten()
 
 
 class TorchLayerFactory:

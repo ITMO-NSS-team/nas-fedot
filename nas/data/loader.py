@@ -51,7 +51,8 @@ class ImageLoader(BaseDataLoader):
 
     def get_feature(self, idx):
         feature = cv2.imread(self.features[idx])
-        return cv2.resize(feature, dsize=self._image_size)
+        feature = cv2.resize(feature, dsize=self._image_size)
+        return np.transpose(feature, (2, 0, 1))
 
     def get_target(self, idx):
         return self.target[idx]

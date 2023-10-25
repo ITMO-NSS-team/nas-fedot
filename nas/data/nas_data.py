@@ -9,7 +9,7 @@ import pandas as pd
 from fedot.core.data.data import Data, InputData
 from fedot.core.repository.dataset_types import DataTypesEnum
 from fedot.core.repository.tasks import Task
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.jpe', '.jp2', '.tiff'}
 
@@ -32,8 +32,8 @@ class InputDataNN(Data):
                 if csv_labels:
                     target.extend(labels[labels['id'] == int(item.name[:-4])]['label'].values)
                 else:
-                    target.append(item.parent.name)
-        target = LabelEncoder().fit_transform(target)
+                    target.append([item.parent.name])
+        target = OneHotEncoder().fit_transform(target).toarray()
         features = np.reshape(features, (-1, 1))
         idx = np.arange(0, len(features))
         return InputData(idx=idx, features=features, target=target, task=task, data_type=data_type)

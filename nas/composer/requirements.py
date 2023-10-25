@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from math import log2
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, Sequence, Collection
 
 from fedot.core.pipelines.pipeline_composer_requirements import PipelineComposerRequirements
 from golem.core.optimisers.genetic.operators.mutation import MutationStrengthEnum
@@ -104,8 +104,8 @@ class ConvRequirements(BaseLayerRequirements):
     pool_strides: Optional[List[List[int]]] = None
     pooling_mode: Optional[List[str], Tuple[str]] = None
     dilation_rate: Optional[List[int]] = None
-    padding: Union[str, tuple[int]] = None
-    kernel_size: Union[List[int], Tuple[int]] = None
+    padding: Union[str, Collection[Collection[int]]] = None
+    kernel_size: Union[List[List[int]], Tuple[Tuple[int]]] = None
 
     def __post_init__(self):
         if not self.dilation_rate:
@@ -118,6 +118,10 @@ class ConvRequirements(BaseLayerRequirements):
             self.pool_strides = copy.deepcopy(self.pool_size)
         if self.pooling_mode is None:
             self.pooling_mode = ['max', 'avg']
+        if self.kernel_size is None:
+            self.kernel_size = [[3, 3], [5, 5], [7, 7]]
+        if self.padding is None:
+            self.padding = ['same', [1, 1], [2, 2], [3, 3]]
 
         if not hasattr(self.conv_strides, '__iter__'):
             raise ValueError('Pool of possible strides must be an iterable object')

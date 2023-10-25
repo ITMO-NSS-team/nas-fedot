@@ -114,7 +114,7 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         opt_dataset = DataLoader(self._dataset_builder.build(opt_data), batch_size=batch_size)
         val_dataset = DataLoader(self._dataset_builder.build(val_data), batch_size=batch_size)
 
-        input_shape = self._requirements.model_requirements.input_shape[0]
+        input_shape = self._requirements.model_requirements.input_shape[-1]
         trainer = self._model_trainer_builder.build(input_shape=input_shape, output_shape=classes, graph=graph)
         trainer.fit_model(train_data=opt_dataset, val_data=val_dataset, epochs=opt_epochs)
         return trainer

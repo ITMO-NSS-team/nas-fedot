@@ -72,9 +72,10 @@ class NasNodeFactory:
             pooling_size = kwargs.get('pool_size')
             pooling_stride = kwargs.get('pool_stride')
             padding = kwargs.get('padding', 0)
+            mode = kwargs.get('mode')
         params['pool_size'] = pooling_size
         params['pool_stride'] = pooling_stride
-        params['mode'] = kwargs['mode']
+        params['mode'] = mode
         params['padding'] = padding
         return params
 
