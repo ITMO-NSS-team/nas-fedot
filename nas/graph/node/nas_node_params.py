@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict
+from math import floor
+from typing import TYPE_CHECKING, Dict, Sequence
 
 from nas.repository.layer_types_enum import LayersPoolEnum
 
@@ -11,6 +12,15 @@ if TYPE_CHECKING:
 
 
 # TODO rewrite with builder pattern
+def _get_padding(padding: int, kernel: int):
+    """
+    This function checks that the given padding value matches to kernel size.
+    """
+    if floor(kernel / 2) < padding:
+        padding = [floor(kernel / 2), floor(kernel / 2)]
+    return padding
+
+
 class NasNodeFactory:
     def __init__(self, requirements: ModelRequirements = None):
         self.global_requirements = requirements
@@ -45,8 +55,9 @@ class NasNodeFactory:
             kernel_size = random.choice(requirements.conv_requirements.kernel_size)
             activation = random.choice(requirements.fc_requirements.activation_types).value
             stride = random.choice(requirements.conv_requirements.conv_strides)
-            padding = 'same' if requirements.conv_requirements.padding is None \
-                else random.choice(requirements.conv_requirements.padding)
+            padding = _get_padding(random.choice(requirements.conv_requirements.padding), kernel_size)
+            # padding = 'same' if requirements.conv_requirements.padding is None \
+            #     else random.choice(requirements.conv_requirements.padding)
         else:
             out_shape = kwargs.get('out_shape')
             kernel_size = kwargs.get('kernel_size')
@@ -67,7 +78,7 @@ class NasNodeFactory:
             pooling_size = random.choice(requirements.conv_requirements.pool_size)
             pooling_stride = random.choice(requirements.conv_requirements.pool_strides)
             mode = random.choice(requirements.conv_requirements.pooling_mode)
-            padding = random.choice(requirements.conv_requirements.padding)
+            padding = _get_padding(random.choice(requirements.conv_requirements.padding), pooling_size)
         else:
             pooling_size = kwargs.get('pool_size')
             pooling_stride = kwargs.get('pool_stride')
@@ -83,12 +94,13 @@ class NasNodeFactory:
     def ada_pool2d(requirements: ModelRequirements = None, **kwargs):
         params = {}
         if requirements is not None:
-            out_shape = (1, 1)
+            out_shape = 1
             mode = random.choice(requirements.conv_requirements.pooling_mode)
         else:
             out_shape = kwargs.get('out_shape')
+            mode = kwargs['mode']
         params['out_shape'] = out_shape
-        params['mode'] = kwargs['mode']
+        params['mode'] = mode
         return params
 
     @staticmethod
@@ -232,7 +244,7 @@ class GraphLayers:
             # LayersPoolEnum.conv2d_7x7: self._conv2d_7x7,
             LayersPoolEnum.dilation_conv2d: self._dilation_conv2d,
             LayersPoolEnum.flatten: self._flatten,
-            LayersPoolEnum.dense: self._dense,
+            LayersPoolEnum.linear: self._dense,
             LayersPoolEnum.dropout: self._dropout,
             LayersPoolEnum.pooling2d: self._pool2d,
             # LayersPoolEnum.max_pool2d: self._max_pool2d,

@@ -1,6 +1,9 @@
+import gc
 import os
+import resource
 import sys
 
+import numba
 import numpy as np
 import torch
 from fedot.core.data.data import InputData
@@ -52,22 +55,33 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         self._log = default_log(self)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
-        # create pbar only if there is evaluation on folds
-        # pbar = tqdm(self._data_producer()) if self._requirements.cv_folds > 1 else self._data_producer()
         fold_metrics = []
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
+            gc.collect()
+            # torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+            print('Before model fit')
+            print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
+                  f'\nreserved: {torch.cuda.memory_reserved(0)}'
+                  f'\nallocated: {torch.cuda.memory_allocated(0)}')
+
             fitted_model = self._graph_fit(graph, train_data, log=self._log, fold_id=fold_id + 1)
             fold_fitness = self._evaluate_fitted_model(fitted_model, test_data, graph, log=self._log,
                                                        fold_id=fold_id + 1)
+            del fitted_model
+            print('After model fit')
+            print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
+                  f'\nreserved: {torch.cuda.memory_reserved(0)}'
+                  f'\nallocated: {torch.cuda.memory_allocated(0)}')
             if fold_fitness.valid:
                 fold_metrics.append(fold_fitness.values)
             else:
                 self._log.warning(f'\nContinuing after objective evaluation error.')
-
             if fold_metrics:
                 fold_metrics = tuple(np.mean(fold_metrics, axis=0))
                 self._log.message(f'\nEvaluated metrics: {fold_metrics}')
-            del fitted_model
+            # del fitted_model
+            # torch.cuda.empty_cache()
             # else:
             #     fold_metrics = None
             # try:
@@ -110,11 +124,11 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         batch_size = self._requirements.model_requirements.batch_size
         opt_epochs = self._requirements.opt_epochs
 
-        opt_data, val_data = train_test_data_setup(train_data, shuffle_flag=shuffle_flag, stratify=train_data.target)
-        opt_dataset = DataLoader(self._dataset_builder.build(opt_data), batch_size=batch_size)
-        val_dataset = DataLoader(self._dataset_builder.build(val_data), batch_size=batch_size)
+        opt_data, val_data = train_test_data_setup(train_data, stratify=train_data.target)
+        opt_dataset = DataLoader(self._dataset_builder.build(opt_data), batch_size=batch_size, shuffle=shuffle_flag)
+        val_dataset = DataLoader(self._dataset_builder.build(val_data), batch_size=batch_size, shuffle=shuffle_flag)
 
-        input_shape = self._requirements.model_requirements.input_shape[-1]
+        input_shape = self._requirements.model_requirements.input_shape
         trainer = self._model_trainer_builder.build(input_shape=input_shape, output_shape=classes, graph=graph)
         trainer.fit_model(train_data=opt_dataset, val_data=val_dataset, epochs=opt_epochs)
         return trainer
@@ -128,7 +142,8 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
 
         shuffle_flag = test_data.task != Task(TaskTypesEnum.ts_forecasting)
         test_dataset = DataLoader(self._dataset_builder.build(test_data),
-                                  batch_size=self._requirements.model_requirements.batch_size)
+                                  batch_size=self._requirements.model_requirements.batch_size,
+                                  shuffle=shuffle_flag)
 
         predictions = fitted_model.predict(test_dataset)
         loss = fitted_model.loss_function(torch.Tensor(predictions), torch.Tensor(test_data.target)).item()

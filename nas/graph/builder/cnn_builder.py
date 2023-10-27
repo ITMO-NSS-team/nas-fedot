@@ -5,7 +5,7 @@ from nas.composer.requirements import ModelRequirements
 from nas.graph.BaseGraph import NasGraph
 from nas.graph.builder.base_graph_builder import GraphGenerator
 from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
-from nas.operations.validation_rules.cnn_val_rules import model_has_several_starts, \
+from nas.operations.validation_rules.cnn_val_rules import model_has_several_roots, \
     model_has_wrong_number_of_flatten_layers, conv_net_check_structure, model_has_no_conv_layers
 from nas.repository.layer_types_enum import LayersPoolEnum
 
@@ -29,7 +29,7 @@ class ConvGraphMaker(GraphGenerator):
                  initial_struct: Optional[List] = None, max_generation_attempts: int = 100):
         self._initial_struct = initial_struct
         self._requirements = requirements
-        self._rules = [model_has_several_starts, model_has_wrong_number_of_flatten_layers, conv_net_check_structure,
+        self._rules = [model_has_several_roots, model_has_wrong_number_of_flatten_layers, conv_net_check_structure,
                        model_has_no_conv_layers]
         self._generation_attempts = max_generation_attempts
 
@@ -75,7 +75,7 @@ class ConvGraphMaker(GraphGenerator):
                 node = random.choice(self.requirements.primary + self.requirements.secondary) \
                     if i != total_conv_nodes - 1 else LayersPoolEnum.flatten
             else:
-                node = random.choice([LayersPoolEnum.dropout, LayersPoolEnum.dense])
+                node = random.choice([LayersPoolEnum.dropout, LayersPoolEnum.linear])
             graph_nodes.append(node)
         return graph_nodes
 

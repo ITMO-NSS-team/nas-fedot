@@ -28,7 +28,7 @@ class ModelConstructor:
         self._device = device
         self._additional_model_parameters = additional_model_parameters
 
-    def build(self, input_shape: int, output_shape: int, graph: NasGraph):
+    def build(self, input_shape: Union[Tuple[int], List[int]], output_shape: int, graph: NasGraph):
         """
         Builds the actual model with all its layers based on graph structure and compiles it for training/evaluation.
 
@@ -38,7 +38,7 @@ class ModelConstructor:
         :return class with compiled keras or pytorch model
         """
         trainer = self.trainer(model=self._model_class, **self._additional_model_parameters)
-        trainer.compile_model(graph=graph, input_shape=input_shape, output_shape=output_shape)
+        trainer.compile_model(graph, input_shape, output_shape)
         trainer.set_computation_device(self._device)
         trainer.set_loss(self._loss_function)
         trainer.set_optimizer(self._optimizer)

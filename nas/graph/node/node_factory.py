@@ -52,7 +52,7 @@ class NNNodeFactory(OptNodeFactory):
         if not candidates:
             return None
         layer_name = choice(candidates)
-        parameters_to_save = {'out_shape': old_node.parameters['out_shape']}
-        layer_params = NasNodeFactory(self.requirements).get_node_params(layer_name, **parameters_to_save)
+        # parameters_to_save = {'out_shape': old_node.parameters['out_shape']}
+        layer_params = NasNodeFactory(self.requirements).get_node_params(layer_name)
         return NasNode(content={'name': layer_name.value,
                                 'params': layer_params})

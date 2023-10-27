@@ -13,7 +13,7 @@ class LayersPoolEnum(Enum):
     batch_norm2d = 'batch_norm2d'
     dilation_conv2d = 'dilation_conv2d'
     flatten = 'flatten'
-    dense = 'dense'
+    linear = 'linear'
     dropout = 'dropout'
     # max_pool2d = 'max_pool2d'
     # average_poold2 = 'average_pool2d'
@@ -22,7 +22,7 @@ class LayersPoolEnum(Enum):
 
 
 class ActivationTypesIdsEnum(Enum):
-    softmax = 'softmax'
+    # softmax = 'softmax'
     elu = 'elu'
     selu = 'selu'
     softplus = 'softplus'

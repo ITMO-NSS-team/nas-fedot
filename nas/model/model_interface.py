@@ -104,6 +104,7 @@ class NeuralSearchModel(BaseModelInterface):
         """
         self.model = self.model()  # TODO: implement defined argument passing instead of kwargs
         self.model.init_model(graph=graph, in_shape=input_shape, out_shape=output_shape, **kwargs)
+        return self
 
     def fit_model(self, train_data, val_data: Optional = None, epochs: int = 1, **kwargs):
         self.model.fit(train_data,

@@ -21,10 +21,10 @@ def _get_node(node_name: LayersPoolEnum):
 def test_model_has_several_starts():
     success = False
     graph = get_graph()
-    node = _get_node(LayersPoolEnum.dense)
+    node = _get_node(LayersPoolEnum.linear)
     graph.add_node(node)
     try:
-        model_has_several_starts(graph)
+        model_has_several_roots(graph)
     except ValueError:
         success = True
     assert success
@@ -76,7 +76,7 @@ def test_shapes_checker():
     graph = NasGraph.load(tests_path / 'graph_with_wrong_dimensions.json')
     success = False
     try:
-        _ = check_dimensions(graph)
+        _ = model_has_dim_mismatch(graph)
     except ValueError:
         success = True
     assert success

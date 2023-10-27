@@ -23,8 +23,8 @@ def linear(node: NasNode, **inputs_dict):
     TODO
     """
     input_dim = inputs_dict.get('input_dim')
-    out_shape = node.parameters.get('neurons')
-    return nn.Linear(input_dim, out_shape, **inputs_dict)
+    out_shape = node.parameters.get('out_shape')
+    return nn.Linear(input_dim, out_shape)
 
 
 def dropout(node: NasNode, **kwargs):
@@ -55,7 +55,7 @@ def ada_pool2d(node: NasNode, **inputs_dict):
 
 
 def flatten(*args, **kwargs):
-    return nn.Flatten()
+    return nn.Flatten(start_dim=1)
 
 
 class TorchLayerFactory:

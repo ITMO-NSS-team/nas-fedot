@@ -4,7 +4,7 @@ from golem.core.dag.graph import Graph
 from golem.core.log import default_log
 from golem.core.optimisers.graph import OptGraph
 
-from nas.operations.validation_rules.cnn_val_rules import model_has_several_starts, \
+from nas.operations.validation_rules.cnn_val_rules import model_has_several_roots, \
     model_has_wrong_number_of_flatten_layers, conv_net_check_structure, \
     model_has_no_conv_layers
 
@@ -38,5 +38,5 @@ class NNGraphVerifier:
 
 def verifier_with_all_rules():
     rules = [model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
-             model_has_several_starts, conv_net_check_structure]
+             model_has_several_roots, conv_net_check_structure]
     return NNGraphVerifier(rules=rules)
