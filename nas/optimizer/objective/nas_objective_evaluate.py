@@ -87,7 +87,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate):
     def nn_objective_on_fold(self, trainer, reference_data: InputData):
         # prepare data
         test_data = DataLoader(self._dataset_builder.build(reference_data))
-        predictions = trainer.predict(test_data)
+        predictions = trainer.validate(test_data)
         print()
 
     def evaluate(self, graph: NasGraph) -> Fitness:

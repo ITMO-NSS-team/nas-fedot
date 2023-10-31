@@ -79,7 +79,7 @@ class BaseModelInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def predict(self, *args, **kwargs):
+    def validate(self, *args, **kwargs):
         """
         This method is responsible for prediction process.
         """
@@ -115,5 +115,5 @@ class NeuralSearchModel(BaseModelInterface):
                        device=self.device,
                        **kwargs)
 
-    def predict(self, test_data, **kwargs):
-        return self.model.predict(test_data, self.device)
+    def validate(self, test_data, **kwargs):
+        return self.model.eval_loss(test_data, self.loss_function, self.device, disable_pbar=True)

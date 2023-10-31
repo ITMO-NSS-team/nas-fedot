@@ -10,8 +10,8 @@ from nas.data.dataset.builder import ImageDatasetBuilder
 def get_predictions(graph, data: InputData, data_transformer: ImageDatasetBuilder) -> Tuple[OutputData, OutputData]:
     multiclass = data.num_classes > 2
     data_generator_to_predict = data_transformer.build(data, batch_size=1, mode='test')
-    predicted_labels = graph.predict(data_generator_to_predict, output_mode='labels', is_multiclass=multiclass)
-    predicted_probabilities = graph.predict(data_generator_to_predict, output_mode='default', is_multiclass=multiclass)
+    predicted_labels = graph.validate(data_generator_to_predict, output_mode='labels', is_multiclass=multiclass)
+    predicted_probabilities = graph.validate(data_generator_to_predict, output_mode='default', is_multiclass=multiclass)
     return predicted_labels, predicted_probabilities
 
 

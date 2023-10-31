@@ -65,7 +65,7 @@ class NasGraph(OptGraph):
             raise AttributeError("Graph doesn't have a model yet")
 
         is_multiclass = test_data.num_classes > 2
-        predictions = self.model_interface.predict(test_data, batch_size)
+        predictions = self.model_interface.validate(test_data, batch_size)
         if output_mode == 'labels':
             predictions = probs2labels(predictions, is_multiclass)
 

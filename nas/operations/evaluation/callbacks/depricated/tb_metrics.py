@@ -68,7 +68,7 @@ class NASCallbackTF(tf.keras.callbacks.Callback):
         return func.apply(reference=target, predicted=predicted)
 
     def on_epoch_end(self, epoch, logs=None):
-        predicted = self.model.predict(self.data.data_generator)
+        predicted = self.model.validate(self.data.data_generator)
         predicted = np.argmax(predicted, axis=1)
         for func in self.callback_list:
             metric = self._apply_func(self.data.target, predicted, func=func)

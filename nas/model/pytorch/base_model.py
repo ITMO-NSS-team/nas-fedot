@@ -5,7 +5,6 @@ from typing import Union, Optional, Tuple, List
 import numpy as np
 import torch
 import torch.nn
-import tqdm
 from golem.core.dag.graph_node import GraphNode
 from torch.utils.data import DataLoader
 
@@ -14,6 +13,7 @@ from nas.graph.node.nas_graph_node import NasNode
 from nas.model.pytorch.layers.layer_initializer import TorchLayerFactory
 
 WEIGHTED_NODE_NAMES = ['conv2d', 'linear']
+
 
 def get_node_input_channels(node: Union[GraphNode, NasNode]):
     n = node.nodes_from[0]
@@ -153,7 +153,9 @@ class NASTorchModel(torch.nn.Module):
 
     def _one_epoch_train(self, train_data: DataLoader, optimizer, loss_fn, device):
         running_loss = 0
+        # pbar = tqdm.tqdm(train_data, leave=False, position=1)
         for batch_id, (features_batch, targets_batch) in enumerate(train_data):
+            # pbar.set_description(f'Train on batch: [{batch_id}/{len(train_data)}]')
             features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
             optimizer.zero_grad()
             outputs = self.__call__(features_batch)
@@ -161,17 +163,21 @@ class NASTorchModel(torch.nn.Module):
             loss.backward()
             optimizer.step()
             running_loss += loss.detach().cpu().item()
+            # pbar.set_postfix(on_epoch_train_loss=running_loss / (batch_id + 1))
         running_loss = running_loss / len(train_data)
         # TODO add tb writer
         return running_loss
 
-    def _one_epoch_val(self, val_data: DataLoader, loss_fn, device):
+    def eval_loss(self, val_data: DataLoader, loss_fn, device, disable_pbar: bool = False):
         running_loss = 0
+        # pbar = tqdm.tqdm(val_data, leave=False, position=1, disable=disable_pbar)
         for batch_id, (features_batch, targets_batch) in enumerate(val_data):
+            # pbar.set_description(f'Validation on batch: [{batch_id}/{len(val_data)}]')
             features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
             outputs = self.__call__(features_batch)
             loss = loss_fn(outputs, targets_batch)
             running_loss += loss.detach().cpu().item()
+            # pbar.set_postfix(on_epoch_val_loss=running_loss / (batch_id + 1))
         return running_loss / len(val_data)
 
     def fit(self, train_data: DataLoader,
@@ -184,32 +190,33 @@ class NASTorchModel(torch.nn.Module):
         self.set_device(device)
         metrics = dict()
         optim = optimizer(self.parameters(), lr=kwargs.get('lr', 1e-3))
-        pbar = tqdm.trange(epochs, desc='Fitting graph', leave=False)
-        for epoch in pbar:
+        # pbar = tqdm.trange(epochs, desc='Fitting graph', leave=True, position=0)
+        for epoch in range(epochs):
             self.train(mode=True)
             prefix = f'Epoch {epoch} / {epochs}:'
-            pbar.set_description(f'{prefix} Train')
+            # pbar.set_description(f'{prefix} Train')
             train_loss = self._one_epoch_train(train_data, optim, loss, device)
             metrics['train_loss'] = train_loss
             if val_data:
-                pbar.set_description(f'{prefix} Validation')
+                # pbar.set_description(f'{prefix} Validation')
                 with torch.no_grad():
                     self.eval()
-                    val_loss = self._one_epoch_val(val_data, loss, device)
+                    val_loss = self.eval_loss(val_data, loss, device)
                 metrics['val_loss'] = val_loss
-            pbar.set_postfix(**metrics)
+            # pbar.set_postfix(**metrics)
 
-    def predict(self, test_data: DataLoader, device: str = 'cpu'):
-        self.set_device(device)
-        self.eval()
-        results = []
-        with torch.no_grad():
-            for features, targets in test_data:
-                features, targets = features.to(device), targets.to(device)
-                predictions = self.__call__(features)
-                results.extend(torch.argmax(predictions, dim=-1).cpu().detach().tolist())
-                # results.append(torch.argmax(predictions, dim=-1).item())
-        return np.array(results)
+    # def predict(self, test_data: DataLoader, loss_func, device: str = 'cpu') -> torch.Tensor:
+    #     self.set_device(device)
+    #     self.eval()
+    #     running_loss = 0
+    #     with torch.no_grad():
+    #         for features, targets in test_data:
+    #             features, targets = features.to(device), targets.to(device)
+    #             predictions = self.__call__(features)
+    #             loss = loss_func()
+    #             results.extend(predictions.detach().cpu().numpy())
+    #             # results.append(torch.argmax(predictions, dim=-1).item())
+    #     return torch.Tensor(results)
 
 # class TorchModel(BaseModelInterface):
 #     """

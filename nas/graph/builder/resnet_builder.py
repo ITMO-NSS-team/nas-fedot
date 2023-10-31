@@ -21,7 +21,9 @@ class CNNRepository:
 
 @dataclass
 class ResnetConfig:
-    conv_params = {'resnet_34': ({'kernel_size': [3, 3], 'padding': [1, 1]},
+    conv_params = {'resnet_18': ({'kernel_size': [3, 3], 'padding': [1, 1]},
+                                 {'kernel_size': [3, 3], 'padding': [1, 1]}),
+                   'resnet_34': ({'kernel_size': [3, 3], 'padding': [1, 1]},
                                  {'kernel_size': [3, 3], 'padding': [1, 1]}),
                    'resnet_50': ({'kernel_size': [1, 1], 'padding': 0},
                                  {'kernel_size': [3, 3], 'padding': [1, 1]},

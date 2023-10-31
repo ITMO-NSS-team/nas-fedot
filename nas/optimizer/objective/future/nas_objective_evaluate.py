@@ -58,21 +58,21 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         fold_metrics = []
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
             gc.collect()
-            # torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
-            print('Before model fit')
-            print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
-                  f'\nreserved: {torch.cuda.memory_reserved(0)}'
-                  f'\nallocated: {torch.cuda.memory_allocated(0)}')
+            # print('Before model fit')
+            # print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
+            #       f'\nreserved: {torch.cuda.memory_reserved(0)}'
+            #       f'\nallocated: {torch.cuda.memory_allocated(0)}')
 
             fitted_model = self._graph_fit(graph, train_data, log=self._log, fold_id=fold_id + 1)
             fold_fitness = self._evaluate_fitted_model(fitted_model, test_data, graph, log=self._log,
                                                        fold_id=fold_id + 1)
             del fitted_model
-            print('After model fit')
-            print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
-                  f'\nreserved: {torch.cuda.memory_reserved(0)}'
-                  f'\nallocated: {torch.cuda.memory_allocated(0)}')
+            # print('After model fit')
+            # print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
+            #       f'\nreserved: {torch.cuda.memory_reserved(0)}'
+            #       f'\nallocated: {torch.cuda.memory_allocated(0)}')
             if fold_fitness.valid:
                 fold_metrics.append(fold_fitness.values)
             else:
@@ -80,32 +80,6 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
             if fold_metrics:
                 fold_metrics = tuple(np.mean(fold_metrics, axis=0))
                 self._log.message(f'\nEvaluated metrics: {fold_metrics}')
-            # del fitted_model
-            # torch.cuda.empty_cache()
-            # else:
-            #     fold_metrics = None
-            # try:
-            #     fitted_model = self._graph_fit(graph, train_data, log=self._log, fold_id=fold_id + 1)
-            # except Exception as ex:
-            #     exc_type, exc_obj, exc_tb = sys.exc_info()
-            #     file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            #     self._log.warning(f'\nContinuing after graph fit error {ex}\n '
-            #                       f'In {file_name}\n line {exc_tb.tb_lineno}\n.')
-            # else:
-            #     fold_fitness = self._evaluate_fitted_model(fitted_model, test_data, graph, log=self._log,
-            #                                                fold_id=fold_id + 1)
-            #     if fold_fitness.valid:
-            #         fold_metrics.append(fold_fitness.values)
-            #     else:
-            #         self._log.warning(f'\nContinuing after objective evaluation error.')
-            #
-            #     if fold_metrics:
-            #         fold_metrics = tuple(np.mean(fold_metrics, axis=0))
-            #         self._log.message(f'\nEvaluated metrics: {fold_metrics}')
-            #     else:
-            #         fold_metrics = None
-            # finally:
-            #     del fitted_model
         return to_fitness(fold_metrics, self._objective.is_multi_objective)
 
     def _graph_fit(self, graph: NasGraph, train_data: InputData, log, fold_id) -> NeuralSearchModel:
@@ -139,13 +113,9 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         Method for graph's fitness estimation on given data. Estimates fitted model fitness.
         """
         complexity_matrics = [m(graph) for _, m in self._objective.complexity_metrics.items()]
-
-        shuffle_flag = test_data.task != Task(TaskTypesEnum.ts_forecasting)
         test_dataset = DataLoader(self._dataset_builder.build(test_data),
                                   batch_size=self._requirements.model_requirements.batch_size,
-                                  shuffle=shuffle_flag)
-
-        predictions = fitted_model.predict(test_dataset)
-        loss = fitted_model.loss_function(torch.Tensor(predictions), torch.Tensor(test_data.target)).item()
+                                  shuffle=False)
+        loss = fitted_model.validate(test_dataset)
         return to_fitness([*complexity_matrics, loss], self._objective.is_multi_objective)
         # for metric in self._objective.metrics:

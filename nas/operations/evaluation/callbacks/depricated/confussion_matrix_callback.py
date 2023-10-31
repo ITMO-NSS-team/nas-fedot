@@ -32,7 +32,7 @@ class ConfusionMatrixPlotter(tf.keras.callbacks.Callback):
         return labels
 
     def on_epoch_end(self, epoch, logs=None):
-        predicted = self.model.predict(self.data_generator)
+        predicted = self.model.validate(self.data_generator)
         predicted = np.argmax(predicted, axis=1)
         targets = np.argmax(self.data_generator.data_generator.targets, axis=1)
         conf_matrix = confusion_matrix(targets, predicted)
