@@ -116,6 +116,7 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         test_dataset = DataLoader(self._dataset_builder.build(test_data),
                                   batch_size=self._requirements.model_requirements.batch_size,
                                   shuffle=False)
-        loss = fitted_model.validate(test_dataset)
-        return to_fitness([*complexity_matrics, loss], self._objective.is_multi_objective)
+        eval_metrics = fitted_model.validate(test_dataset)
+        eval_metrics = [m for m in eval_metrics.values()]
+        return to_fitness([*complexity_matrics, *eval_metrics], self._objective.is_multi_objective)
         # for metric in self._objective.metrics:

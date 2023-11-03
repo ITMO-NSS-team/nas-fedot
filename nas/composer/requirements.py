@@ -173,7 +173,7 @@ class ConvRequirements(BaseLayerRequirements):
 
 @dataclass
 class ModelRequirements:
-    input_data_shape: List[int, int]
+    input_data_shape: List[int]
     conv_requirements: ConvRequirements = None
     fc_requirements: BaseLayerRequirements = None
     color_mode: str = 'color'

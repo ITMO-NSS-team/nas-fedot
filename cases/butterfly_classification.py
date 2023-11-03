@@ -5,13 +5,16 @@ import pathlib
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
+from torch.utils.data import DataLoader
 
 from nas.composer.future.nn_composer import NNComposer
 from nas.data.dataset.torch_dataset import TorchDataset
+from nas.graph.builder.cnn_builder import ConvGraphMaker
+from nas.graph.builder.resnet_builder import ResNetBuilder
+from nas.graph.node.nas_graph_node import NasNode
 from nas.model.constructor import ModelConstructor
-from nas.model.model_interface import NeuralSearchModel
+
 # from nas.model.model_interface import ModelTF
-from nas.model.pytorch.base_model import NASTorchModel
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
@@ -32,41 +35,35 @@ from fedot.core.repository.quality_metrics_repository import ClassificationMetri
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 
 import nas.composer.requirements as nas_requirements
-# from nas.data import KerasDataset
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.data.preprocessor import Preprocessor
 from nas.graph.builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.node.node_factory import NNNodeFactory
-from nas.operations.evaluation.metrics.metrics import calculate_validation_metric, get_predictions
 from nas.operations.validation_rules.cnn_val_rules import *
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
 from nas.data.nas_data import InputDataNN
 
-# tf.config.experimental.set_memory_growth = True
-# gpus = tf.config.list_physical_devices('GPU')
-# print(gpus)
-
 set_root(project_root())
 
 
 def build_butterfly_cls(save_path=None):
     cv_folds = None
-    image_side_size = 24
+    image_side_size = 128
     batch_size = 32
-    epochs = 50
-    optimization_epochs = 10
-    num_of_generations = 2
-    population_size = 2
+    epochs = 20
+    optimization_epochs = 3
+    num_of_generations = 3
+    population_size = 3
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('/home/staeros/datasets/CIFAR-10/train')
-    data = InputDataNN.data_from_folder(dataset_path, task, csv_labels='/home/staeros/datasets/CIFAR-10/trainLabels.csv')
+    dataset_path = pathlib.Path('/home/staeros/datasets/butterfly')
+    data = InputDataNN.data_from_folder(dataset_path, task)
 
-    conv_layers_pool = [LayersPoolEnum.conv2d]
+    conv_layers_pool = [LayersPoolEnum.conv2d, LayersPoolEnum.pooling2d, LayersPoolEnum.adaptive_pool2d]
 
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
                  MutationTypesEnum.single_change]
@@ -74,11 +71,11 @@ def build_butterfly_cls(save_path=None):
     train_data, test_data = train_test_data_setup(data, shuffle_flag=True)
 
     fc_requirements = nas_requirements.BaseLayerRequirements(min_number_of_neurons=32,
-                                                             max_number_of_neurons=128)
+                                                             max_number_of_neurons=256)
     conv_requirements = nas_requirements.ConvRequirements(
         min_number_of_neurons=32, max_number_of_neurons=256,
-        conv_strides=[[1, 1]],
-        pool_size=[[2, 2]], pool_strides=[[2, 2]])
+        conv_strides=[1],
+        pool_size=[2], pool_strides=[2])
 
     model_requirements = nas_requirements.ModelRequirements(input_data_shape=[image_side_size, image_side_size],
                                                             color_mode='color',
@@ -86,7 +83,7 @@ def build_butterfly_cls(save_path=None):
                                                             conv_requirements=conv_requirements,
                                                             fc_requirements=fc_requirements,
                                                             primary=conv_layers_pool,
-                                                            secondary=[LayersPoolEnum.dense],
+                                                            secondary=[LayersPoolEnum.linear],
                                                             epochs=epochs,
                                                             batch_size=batch_size,
                                                             max_nn_depth=1,
@@ -99,6 +96,7 @@ def build_butterfly_cls(save_path=None):
                                                            early_stopping_iterations=100,
                                                            early_stopping_timeout=float(datetime.timedelta(minutes=30).
                                                                                         total_seconds()),
+                                                           parallelization_mode='sequential',
                                                            n_jobs=1,
                                                            cv_folds=cv_folds)
 
@@ -107,17 +105,12 @@ def build_butterfly_cls(save_path=None):
                                           batch_size=requirements.model_requirements.batch_size,
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
-    # TODO may be add additional parameters to requirements class instead of passing them directly to model init method.
-    # model_interface = TorchModel(model_class=NASTorchModel, data_transformer=dataset_builder,
-    #                              lr=1e-4, optimizer=torch.optim.Adam,#tf.keras.optimizers.Adam,
-    #                              # metrics=[tf.keras.metrics.CategoricalAccuracy(name='acc')],
-    #                              loss='categorical_crossentropy')
     model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda:0',
                                      loss_function=CrossEntropyLoss(), optimizer=AdamW)
-    model_interface = NeuralSearchModel(model=NASTorchModel, device='cuda:0')
 
-    validation_rules = [model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers, model_has_several_starts,
-                        has_no_cycle, has_no_self_cycled_nodes]
+    validation_rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
+                        model_has_several_roots,
+                        has_no_cycle, has_no_self_cycled_nodes, model_has_dim_mismatch]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,
@@ -130,9 +123,9 @@ def build_butterfly_cls(save_path=None):
         rules_for_constraint=validation_rules, node_factory=NNNodeFactory(requirements.model_requirements,
                                                                           DefaultChangeAdvisor()))
 
+    builder = ResNetBuilder(model_requirements=requirements.model_requirements, model_type='resnet_18')
     graph_generation_function = BaseGraphBuilder()
-    graph_generation_function.set_builder(ResNetBuilder(model_requirements=requirements.model_requirements,
-                                                        model_type='resnet_34'))
+    graph_generation_function.set_builder(builder)
 
     builder = ComposerBuilder(task).with_composer(NNComposer).with_optimizer(NNGraphOptimiser). \
         with_requirements(requirements).with_metrics(objective_function).with_optimizer_params(optimizer_parameters). \
@@ -146,13 +139,27 @@ def build_butterfly_cls(save_path=None):
     new_train_data, new_test_data = train_test_data_setup(train_data, shuffle_flag=True)
     optimized_network = composer.compose_pipeline(train_data)
 
-    optimized_network.model_interface = model_interface
-    optimized_network.model_interface.compile_model(optimized_network, train_data.num_classes)
+    # optimized_network.model_interface = model_interface
+    trainer = model_trainer.build([image_side_size, image_side_size, 3], test_data.num_classes,
+                                  optimized_network)
+    # trainer.add_metric(metrics)
 
-    optimized_network.fit(new_train_data, new_test_data, epochs=epochs, batch_size=batch_size)
-    predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, dataset_builder)
-    roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-        calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
+    train_data, val_data = train_test_data_setup(train_data, split_ratio=.7, shuffle_flag=False)
+    train_dataset = DataLoader(dataset_builder.build(train_data), batch_size=requirements.model_requirements.batch_size,
+                               shuffle=True)
+    val_data = DataLoader(dataset_builder.build(val_data), batch_size=requirements.model_requirements.batch_size,
+                          shuffle=True)
+    test_dataset = DataLoader(dataset_builder.build(test_data), batch_size=requirements.model_requirements.batch_size,
+                              shuffle=True)
+    trainer.fit_model(train_dataset, val_data, epochs)
+    evaluated_metrics = trainer.validate(test_dataset)
+    history = composer.history
+    # optimized_network.model_interface.compile_model(optimized_network, train_data.num_classes)
+    #
+    # optimized_network.fit(new_train_data, new_test_data, epochs=epochs, batch_size=batch_size)
+    # predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, dataset_builder)
+    # roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
+    #     calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
 
     if save_path:
         composer.save(path=save_path)

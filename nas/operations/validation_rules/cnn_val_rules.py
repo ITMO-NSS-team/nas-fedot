@@ -55,9 +55,9 @@ def model_has_no_conv_layers(graph: NasGraph):
 def model_has_dim_mismatch(graph: NasGraph):
     try:
         with torch.no_grad():
-            m = NeuralSearchModel(NASTorchModel).compile_model(graph, (24, 24, 3), 3).model
+            m = NeuralSearchModel(NASTorchModel).compile_model(graph, [128, 128, 3], 5).model
             m.to('cpu')
-            m.forward(torch.rand((3, 3, 224, 224)))
+            m.forward(torch.rand((32, 3, 128, 128)))
     except RuntimeError:
         raise ValueError(f'{ERROR_PREFIX} graph has dimension conflict.')
     return True

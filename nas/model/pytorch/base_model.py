@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Union, Optional, Tuple, List
+from typing import Union, Optional, Tuple, List, Dict
 
 import numpy as np
 import torch
 import torch.nn
+import tqdm
 from golem.core.dag.graph_node import GraphNode
 from torch.utils.data import DataLoader
 
@@ -142,7 +143,7 @@ class NASTorchModel(torch.nn.Module):
             if node.name not in ['pooling2d', 'dropout', 'adaptive_pool2d', 'flatten']:
                 output = TorchLayerFactory.get_activation(node.parameters['activation'])()(output)
             if node in node_to_save.keys():
-                node_to_save[node] = {'output': output.detach(),
+                node_to_save[node] = {'output': output,
                                       'calls': len(self._graph.node_children(node))}
             visited_nodes.add(node)
             return output
@@ -153,9 +154,9 @@ class NASTorchModel(torch.nn.Module):
 
     def _one_epoch_train(self, train_data: DataLoader, optimizer, loss_fn, device):
         running_loss = 0
-        # pbar = tqdm.tqdm(train_data, leave=False, position=1)
-        for batch_id, (features_batch, targets_batch) in enumerate(train_data):
-            # pbar.set_description(f'Train on batch: [{batch_id}/{len(train_data)}]')
+        pbar = tqdm.tqdm(train_data, leave=False, position=1)
+        for batch_id, (features_batch, targets_batch) in enumerate(pbar):
+            pbar.set_description(f'Train on batch: [{batch_id}/{len(train_data)}]')
             features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
             optimizer.zero_grad()
             outputs = self.__call__(features_batch)
@@ -163,22 +164,32 @@ class NASTorchModel(torch.nn.Module):
             loss.backward()
             optimizer.step()
             running_loss += loss.detach().cpu().item()
-            # pbar.set_postfix(on_epoch_train_loss=running_loss / (batch_id + 1))
+            pbar.set_postfix(on_epoch_train_loss=running_loss / (batch_id + 1))
         running_loss = running_loss / len(train_data)
         # TODO add tb writer
         return running_loss
 
-    def eval_loss(self, val_data: DataLoader, loss_fn, device, disable_pbar: bool = False):
-        running_loss = 0
-        # pbar = tqdm.tqdm(val_data, leave=False, position=1, disable=disable_pbar)
-        for batch_id, (features_batch, targets_batch) in enumerate(val_data):
-            # pbar.set_description(f'Validation on batch: [{batch_id}/{len(val_data)}]')
+    def evaluate(self, val_data: DataLoader, loss_fn, device, disable_pbar: bool = False, **kwargs) -> Dict:
+        metrics_to_calc = kwargs.get('metrics')
+        metrics = {'val_loss': 0}
+        pbar = tqdm.tqdm(val_data, leave=False, position=1, disable=disable_pbar)
+        for batch_id, (features_batch, targets_batch) in enumerate(pbar):
+            pbar.set_description(f'Validation on batch: [{batch_id}/{len(val_data)}]')
             features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
             outputs = self.__call__(features_batch)
             loss = loss_fn(outputs, targets_batch)
-            running_loss += loss.detach().cpu().item()
-            # pbar.set_postfix(on_epoch_val_loss=running_loss / (batch_id + 1))
-        return running_loss / len(val_data)
+            metrics['val_loss'] += loss.detach().cpu().item()
+            if metrics_to_calc:
+                for metric_name, metric_func in metrics_to_calc.items():
+                    if metrics.get(f'val_{metric_name}') is None:
+                        metrics[f'val_{metric_name}'] = 0
+                    metrics[f'val_{metric_name}'] += metric_func(outputs.detach().cpu().numpy(),
+                                                                 targets_batch.detach().cpu().numpy())
+
+            pbar.set_postfix(on_epoch_val_loss=metrics['val_loss'] / (batch_id + 1))
+        metrics = {key: val / len(val_data) for key, val in metrics.items()}
+        # return running_loss / len(val_data)  # return metrics
+        return metrics
 
     def fit(self, train_data: DataLoader,
             loss,
@@ -188,22 +199,23 @@ class NASTorchModel(torch.nn.Module):
             device: str = 'cpu',
             **kwargs):
         self.set_device(device)
+        metrics_to_val = kwargs.get('metrics')
         metrics = dict()
         optim = optimizer(self.parameters(), lr=kwargs.get('lr', 1e-3))
-        # pbar = tqdm.trange(epochs, desc='Fitting graph', leave=True, position=0)
-        for epoch in range(epochs):
+        pbar = tqdm.trange(epochs, desc='Fitting graph', leave=False, position=0)
+        for epoch in pbar:
             self.train(mode=True)
             prefix = f'Epoch {epoch} / {epochs}:'
-            # pbar.set_description(f'{prefix} Train')
+            pbar.set_description(f'{prefix} Train')
             train_loss = self._one_epoch_train(train_data, optim, loss, device)
             metrics['train_loss'] = train_loss
             if val_data:
-                # pbar.set_description(f'{prefix} Validation')
+                pbar.set_description(f'{prefix} Validation')
                 with torch.no_grad():
                     self.eval()
-                    val_loss = self.eval_loss(val_data, loss, device)
-                metrics['val_loss'] = val_loss
-            # pbar.set_postfix(**metrics)
+                    val_metrics = self.evaluate(val_data, loss, device, metrics=metrics_to_val)
+                metrics = metrics | val_metrics
+            pbar.set_postfix(**metrics)
 
     # def predict(self, test_data: DataLoader, loss_func, device: str = 'cpu') -> torch.Tensor:
     #     self.set_device(device)

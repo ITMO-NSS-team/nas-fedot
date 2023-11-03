@@ -3,9 +3,7 @@ from __future__ import annotations
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Union, List, Optional, Type
-
-from torch.optim import Optimizer
+from typing import TYPE_CHECKING, Union, List, Optional, Callable
 
 from nas.graph.BaseGraph import NasGraph
 
@@ -33,6 +31,11 @@ class BaseModelInterface(ABC):
         self.loss_function = None
         self.callbacks = None
         self.additional_model_params = kwargs
+        self.metrics = None
+
+    def add_metric(self, *metric: Callable):
+        for m in metric:
+            self.metrics[m.__name__] = m
 
     def set_computation_device(self, device: str):
         self.device = device
@@ -113,7 +116,13 @@ class NeuralSearchModel(BaseModelInterface):
                        loss=self.loss_function,
                        epochs=epochs,
                        device=self.device,
+                       metrics=self.metrics,
                        **kwargs)
 
     def validate(self, test_data, **kwargs):
-        return self.model.eval_loss(test_data, self.loss_function, self.device, disable_pbar=True)
+        return self.model.evaluate(test_data,
+                                   self.loss_function,
+                                   self.device,
+                                   disable_pbar=True,
+                                   metrics=self.metrics,
+                                   **kwargs)

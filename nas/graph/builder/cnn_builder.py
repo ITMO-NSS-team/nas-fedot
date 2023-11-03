@@ -1,12 +1,16 @@
 import random
 from typing import List, Optional
 
+from golem.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
+
 from nas.composer.requirements import ModelRequirements
 from nas.graph.BaseGraph import NasGraph
 from nas.graph.builder.base_graph_builder import GraphGenerator
-from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
+from nas.graph.node.nas_graph_node import NasNode
+from nas.graph.node.nas_node_params import NasNodeFactory
 from nas.operations.validation_rules.cnn_val_rules import model_has_several_roots, \
-    model_has_wrong_number_of_flatten_layers, conv_net_check_structure, model_has_no_conv_layers
+    model_has_wrong_number_of_flatten_layers, model_has_no_conv_layers, \
+    model_has_several_starts, model_has_dim_mismatch
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 random.seed(1)
@@ -29,8 +33,8 @@ class ConvGraphMaker(GraphGenerator):
                  initial_struct: Optional[List] = None, max_generation_attempts: int = 100):
         self._initial_struct = initial_struct
         self._requirements = requirements
-        self._rules = [model_has_several_roots, model_has_wrong_number_of_flatten_layers, conv_net_check_structure,
-                       model_has_no_conv_layers]
+        self._rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
+                       model_has_several_roots, has_no_cycle, has_no_self_cycled_nodes, model_has_dim_mismatch]
         self._generation_attempts = max_generation_attempts
 
     @property
@@ -79,8 +83,9 @@ class ConvGraphMaker(GraphGenerator):
             graph_nodes.append(node)
         return graph_nodes
 
-    def _add_node(self, node_to_add, parent_node):
-        node_params = get_node_params_by_type(node_to_add, self.requirements)
+    def _add_node(self, node_to_add: LayersPoolEnum, parent_node: NasNode, node_name=None):
+        node_params = NasNodeFactory(self.requirements).get_node_params(
+            node_to_add)  # get_node_params_by_type(node_to_add, self.requirements)
         node = NasNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
