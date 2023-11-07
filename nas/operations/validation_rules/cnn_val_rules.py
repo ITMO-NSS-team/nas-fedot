@@ -55,10 +55,19 @@ def model_has_no_conv_layers(graph: NasGraph):
 def model_has_dim_mismatch(graph: NasGraph):
     try:
         with torch.no_grad():
-            m = NeuralSearchModel(NASTorchModel).compile_model(graph, [128, 128, 3], 5).model
-            m.to('cpu')
-            m.forward(torch.rand((32, 3, 128, 128)))
+            input_shape = [[64, 64, 3], [512, 512, 3]]
+            for shape in input_shape:
+                m = NeuralSearchModel(NASTorchModel).compile_model(graph, shape, 5).model
+                m.to('cpu')
+                m.forward(torch.rand([4, *shape[::-1]]))
     except RuntimeError:
         raise ValueError(f'{ERROR_PREFIX} graph has dimension conflict.')
     return True
 
+
+def skip_has_no_pools(graph: NasGraph):
+    for n in graph.nodes:
+        cond = len(n.nodes_from) > 1 and 'pool' in n.name
+        if cond:
+            raise ValueError(f'{ERROR_PREFIX} pooling in skip connection may lead to dimension conflict.')
+    return True

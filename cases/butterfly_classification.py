@@ -53,7 +53,7 @@ def build_butterfly_cls(save_path=None):
     image_side_size = 128
     batch_size = 32
     epochs = 20
-    optimization_epochs = 3
+    optimization_epochs = 1
     num_of_generations = 3
     population_size = 3
 
@@ -110,7 +110,7 @@ def build_butterfly_cls(save_path=None):
 
     validation_rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
                         model_has_several_roots,
-                        has_no_cycle, has_no_self_cycled_nodes, model_has_dim_mismatch]
+                        has_no_cycle, has_no_self_cycled_nodes, skip_has_no_pools, model_has_dim_mismatch]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
                                                  mutation_types=mutations,
@@ -150,9 +150,9 @@ def build_butterfly_cls(save_path=None):
     val_data = DataLoader(dataset_builder.build(val_data), batch_size=requirements.model_requirements.batch_size,
                           shuffle=True)
     test_dataset = DataLoader(dataset_builder.build(test_data), batch_size=requirements.model_requirements.batch_size,
-                              shuffle=True)
+                              shuffle=False)
     trainer.fit_model(train_dataset, val_data, epochs)
-    evaluated_metrics = trainer.validate(test_dataset)
+    predictions, targets = trainer.predict(test_dataset)
     history = composer.history
     # optimized_network.model_interface.compile_model(optimized_network, train_data.num_classes)
     #

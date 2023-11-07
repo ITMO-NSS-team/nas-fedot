@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Union, Optional, Tuple, List, Dict
+from typing import Union, Optional, Tuple, List, Dict, Any
 
 import numpy as np
 import torch
 import torch.nn
 import tqdm
 from golem.core.dag.graph_node import GraphNode
+from numpy import ndarray, dtype
 from torch.utils.data import DataLoader
 
 from nas.graph.BaseGraph import NasGraph
@@ -74,13 +75,9 @@ class NASTorchModel(torch.nn.Module):
                 dim_node = w_node
             w_node = w_node.nodes_from[0]
         name_to_search = f'node_{w_node.uid}'
-        # layer_name = self.__getattr__(f'{name_to_search}_n') if hasattr(self, f'{name_to_search}_n') \
-        #     else self.__getattr__(f'{name_to_search}')
         layer_name = self.__getattr__(f'{name_to_search}')
 
         if dim_node:
-            # pool_layer = self.__getattr__(f'node_{dim_node.uid}_n') if hasattr(self, f'node_{dim_node.uid}_n') \
-            #     else self.__getattr__(f'node_{dim_node.uid}')
             pool_layer = self.__getattr__(f'node_{dim_node.uid}')
             kernel = dim_node.parameters.get('kernel_size', [1])
             out_channels = w_node.parameters['out_shape']
@@ -169,7 +166,7 @@ class NASTorchModel(torch.nn.Module):
         # TODO add tb writer
         return running_loss
 
-    def evaluate(self, val_data: DataLoader, loss_fn, device, disable_pbar: bool = False, **kwargs) -> Dict:
+    def validate(self, val_data: DataLoader, loss_fn, device, disable_pbar: bool = False, **kwargs) -> Dict:
         metrics_to_calc = kwargs.get('metrics')
         metrics = {'val_loss': 0}
         pbar = tqdm.tqdm(val_data, leave=False, position=1, disable=disable_pbar)
@@ -188,7 +185,6 @@ class NASTorchModel(torch.nn.Module):
 
             pbar.set_postfix(on_epoch_val_loss=metrics['val_loss'] / (batch_id + 1))
         metrics = {key: val / len(val_data) for key, val in metrics.items()}
-        # return running_loss / len(val_data)  # return metrics
         return metrics
 
     def fit(self, train_data: DataLoader,
@@ -213,22 +209,25 @@ class NASTorchModel(torch.nn.Module):
                 pbar.set_description(f'{prefix} Validation')
                 with torch.no_grad():
                     self.eval()
-                    val_metrics = self.evaluate(val_data, loss, device, metrics=metrics_to_val)
+                    val_metrics = self.validate(val_data, loss, device, metrics=metrics_to_val)
                 metrics = metrics | val_metrics
             pbar.set_postfix(**metrics)
 
-    # def predict(self, test_data: DataLoader, loss_func, device: str = 'cpu') -> torch.Tensor:
-    #     self.set_device(device)
-    #     self.eval()
-    #     running_loss = 0
-    #     with torch.no_grad():
-    #         for features, targets in test_data:
-    #             features, targets = features.to(device), targets.to(device)
-    #             predictions = self.__call__(features)
-    #             loss = loss_func()
-    #             results.extend(predictions.detach().cpu().numpy())
-    #             # results.append(torch.argmax(predictions, dim=-1).item())
-    #     return torch.Tensor(results)
+    def predict(self,
+                test_data: DataLoader,
+                loss_func, device: str = 'cpu') -> tuple[ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]]]:
+        self.set_device(device)
+        self.eval()
+        results = []
+        targets_lst = []
+        activation = torch.nn.Softmax(-1)
+        with torch.no_grad():
+            for features, targets in test_data:
+                features, targets = features.to(device), targets.to(device)
+                predictions = self.__call__(features)
+                results.extend(torch.argmax(activation(predictions), dim=-1).detach().cpu().tolist())
+                targets_lst.extend(torch.argmax(targets, dim=-1).detach().cpu().tolist())
+        return np.array(results), np.array(targets_lst)
 
 # class TorchModel(BaseModelInterface):
 #     """

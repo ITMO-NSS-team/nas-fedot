@@ -5,6 +5,8 @@ import pathlib
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Union, List, Optional, Callable
 
+import numpy as np
+
 from nas.graph.BaseGraph import NasGraph
 
 if TYPE_CHECKING:
@@ -84,7 +86,14 @@ class BaseModelInterface(ABC):
     @abstractmethod
     def validate(self, *args, **kwargs):
         """
-        This method is responsible for prediction process.
+        This method is responsible for validation of fitted model during training phase.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self, *args, **kwargs):
+        """
+        This method is responsible for prediction process after model was successfully trained.
         """
         raise NotImplementedError
 
@@ -120,9 +129,13 @@ class NeuralSearchModel(BaseModelInterface):
                        **kwargs)
 
     def validate(self, test_data, **kwargs):
-        return self.model.evaluate(test_data,
+        return self.model.validate(test_data,
                                    self.loss_function,
                                    self.device,
                                    disable_pbar=True,
                                    metrics=self.metrics,
                                    **kwargs)
+
+    def predict(self, test_data, **kwargs) -> np.ndarray:
+        return self.model.predict(test_data,
+                                  self.device)
