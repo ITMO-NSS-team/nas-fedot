@@ -2,13 +2,17 @@ import datetime
 import os
 import pathlib
 
+import numpy as np
 from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
+from sklearn.metrics import log_loss, roc_auc_score, f1_score
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
+from torchvision.transforms import Normalize
 
 from nas.composer.future.nn_composer import NNComposer
 from nas.data.dataset.torch_dataset import TorchDataset
+from nas.data.filters import NasImageNormalizer
 from nas.graph.builder.cnn_builder import ConvGraphMaker
 from nas.graph.builder.resnet_builder import ResNetBuilder
 from nas.graph.node.nas_graph_node import NasNode
@@ -50,12 +54,12 @@ set_root(project_root())
 
 def build_butterfly_cls(save_path=None):
     cv_folds = None
-    image_side_size = 128
+    image_side_size = 224
     batch_size = 32
     epochs = 20
-    optimization_epochs = 1
-    num_of_generations = 3
-    population_size = 3
+    optimization_epochs = 3
+    num_of_generations = 5
+    population_size = 5
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -100,7 +104,7 @@ def build_butterfly_cls(save_path=None):
                                                            n_jobs=1,
                                                            cv_folds=cv_folds)
 
-    data_preprocessor = Preprocessor()
+    data_preprocessor = Preprocessor([torch.Tensor, NasImageNormalizer(data)])
     dataset_builder = ImageDatasetBuilder(dataset_cls=TorchDataset, image_size=(image_side_size, image_side_size),
                                           batch_size=requirements.model_requirements.batch_size,
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
@@ -154,19 +158,17 @@ def build_butterfly_cls(save_path=None):
     trainer.fit_model(train_dataset, val_data, epochs)
     predictions, targets = trainer.predict(test_dataset)
     history = composer.history
-    # optimized_network.model_interface.compile_model(optimized_network, train_data.num_classes)
-    #
-    # optimized_network.fit(new_train_data, new_test_data, epochs=epochs, batch_size=batch_size)
-    # predicted_labels, predicted_probabilities = get_predictions(optimized_network, test_data, dataset_builder)
-    # roc_on_valid_evo_composed, log_loss_on_valid_evo_composed, accuracy_score_on_valid_evo_composed = \
-    #     calculate_validation_metric(test_data, predicted_probabilities, predicted_labels)
+
+    loss = log_loss(targets, predictions)
+    roc = roc_auc_score(targets, predictions, multi_class='ovo')
+    f1 = f1_score(targets, np.argmax(predictions, axis=-1), average='weighted')
 
     if save_path:
         composer.save(path=save_path)
 
-    print(f'Composed ROC AUC is {round(roc_on_valid_evo_composed, 3)}')
-    print(f'Composed LOG LOSS is {round(log_loss_on_valid_evo_composed, 3)}')
-    print(f'Composed ACCURACY is {round(accuracy_score_on_valid_evo_composed, 3)}')
+    print(f'Composed ROC AUC is {round(roc, 3)}')
+    print(f'Composed LOG LOSS is {round(loss, 3)}')
+    print(f'Composed F1 is {round(f1, 3)}')
 
 
 if __name__ == '__main__':

@@ -194,6 +194,9 @@ class NASTorchModel(torch.nn.Module):
             epochs: int = 1,
             device: str = 'cpu',
             **kwargs):
+        """
+        This function trains the pytorch module using given parameters
+        """
         self.set_device(device)
         metrics_to_val = kwargs.get('metrics')
         metrics = dict()
@@ -215,7 +218,11 @@ class NASTorchModel(torch.nn.Module):
 
     def predict(self,
                 test_data: DataLoader,
-                loss_func, device: str = 'cpu') -> tuple[ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]]]:
+                device: str = 'cpu') -> Tuple[ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]]]:
+        """
+        This method implements prediction on data loader.
+        Returns tuple of predicted probabilities and target labels.
+        """
         self.set_device(device)
         self.eval()
         results = []
@@ -225,44 +232,6 @@ class NASTorchModel(torch.nn.Module):
             for features, targets in test_data:
                 features, targets = features.to(device), targets.to(device)
                 predictions = self.__call__(features)
-                results.extend(torch.argmax(activation(predictions), dim=-1).detach().cpu().tolist())
+                results.extend(activation(predictions).detach().cpu().tolist())
                 targets_lst.extend(torch.argmax(targets, dim=-1).detach().cpu().tolist())
         return np.array(results), np.array(targets_lst)
-
-# class TorchModel(BaseModelInterface):
-#     """
-#     Base class that implements all required logic to work with NasGraphs as it was torch models.
-#     """
-#
-#     def __init__(self, model_class: torch.nn.Module, graph: NasGraph, input_shape: int, out_shape: int):
-#         super().__init__(model_class)
-#         self._device = None
-#         self._writer = None
-#         self._model = model_class().init_model(input_shape, out_shape, graph)
-#
-#     def __call__(self, data: Optional[torch.Tensor, np.ndarray], **kwargs):
-#         data = torch.Tensor(data)
-#         self.model.eval()
-#         data = data.to(self._device)
-#         with torch.no_grad():
-#             return self.model(data)
-#
-#     def fit(self, train_data: Dataset, batch_size: int, train_parameters, opt_epochs: int = None,
-#             val_data: Optional[Dataset] = None):
-#         epochs = opt_epochs if opt_epochs is not None else train_parameters.epochs
-#         callbacks = train_parameters.callbacks
-#         scheduler = train_parameters.scheduler
-#         optimizer = train_parameters.optimizer
-#         metrics = train_parameters.metrics
-#         loss = train_parameters.loss_func
-#
-#         train_loop = tqdm.trange(epochs, position=0)
-#         for epoch in train_loop:
-#             train_loop.set_description(f'Epoch [{epoch + 1}/{epochs}')
-#             train_logs = self._one_epoch_train(train_data, loss, optimizer, scheduler, metrics)
-#             val_logs = {} if val_data is None else self._one_epochs_val(val_data, loss, metrics)
-#             train_loop.set_postfix(learning_rate=optimizer.param_groups[0]['lr'],
-#                                    **train_logs, **val_logs)
-#
-#     def predict(self, *args, **kwargs):
-#         pass

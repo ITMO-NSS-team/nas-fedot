@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional, Union, List
 
 from fedot.core.caching.pipelines_cache import OperationsCache
@@ -13,7 +14,6 @@ from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import ImageDatasetBuilder
 from nas.model.model_interface import BaseModelInterface
 from nas.optimizer.objective.future.nas_objective_evaluate import NASObjectiveEvaluate
-from nas.optimizer.objective.nas_objective_evaluate import NasObjectiveEvaluate
 
 
 class NNComposer(Composer):
@@ -71,3 +71,9 @@ class NNComposer(Composer):
     def _convert_best_model(self, optimization_result):
         adapter = self.optimizer.graph_generation_params.adapter
         self.best_models = [adapter.restore(g) for g in optimization_result]
+
+    def save(self, path: str):
+        Path(path).mkdir(exist_ok=True, parents=True)
+        self.best_models[0].save(path)
+        if self.history:
+            self.history.save(path)

@@ -29,6 +29,8 @@ class ImageDatasetBuilder(BaseNNDatasetBuilder):
         super().__init__(dataset_cls, batch_size, loader, shuffle)
         self._data_preprocessor: Optional[Preprocessor] = None
         self._image_size = image_size
+        self._mean = None
+        self._std = None
 
     @property
     def image_size(self) -> Tuple:

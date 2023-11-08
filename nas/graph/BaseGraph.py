@@ -42,17 +42,6 @@ class NasGraph(OptGraph):
     def model_interface(self, value):
         self._model_interface = value
 
-    # @property
-    # def cnn_depth(self):
-    #     flatten_id = [ind for ind, node in enumerate(self.graph_struct) if node.content['name'] == 'flatten']
-    #     return flatten_id
-
-    def compile_model(self, output_shape: int = 1, **additional_params):
-        # self.model_interface = model_builder(input_shape, self, ModelStructure, n_classes).build()
-        # self.model_interface.compile(loss=loss_function, optimizer=optimizer, metrics=metrics)
-        self.model_interface.compile_model(self, output_shape, **additional_params)
-        return self
-
     def fit(self, train_data, val_data, epochs: int = 5, batch_size: int = 32,
             callbacks: List = None, verbose='auto', **kwargs):
         # tf.keras.backend.clear_session()
@@ -98,21 +87,9 @@ class NasGraph(OptGraph):
             json_data = json_file.read()
             return json.loads(json_data, cls=Serializer)
 
-    # @property
-    # def graph_struct(self) -> List[Union[NasNode, GraphNode]]:
-    #     if 'conv' in self.nodes[0].content['name']:
-    #         return self.nodes
-    #     else:
-    #         return self.nodes[::-1]
-
     @staticmethod
     def release_memory(**kwargs):
         pass
-        # clear_keras_session(**kwargs)
-        # gc.collect()
 
     def unfit(self, **kwargs):
-        del self._model_interface
-        self.model_interface = None
-        # keras.backend.clear_session()
-        gc.collect()
+        pass
