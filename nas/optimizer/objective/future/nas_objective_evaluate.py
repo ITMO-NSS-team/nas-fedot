@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import BaseNNDatasetBuilder
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.model.constructor import ModelConstructor
 from nas.model.model_interface import NeuralSearchModel
 

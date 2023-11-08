@@ -6,7 +6,7 @@ from golem.core.optimisers.objective.objective import Objective
 from golem.core.optimisers.optimizer import GraphGenerationParams
 
 from nas.composer.requirements import NNComposerRequirements
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.utils.utils import seed_all
 
 seed_all(1)

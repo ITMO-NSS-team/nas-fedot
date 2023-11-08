@@ -4,7 +4,7 @@ from typing import List, Optional
 from golem.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
 
 from nas.composer.requirements import ModelRequirements
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.graph.builder.base_graph_builder import GraphGenerator
 from nas.graph.node.nas_graph_node import NasNode
 from nas.graph.node.nas_node_params import NasNodeFactory

@@ -17,7 +17,7 @@ from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
 from nas.composer.requirements import NNComposerRequirements
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.model.model_interface import BaseModelInterface
 
 # from nas.operations.evaluation.callbacks.bad_performance_callback import PerformanceCheckingCallback

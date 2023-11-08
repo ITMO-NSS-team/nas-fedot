@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Union, List, Optional, Callable
 
 import numpy as np
 
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 
 if TYPE_CHECKING:
     pass

@@ -10,7 +10,7 @@ from golem.core.dag.graph_node import GraphNode
 from numpy import ndarray, dtype
 from torch.utils.data import DataLoader
 
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.graph.node.nas_graph_node import NasNode
 from nas.model.pytorch.layers.layer_initializer import TorchLayerFactory
 

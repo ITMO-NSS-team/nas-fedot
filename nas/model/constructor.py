@@ -3,7 +3,7 @@ from typing import Type, Union, Callable, Optional, List, Tuple
 from torch.nn import Module
 from torch.optim import Optimizer, AdamW
 
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.model.model_interface import BaseModelInterface
 
 

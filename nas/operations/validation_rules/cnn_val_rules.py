@@ -1,7 +1,7 @@
 import torch
 from golem.core.dag.verification_rules import ERROR_PREFIX
 
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.model.model_interface import NeuralSearchModel
 from nas.model.pytorch.base_model import NASTorchModel
 

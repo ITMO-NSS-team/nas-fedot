@@ -1,5 +1,5 @@
 from nas.composer.requirements import load_default_requirements
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.graph.builder.base_graph_builder import BaseGraphBuilder
 from nas.graph.builder.cnn_builder import ConvGraphMaker
 

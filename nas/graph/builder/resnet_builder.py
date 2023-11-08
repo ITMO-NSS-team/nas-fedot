@@ -1,7 +1,7 @@
 from golem.core.dag.graph_node import GraphNode
 
 from nas.composer.requirements import *
-from nas.graph.BaseGraph import NasGraph
+from nas.graph.base_graph import NasGraph
 from nas.graph.builder.base_graph_builder import GraphGenerator
 from nas.graph.node.nas_graph_node import NasNode
 from nas.graph.node.nas_node_params import NasNodeFactory
@@ -43,7 +43,6 @@ class ResnetConfig:
 class ResNetBuilder(GraphGenerator):
     def __init__(self, *args, **kwargs):
         self.resnet_type: Optional[str] = kwargs.get('model_type')
-        # self.requirements = load_default_requirements().model_requirements
         self._graph: Optional[NasGraph] = None
 
     @staticmethod
@@ -97,6 +96,7 @@ class ResNetBuilder(GraphGenerator):
 
     def build(self, resnet_type: Optional[str] = None) -> NasGraph:
         self.resnet_type = resnet_type if resnet_type else self.resnet_type
+        input_shapes = [64, 128, 256, 512]
         block_expansion = 1 if self.resnet_type in ['resnet_18, resnet_34'] else 4
         if self.resnet_type not in ResnetConfig.blocks_num.keys():
             raise ValueError(f'Builder cannot build "{self.resnet_type}" model.')
@@ -105,14 +105,9 @@ class ResNetBuilder(GraphGenerator):
         self._add_node(LayersPoolEnum.conv2d, activation='relu', stride=[2, 2], out_shape=64, kernel_size=[7, 7],
                        momentum=.99, epsilon=.001, padding=[3, 3])
         self._add_node(LayersPoolEnum.pooling2d, pool_size=[3, 3], pool_stride=[2, 2], mode='max', padding=[1, 1])
-        self._add_block(64, blocks_num=ResnetConfig.blocks_num[self.resnet_type][0],
-                        block_expansion=block_expansion)
-        self._add_block(128, blocks_num=ResnetConfig.blocks_num[self.resnet_type][1],
-                        block_expansion=block_expansion, conv_stride=2)
-        self._add_block(256, blocks_num=ResnetConfig.blocks_num[self.resnet_type][2],
-                        block_expansion=block_expansion, conv_stride=2)
-        self._add_block(512, blocks_num=ResnetConfig.blocks_num[self.resnet_type][3],
-                        block_expansion=block_expansion, conv_stride=2)
+        for i, input_shape in enumerate(input_shapes):
+            self._add_block(input_shape, blocks_num=ResnetConfig.blocks_num[self.resnet_type][i],
+                            block_expansion=block_expansion)
         self._add_node(LayersPoolEnum.adaptive_pool2d, out_shape=[1, 1], mode='avg', parent_node=self._graph.root_node)
         self._add_node(LayersPoolEnum.flatten, parent_node=self._graph.root_node)
         return self._graph

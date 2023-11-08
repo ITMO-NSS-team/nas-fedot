@@ -5,6 +5,10 @@ from torchvision.transforms import Normalize
 
 
 class NasImageNormalizer:
+    """
+    This class calculates mean and std over dataset and then
+    applies normalization to given data sample with calculated mean and std.
+    """
     def __init__(self, dataset: InputData, mean: float = None, std: float = None):
         dataset_mean = 0.
         dataset_std = 0.
