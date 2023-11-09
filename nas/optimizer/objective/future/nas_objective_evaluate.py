@@ -45,9 +45,6 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         self._dataset_builder = nn_dataset_builder
         self._model_trainer_builder = model_trainer_builder
         self._requirements = requirements
-        # self._callbacks = callbacks
-        # self._optimizer = optimizer
-        # self._loss_func = loss_func
         self._log = default_log(self)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
@@ -105,5 +102,4 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
                                   shuffle=False)
         eval_metrics = fitted_model.validate(test_dataset)
         eval_metrics = [m for m in eval_metrics.values()]
-        return to_fitness([*complexity_matrics, *eval_metrics], self._objective.is_multi_objective)
-        # for metric in self._objective.metrics:
+        return to_fitness([*eval_metrics, *complexity_matrics], self._objective.is_multi_objective)

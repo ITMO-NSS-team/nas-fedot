@@ -73,7 +73,8 @@ class NNComposer(Composer):
         self.best_models = [adapter.restore(g) for g in optimization_result]
 
     def save(self, path: str):
-        Path(path).mkdir(exist_ok=True, parents=True)
+        path = Path(path)
+        path.mkdir(exist_ok=True, parents=True)
         self.best_models[0].save(path)
         if self.history:
-            self.history.save(path)
+            self.history.save(path / 'history.json')
