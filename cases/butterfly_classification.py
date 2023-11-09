@@ -54,12 +54,12 @@ set_root(project_root())
 
 def build_butterfly_cls(save_path=None):
     cv_folds = None
-    image_side_size = 224
-    batch_size = 32
+    image_side_size = 90
+    batch_size = 16
     epochs = 20
-    optimization_epochs = 3
+    optimization_epochs = 5
     num_of_generations = 5
-    population_size = 5
+    population_size = 3
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -91,7 +91,7 @@ def build_butterfly_cls(save_path=None):
                                                             epochs=epochs,
                                                             batch_size=batch_size,
                                                             max_nn_depth=1,
-                                                            max_num_of_conv_layers=40)
+                                                            max_num_of_conv_layers=34)
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
@@ -104,12 +104,12 @@ def build_butterfly_cls(save_path=None):
                                                            n_jobs=1,
                                                            cv_folds=cv_folds)
 
-    data_preprocessor = Preprocessor([torch.Tensor, NasImageNormalizer(data)])
+    data_preprocessor = Preprocessor()
     dataset_builder = ImageDatasetBuilder(dataset_cls=TorchDataset, image_size=(image_side_size, image_side_size),
                                           batch_size=requirements.model_requirements.batch_size,
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
-    model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda:0',
+    model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda',
                                      loss_function=CrossEntropyLoss(), optimizer=AdamW)
 
     validation_rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,

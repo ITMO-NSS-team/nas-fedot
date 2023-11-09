@@ -205,10 +205,10 @@ class ModelRequirements:
         if not self.channels_num:
             raise ValueError(f'{self.color_mode} if unacceptable')
         if not self.primary:
-            self.primary = [LayersPoolEnum.conv2d_3x3]
+            self.primary = [LayersPoolEnum.conv2d]
         if not self.secondary:
             self.secondary = [LayersPoolEnum.dropout, LayersPoolEnum.linear,
-                              LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2]
+                              LayersPoolEnum.pooling2d, LayersPoolEnum.adaptive_pool2d]
 
     @property
     def channels_num(self) -> int:

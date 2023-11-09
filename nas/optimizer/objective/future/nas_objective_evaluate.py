@@ -2,6 +2,7 @@ import gc
 import os
 import resource
 import sys
+from math import floor
 
 import numba
 import numpy as np
@@ -56,23 +57,14 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
 
     def evaluate(self, graph: NasGraph) -> Fitness:
         fold_metrics = []
+        # torch.set_num_threads(floor(16 / self.eval_n_jobs))
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
             gc.collect()
             torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-            # print('Before model fit')
-            # print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
-            #       f'\nreserved: {torch.cuda.memory_reserved(0)}'
-            #       f'\nallocated: {torch.cuda.memory_allocated(0)}')
-
             fitted_model = self._graph_fit(graph, train_data, log=self._log, fold_id=fold_id + 1)
             fold_fitness = self._evaluate_fitted_model(fitted_model, test_data, graph, log=self._log,
                                                        fold_id=fold_id + 1)
             del fitted_model
-            # print('After model fit')
-            # print(f'CUDA memory usage: \ntotal: {torch.cuda.get_device_properties(0).total_memory}'
-            #       f'\nreserved: {torch.cuda.memory_reserved(0)}'
-            #       f'\nallocated: {torch.cuda.memory_allocated(0)}')
             if fold_fitness.valid:
                 fold_metrics.append(fold_fitness.values)
             else:

@@ -42,12 +42,11 @@ class NasGraph(OptGraph):
     def model_interface(self, value):
         self._model_interface = value
 
-    def fit(self, train_data, val_data, epochs: int = 5, batch_size: int = 32,
-            callbacks: List = None, verbose='auto', **kwargs):
-        # tf.keras.backend.clear_session()
-        self.model_interface.fit(train_data, val_data, batch_size=batch_size, epochs=epochs, verbose=verbose,
-                                 callbacks=callbacks)
-        return self
+    # def fit(self, train_data, val_data, epochs: int = 5, batch_size: int = 32,
+    #         callbacks: List = None, verbose='auto', **kwargs):
+    #     self.model_interface.fit(train_data, val_data, batch_size=batch_size, epochs=epochs, verbose=verbose,
+    #                              callbacks=callbacks)
+    #     return self
 
     def predict(self, test_data, batch_size=1, output_mode: str = 'default', **kwargs) -> OutputData:
         if not self.model_interface:

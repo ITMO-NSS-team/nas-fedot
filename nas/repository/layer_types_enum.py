@@ -15,8 +15,6 @@ class LayersPoolEnum(Enum):
     flatten = 'flatten'
     linear = 'linear'
     dropout = 'dropout'
-    # max_pool2d = 'max_pool2d'
-    # average_poold2 = 'average_pool2d'
     adaptive_pool2d = 'adaptive_pool2d'
     pooling2d = 'pooling2d'
 
