@@ -1,10 +1,5 @@
 import gc
-import os
-import resource
-import sys
-from math import floor
 
-import numba
 import numpy as np
 import torch
 from fedot.core.data.data import InputData

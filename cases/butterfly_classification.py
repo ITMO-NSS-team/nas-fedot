@@ -1,53 +1,40 @@
 import datetime
-import os
 import pathlib
 
 import numpy as np
-from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
-from sklearn.metrics import log_loss, roc_auc_score, f1_score
-from torch.nn import CrossEntropyLoss
-from torch.optim import AdamW
-from torch.utils.data import DataLoader
-from torchvision.transforms import Normalize
-
-from nas.composer.future.nn_composer import NNComposer
-from nas.data.dataset.torch_dataset import TorchDataset
-from nas.data.filters import NasImageNormalizer
-from nas.graph.builder.cnn_builder import ConvGraphMaker
-from nas.graph.builder.resnet_builder import ResNetBuilder
-from nas.graph.node.nas_graph_node import NasNode
-from nas.model.constructor import ModelConstructor
-
-# from nas.model.model_interface import ModelTF
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-# import tensorflow as tf
-
-from golem.core.adapter.adapter import DirectAdapter
-from golem.core.optimisers.advisor import DefaultChangeAdvisor
 from fedot.core.composer.composer_builder import ComposerBuilder
-from golem.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
 from fedot.core.data.data_split import train_test_data_setup
-
+from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
+from fedot.core.repository.tasks import TaskTypesEnum, Task
+from golem.core.adapter.adapter import DirectAdapter
+from golem.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
+from golem.core.optimisers.advisor import DefaultChangeAdvisor
+from golem.core.optimisers.genetic.gp_params import GPAlgorithmParameters
 from golem.core.optimisers.genetic.operators.crossover import CrossoverTypesEnum
 from golem.core.optimisers.genetic.operators.inheritance import GeneticSchemeTypesEnum
 from golem.core.optimisers.genetic.operators.mutation import MutationTypesEnum
 from golem.core.optimisers.genetic.operators.regularization import RegularizationTypesEnum
 from golem.core.optimisers.optimizer import GraphGenerationParams
-from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
-from fedot.core.repository.tasks import TaskTypesEnum, Task
+from sklearn.metrics import log_loss, roc_auc_score, f1_score
+from torch.nn import CrossEntropyLoss
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
 
 import nas.composer.requirements as nas_requirements
+from nas.composer.future.nn_composer import NNComposer
 from nas.data.dataset.builder import ImageDatasetBuilder
+from nas.data.dataset.torch_dataset import TorchDataset
+from nas.data.nas_data import InputDataNN
 from nas.data.preprocessor import Preprocessor
 from nas.graph.builder.base_graph_builder import BaseGraphBuilder
+from nas.graph.builder.resnet_builder import ResNetBuilder
+from nas.graph.node.nas_graph_node import NasNode
 from nas.graph.node.node_factory import NNNodeFactory
+from nas.model.constructor import ModelConstructor
 from nas.operations.validation_rules.cnn_val_rules import *
 from nas.optimizer.objective.nas_cnn_optimiser import NNGraphOptimiser
 from nas.repository.layer_types_enum import LayersPoolEnum
 from nas.utils.utils import set_root, project_root
-from nas.data.nas_data import InputDataNN
 
 set_root(project_root())
 
