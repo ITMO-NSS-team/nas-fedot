@@ -22,9 +22,8 @@ class BaseDataLoader(ABC):
     @property
     def target(self):
         new_targets = np.reshape(self.dataset.target, (-1, 1))
-        num_classes = len(np.unique(self.dataset.target))
 
-        if num_classes > 2:
+        if self.dataset.num_classes > 2:
             encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse_output=False)
             new_targets = encoder.fit_transform(new_targets)
         return new_targets

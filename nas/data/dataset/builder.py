@@ -43,7 +43,7 @@ class ImageDatasetBuilder(BaseNNDatasetBuilder):
         self._data_preprocessor = preprocessor
         return self
 
-    def build(self, data, shuffle: bool = True, **kwargs):
+    def build(self, data: InputData, shuffle: bool = True, **kwargs):
         """Method for creating dataset object with given parameters for further model training/evaluating."""
         train_mode = {'train': True, 'val': False, 'test': False}
         mode = kwargs.get('mode')

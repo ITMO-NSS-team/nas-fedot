@@ -5,7 +5,6 @@ from typing import List, Union, Callable, Tuple
 from functools import reduce
 
 
-
 class BasePreprocessor(ABC):
     def __init__(self, transformations: Union[List[Callable], Tuple[Callable]] = None):
         self._transformations = transformations

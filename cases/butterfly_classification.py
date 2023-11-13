@@ -44,9 +44,9 @@ def build_butterfly_cls(save_path=None):
     image_side_size = 90
     batch_size = 16
     epochs = 20
-    optimization_epochs = 5
+    optimization_epochs = 1
     num_of_generations = 5
-    population_size = 3
+    population_size = 5
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -82,7 +82,7 @@ def build_butterfly_cls(save_path=None):
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
-                                                           timeout=datetime.timedelta(minutes=60),
+                                                           timeout=datetime.timedelta(hours=100),
                                                            num_of_generations=num_of_generations,
                                                            early_stopping_iterations=100,
                                                            early_stopping_timeout=float(datetime.timedelta(minutes=30).
@@ -130,10 +130,11 @@ def build_butterfly_cls(save_path=None):
     new_train_data, new_test_data = train_test_data_setup(train_data, shuffle_flag=True)
     optimized_network = composer.compose_pipeline(train_data)
 
-    # optimized_network.model_interface = model_interface
+    if save_path:
+        composer.save(path=save_path)
+
     trainer = model_trainer.build([image_side_size, image_side_size, 3], test_data.num_classes,
                                   optimized_network)
-    # trainer.add_metric(metrics)
 
     train_data, val_data = train_test_data_setup(train_data, split_ratio=.7, shuffle_flag=False)
     train_dataset = DataLoader(dataset_builder.build(train_data), batch_size=requirements.model_requirements.batch_size,
@@ -150,14 +151,11 @@ def build_butterfly_cls(save_path=None):
     roc = roc_auc_score(targets, predictions, multi_class='ovo')
     f1 = f1_score(targets, np.argmax(predictions, axis=-1), average='weighted')
 
-    if save_path:
-        composer.save(path=save_path)
-
     print(f'Composed ROC AUC is {round(roc, 3)}')
     print(f'Composed LOG LOSS is {round(loss, 3)}')
     print(f'Composed F1 is {round(f1, 3)}')
 
 
 if __name__ == '__main__':
-    path = f'_results/debug/master_2/{datetime.datetime.now().date()}'
+    path = f'./_results/debug/master_2/{datetime.datetime.now().date()}'
     build_butterfly_cls(path)
