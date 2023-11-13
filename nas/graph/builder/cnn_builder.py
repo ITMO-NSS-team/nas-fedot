@@ -10,7 +10,7 @@ from nas.graph.node.nas_graph_node import NasNode
 from nas.graph.node.nas_node_params import NasNodeFactory
 from nas.operations.validation_rules.cnn_val_rules import model_has_several_roots, \
     model_has_wrong_number_of_flatten_layers, model_has_no_conv_layers, \
-    model_has_several_starts, model_has_dim_mismatch
+    model_has_several_starts, model_has_dim_mismatch, skip_has_no_pools
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 random.seed(1)
@@ -34,7 +34,8 @@ class ConvGraphMaker(GraphGenerator):
         self._initial_struct = initial_struct
         self._requirements = requirements
         self._rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
-                       model_has_several_roots, has_no_cycle, has_no_self_cycled_nodes, model_has_dim_mismatch]
+                       model_has_several_roots,
+                       has_no_cycle, has_no_self_cycled_nodes, skip_has_no_pools, model_has_dim_mismatch]
         self._generation_attempts = max_generation_attempts
 
     @property
