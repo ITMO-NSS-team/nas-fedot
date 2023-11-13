@@ -6,7 +6,7 @@ from typing import Tuple
 import cv2
 import numpy as np
 from fedot.core.data.data import InputData
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 
 class BaseDataLoader(ABC):
@@ -25,7 +25,9 @@ class BaseDataLoader(ABC):
 
         if self.dataset.num_classes > 2:
             encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse_output=False)
-            new_targets = encoder.fit_transform(new_targets)
+        else:
+            encoder = LabelEncoder()
+        new_targets = encoder.fit_transform(new_targets)
         return new_targets
 
     @abstractmethod
