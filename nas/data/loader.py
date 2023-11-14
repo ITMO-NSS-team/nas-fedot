@@ -24,7 +24,7 @@ class BaseDataLoader(ABC):
         new_targets = np.reshape(self.dataset.target, (-1, 1))
 
         if self.dataset.num_classes > 2:
-            encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse_output=False)
+            encoder = OneHotEncoder(handle_unknown='error', dtype=int, sparse=False)
         else:
             encoder = LabelEncoder()
         new_targets = encoder.fit_transform(new_targets)

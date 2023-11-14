@@ -49,6 +49,9 @@ def get_input_shape(node: Union[GraphNode, NasNode],
     elif output_channels:
         # returns side size as 1 for linear layer, for conv layer returns their kernel size
         side_size = weighted_node.parameters.get('kernel_size', 1)
+    if node.name == 'flatten':
+        output_channels = side_size[0] * output_channels if isinstance(side_size, list) else side_size * output_channels
+        side_size = [1, 1]
     return side_size, output_channels
 
 
@@ -66,25 +69,6 @@ class NASTorchModel(torch.nn.Module):
 
     def set_device(self, device):
         self.to(device)
-
-    def get_input_shape(self, node: Union[NasNode, GraphNode], ):
-        w_node = node
-        dim_node = None
-        while w_node.name in ['flatten', 'pooling2d', 'adaptive_pool2d', 'batch_norm2d']:
-            if w_node.name in ['pooling2d', 'adaptive_pool2d', 'batch_norm2d']:
-                dim_node = w_node
-            w_node = w_node.nodes_from[0]
-        name_to_search = f'node_{w_node.uid}'
-        layer_name = self.__getattr__(f'{name_to_search}')
-
-        if dim_node:
-            pool_layer = self.__getattr__(f'node_{dim_node.uid}')
-            kernel = dim_node.parameters.get('kernel_size', [1])
-            out_channels = w_node.parameters['out_shape']
-            # TODO FIX
-            return np.dot(*dim_node.parameters.get('kernel_size', [1, 1])) * w_node.parameters['out_shape']
-        else:
-            return np.dot(*w_node.parameters.get('kernel_size', [1, 1])) * w_node.parameters['out_shape']
 
     def init_model(self, in_shape: Union[Tuple[int], List[int]], out_shape: int, graph: NasGraph, **kwargs):
         self._graph = graph
