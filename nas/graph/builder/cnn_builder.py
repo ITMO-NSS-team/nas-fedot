@@ -31,7 +31,7 @@ def _add_skip_connections(graph: NasGraph, params):
 
 class ConvGraphMaker(GraphGenerator):
     def __init__(self, requirements: ModelRequirements,
-                 initial_struct: Optional[List] = None, max_generation_attempts: int = 500):
+                 initial_struct: Optional[List] = None, max_generation_attempts: int = 100):
         self._initial_struct = initial_struct
         self._requirements = requirements
         self._rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
