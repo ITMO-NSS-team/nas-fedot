@@ -20,7 +20,6 @@ class LayersPoolEnum(Enum):
 
 
 class ActivationTypesIdsEnum(Enum):
-    # softmax = 'softmax'
     elu = 'elu'
     selu = 'selu'
     softplus = 'softplus'

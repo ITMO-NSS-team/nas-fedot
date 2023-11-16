@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING, Dict, Sequence
 
 from nas.repository.layer_types_enum import LayersPoolEnum
 
+random.seed(1)
+
+
 if TYPE_CHECKING:
     from nas.composer.requirements import ModelRequirements
 

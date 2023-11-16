@@ -33,9 +33,7 @@ class ConvGraphMaker(GraphGenerator):
                  initial_struct: Optional[List] = None, max_generation_attempts: int = 100):
         self._initial_struct = initial_struct
         self._requirements = requirements
-        self._rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
-                       model_has_several_roots,
-                       has_no_cycle, has_no_self_cycled_nodes, skip_has_no_pools, model_has_dim_mismatch]
+        self._rules = [model_has_dim_mismatch]
         self._generation_attempts = max_generation_attempts
 
     @property
