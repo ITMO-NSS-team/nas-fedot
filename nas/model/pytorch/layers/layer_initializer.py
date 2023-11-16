@@ -55,7 +55,7 @@ def ada_pool2d(node: NasNode, **inputs_dict):
 
 
 def flatten(*args, **kwargs):
-    return nn.Flatten(start_dim=1)
+    return nn.Flatten()
 
 
 class TorchLayerFactory:
@@ -84,7 +84,12 @@ class TorchLayerFactory:
                        'elu': nn.ELU,
                        'selu': nn.SELU,
                        'softmax': nn.Softmax,
-                       'sigmoid': nn.Sigmoid}
+                       'sigmoid': nn.Sigmoid,
+                       'tanh': nn.Tanh,
+                       'softplus': nn.Softplus,
+                       'softsign': nn.Softsign,
+                       'hard_sigmoid': nn.Hardsigmoid,
+                       }
         activation = activations.get(activation_name)
         if activation is None:
             raise ValueError(f'Wrong activation function: {activation_name}')

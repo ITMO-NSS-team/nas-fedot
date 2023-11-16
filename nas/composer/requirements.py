@@ -99,13 +99,13 @@ class BaseLayerRequirements:
 
 @dataclass
 class ConvRequirements(BaseLayerRequirements):
-    conv_strides: Optional[List[List[int]]] = None
-    pool_size: Optional[List[List[int]]] = None
-    pool_strides: Optional[List[List[int]]] = None
+    conv_strides: Optional[List[int], Tuple[int]] = None
+    pool_size: Optional[List[int], Tuple[int]] = None
+    pool_strides: Optional[List[int], Tuple[int]] = None
     pooling_mode: Optional[List[str], Tuple[str]] = None
     dilation_rate: Optional[List[int]] = None
     padding: Union[str, Collection[Collection[int]]] = None
-    kernel_size: Union[List[List[int]], Tuple[Tuple[int]]] = None
+    kernel_size: Union[List[int], Tuple[int]] = None
 
     def __post_init__(self):
         if not self.dilation_rate:
@@ -182,7 +182,7 @@ class ModelRequirements:
     primary: Optional[List[LayersPoolEnum]] = None
     secondary: Optional[List[LayersPoolEnum]] = None
 
-    _has_skip_connection: Optional[bool] = False
+    # _has_skip_connection: Optional[bool] = False
 
     epochs: int = 1
     batch_size: int = 32

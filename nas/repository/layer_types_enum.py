@@ -28,4 +28,4 @@ class ActivationTypesIdsEnum(Enum):
     tanh = 'tanh'
     hard_sigmoid = 'hard_sigmoid'
     sigmoid = 'sigmoid'
-    linear = 'linear'
+    # linear = 'linear'

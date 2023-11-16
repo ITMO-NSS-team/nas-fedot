@@ -16,6 +16,7 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 random.seed(1)
 
 
+# TODO outdated function. Need to update.
 def _add_skip_connections(graph: NasGraph, params):
     skip_connections_id = params[0]
     shortcut_len = params[1]
@@ -69,22 +70,19 @@ class ConvGraphMaker(GraphGenerator):
         total_fc_nodes = random.randint(self.requirements.min_nn_depth,
                                         self.requirements.max_nn_depth)
         # hotfix
-        zero_node = random.choice(self.requirements.primary)
+        zero_node = LayersPoolEnum.conv2d
         graph_nodes = [zero_node]
         for i in range(1, total_conv_nodes + total_fc_nodes):
             if i == 0:
-                node = random.choice(self.requirements.primary)
-            elif i < total_conv_nodes:
-                node = random.choice(self.requirements.primary + self.requirements.secondary) \
-                    if i != total_conv_nodes - 1 else LayersPoolEnum.flatten
+                node = random.choice([LayersPoolEnum.conv2d, LayersPoolEnum.pooling2d])
             else:
-                node = random.choice([LayersPoolEnum.dropout, LayersPoolEnum.linear])
+                node = LayersPoolEnum.conv2d if i != total_conv_nodes else LayersPoolEnum.adaptive_pool2d
             graph_nodes.append(node)
+        graph_nodes.append(LayersPoolEnum.flatten)
         return graph_nodes
 
-    def _add_node(self, node_to_add: LayersPoolEnum, parent_node: NasNode, node_name=None):
-        node_params = NasNodeFactory(self.requirements).get_node_params(
-            node_to_add)  # get_node_params_by_type(node_to_add, self.requirements)
+    def _add_node(self, node_to_add: LayersPoolEnum, parent_node: List[NasNode], node_name=None):
+        node_params = NasNodeFactory(self.requirements).get_node_params(node_to_add)
         node = NasNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
@@ -97,8 +95,6 @@ class ConvGraphMaker(GraphGenerator):
                 node = self._add_node(node, parent_node)
                 parent_node = [node]
                 graph.add_node(node)
-            if self.requirements.has_skip_connection:
-                _add_skip_connections(graph, self._get_skip_connection_params(graph))
             if self.check_generated_graph(graph):
                 return graph
         raise ValueError(f"Max number of generation attempts was reached and graph verification wasn't successful."

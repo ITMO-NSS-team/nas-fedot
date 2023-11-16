@@ -82,13 +82,13 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
         batch_size = self._requirements.model_requirements.batch_size
         opt_epochs = self._requirements.opt_epochs
 
-        opt_data, val_data = train_test_data_setup(train_data, stratify=train_data.target)
-        opt_dataset = DataLoader(self._dataset_builder.build(opt_data), batch_size=batch_size, shuffle=shuffle_flag)
-        val_dataset = DataLoader(self._dataset_builder.build(val_data), batch_size=batch_size, shuffle=shuffle_flag)
+        # opt_data, val_data = train_test_data_setup(train_data, stratify=train_data.target)
+        opt_dataset = DataLoader(self._dataset_builder.build(train_data), batch_size=batch_size, shuffle=shuffle_flag)
+        # val_dataset = DataLoader(self._dataset_builder.build(val_data), batch_size=batch_size, shuffle=shuffle_flag)
 
         input_shape = self._requirements.model_requirements.input_shape
         trainer = self._model_trainer_builder.build(input_shape=input_shape, output_shape=classes, graph=graph)
-        trainer.fit_model(train_data=opt_dataset, val_data=val_dataset, epochs=opt_epochs)
+        trainer.fit_model(train_data=opt_dataset, epochs=opt_epochs)
         return trainer
 
     def _evaluate_fitted_model(self, fitted_model: NeuralSearchModel, test_data: InputData, graph: NasGraph,
