@@ -27,7 +27,7 @@ class BaseNNDatasetBuilder(ABC):
 class ImageDatasetBuilder(BaseNNDatasetBuilder):
     def __init__(self, dataset_cls: Callable, image_size: Union[Tuple[int, int], List[int, int]],
                  loader: Type[BaseDataLoader] = ImageLoader, shuffle: bool = True):
-        super().__init__(dataset_cls, loader, shuffle)
+        super().__init__(dataset_cls, loader=loader, shuffle=shuffle)
         self._data_preprocessor: Optional[Preprocessor] = None
         self._image_size = image_size
         self._mean = None
