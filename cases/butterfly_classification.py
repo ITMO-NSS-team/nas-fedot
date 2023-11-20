@@ -51,7 +51,7 @@ def build_butterfly_cls(save_path=None):
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
     objective_function = MetricsRepository().metric_by_id(ClassificationMetricsEnum.logloss)
-    dataset_path = pathlib.Path('/home/staeros/datasets/butterfly')
+    dataset_path = pathlib.Path('~/datasets/butterfly')
     data = InputDataNN.data_from_folder(dataset_path, task)
 
     conv_layers_pool = [LayersPoolEnum.conv2d, LayersPoolEnum.pooling2d, LayersPoolEnum.adaptive_pool2d]
@@ -93,7 +93,6 @@ def build_butterfly_cls(save_path=None):
 
     data_preprocessor = Preprocessor()
     dataset_builder = ImageDatasetBuilder(dataset_cls=TorchDataset, image_size=(image_side_size, image_side_size),
-                                          batch_size=requirements.model_requirements.batch_size,
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
     model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda',
@@ -127,7 +126,6 @@ def build_butterfly_cls(save_path=None):
     composer.set_trainer(model_trainer)
     composer.set_dataset_builder(dataset_builder)
 
-    new_train_data, new_test_data = train_test_data_setup(train_data, shuffle_flag=True)
     optimized_network = composer.compose_pipeline(train_data)
 
     if save_path:

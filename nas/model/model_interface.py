@@ -114,7 +114,7 @@ class NeuralSearchModel(BaseModelInterface):
         """
         This method builds model from given graph.
         """
-        self.model = self.model()  # TODO: implement defined argument passing instead of kwargs
+        self.model = self.model()
         self.model.init_model(graph=graph, in_shape=input_shape, out_shape=output_shape, **kwargs)
         return self
 

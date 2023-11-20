@@ -29,15 +29,12 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
 
     def __init__(self,
                  objective: Objective,
-                 # optimizer,
-                 # loss_func,
                  data_producer: DataSource,
                  model_trainer_builder: ModelConstructor,
                  requirements: NNComposerRequirements,
                  nn_dataset_builder: BaseNNDatasetBuilder,
                  verbose_level=None,
                  eval_n_jobs: int = 1,
-                 # callbacks: Optional[Sequence] = None,
                  **objective_kwargs):
         super().__init__(objective=objective, eval_n_jobs=eval_n_jobs, **objective_kwargs)
         self.verbose_level = verbose_level
@@ -49,7 +46,6 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
 
     def evaluate(self, graph: NasGraph) -> Fitness:
         fold_metrics = []
-        # torch.set_num_threads(floor(16 / self.eval_n_jobs))
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
             gc.collect()
             torch.cuda.empty_cache()

@@ -10,7 +10,8 @@ from nas.data.preprocessor import Preprocessor
 
 
 class BaseNNDatasetBuilder(ABC):
-    def __init__(self, dataset_cls: Callable, batch_size: int, loader: Type[BaseDataLoader], shuffle: bool):
+    def __init__(self, dataset_cls: Callable, batch_size: int = 32,
+                 loader: Type[BaseDataLoader] = None, shuffle: bool = False):
         # TODO remove batch size from parameters and add it directly when calling build() method.
         self.dataset_cls = dataset_cls
         self.batch_size = batch_size
@@ -25,8 +26,8 @@ class BaseNNDatasetBuilder(ABC):
 
 class ImageDatasetBuilder(BaseNNDatasetBuilder):
     def __init__(self, dataset_cls: Callable, image_size: Union[Tuple[int, int], List[int, int]],
-                 batch_size: int = 32, loader: Type[BaseDataLoader] = ImageLoader, shuffle: bool = True):
-        super().__init__(dataset_cls, batch_size, loader, shuffle)
+                 loader: Type[BaseDataLoader] = ImageLoader, shuffle: bool = True):
+        super().__init__(dataset_cls, loader, shuffle)
         self._data_preprocessor: Optional[Preprocessor] = None
         self._image_size = image_size
         self._mean = None
@@ -48,8 +49,6 @@ class ImageDatasetBuilder(BaseNNDatasetBuilder):
         train_mode = {'train': True, 'val': False, 'test': False}
         mode = kwargs.get('mode')
 
-        shuffle = train_mode.get(mode, shuffle)
-        batch_size = kwargs.pop('batch_size', self.batch_size)
         if mode == 'test':
             data_preprocessor = None
         else:

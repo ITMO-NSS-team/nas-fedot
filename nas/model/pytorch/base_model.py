@@ -82,12 +82,11 @@ class NASTorchModel(torch.nn.Module):
             if node not in visited_nodes:
                 layer_func = TorchLayerFactory.get_layer(node)
                 input_channels = in_shape[-1] if not get_input_shape(node)[-1] else get_input_shape(node)[1]
-                # input_channels = in_channels if not node.nodes_from else get_input_shape(node)[1]
                 layer = layer_func['weighted_layer'](node, input_dim=input_channels)
                 self.__setattr__(f'node_{node.uid}', layer)
                 if layer_func.get('normalization'):
                     output_shape = node.parameters[
-                        'out_shape']  # layer.out_channels if hasattr(layer, 'out_channels') else layer.out_features
+                        'out_shape']
                     self.__setattr__(f'node_{node.uid}_n', layer_func['normalization'](node, input_dim=output_shape))
                 visited_nodes.add(node)
 
@@ -135,9 +134,7 @@ class NASTorchModel(torch.nn.Module):
 
     def _one_epoch_train(self, train_data: DataLoader, optimizer, loss_fn, device):
         running_loss = 0
-        # pbar = tqdm.tqdm(train_data, leave=False, position=1)
         for batch_id, (features_batch, targets_batch) in enumerate(train_data):
-            # pbar.set_description(f'Train on batch: [{batch_id}/{len(train_data)}]')
             features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
             optimizer.zero_grad()
             outputs = self.__call__(features_batch)
@@ -145,17 +142,13 @@ class NASTorchModel(torch.nn.Module):
             loss.backward()
             optimizer.step()
             running_loss += loss.detach().cpu().item()
-            # pbar.set_postfix(on_epoch_train_loss=running_loss / (batch_id + 1))
         running_loss = running_loss / len(train_data)
-        # TODO add tb writer
         return running_loss
 
-    def validate(self, val_data: DataLoader, loss_fn, device, disable_pbar: bool = False, **kwargs) -> Dict:
+    def validate(self, val_data: DataLoader, loss_fn, device, **kwargs) -> Dict:
         metrics_to_calc = kwargs.get('metrics')
         metrics = {'val_loss': 0}
-        # pbar = tqdm.tqdm(val_data, leave=False, position=1, disable=disable_pbar)
         for batch_id, (features_batch, targets_batch) in enumerate(val_data):
-            # pbar.set_description(f'Validation on batch: [{batch_id}/{len(val_data)}]')
             features_batch, targets_batch = features_batch.to(device), targets_batch.to(device)
             outputs = self.__call__(features_batch)
             loss = loss_fn(outputs, targets_batch)
@@ -167,7 +160,6 @@ class NASTorchModel(torch.nn.Module):
                     metrics[f'val_{metric_name}'] += metric_func(outputs.detach().cpu().numpy(),
                                                                  targets_batch.detach().cpu().numpy())
 
-            # pbar.set_postfix(on_epoch_val_loss=metrics['val_loss'] / (batch_id + 1))
         metrics = {key: val / len(val_data) for key, val in metrics.items()}
         return metrics
 
@@ -188,17 +180,13 @@ class NASTorchModel(torch.nn.Module):
         # pbar = tqdm.trange(epochs, desc='Fitting graph', leave=False, position=0)
         for epoch in range(epochs):
             self.train(mode=True)
-            prefix = f'Epoch {epoch} / {epochs}:'
-            # pbar.set_description(f'{prefix} Train')
             train_loss = self._one_epoch_train(train_data, optim, loss, device)
             metrics['train_loss'] = train_loss
             if val_data:
-                # pbar.set_description(f'{prefix} Validation')
                 with torch.no_grad():
                     self.eval()
                     val_metrics = self.validate(val_data, loss, device, metrics=metrics_to_val)
                 metrics = metrics | val_metrics
-            # pbar.set_postfix(**metrics)
 
     def predict(self,
                 test_data: DataLoader,
