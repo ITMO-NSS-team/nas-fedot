@@ -28,8 +28,7 @@ def get_list_of_power_of_2(min_value: int, max_value: int) -> List[int]:
 
 
 def load_default_requirements() -> NNComposerRequirements:
-    primary_nodes_list = [LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_5x5,
-                          LayersPoolEnum.conv2d_7x7]
+    primary_nodes_list = [LayersPoolEnum.conv2d, LayersPoolEnum.adaptive_pool2d, LayersPoolEnum.pooling2d]
     fc_requirements = BaseLayerRequirements()
     conv_requirements = ConvRequirements()
     model_requirements = ModelRequirements(input_data_shape=[64, 64], num_of_classes=5, color_mode='color',
