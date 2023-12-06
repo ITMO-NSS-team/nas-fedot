@@ -2,7 +2,6 @@ import pathlib
 from typing import TypeVar, Any
 
 import torch.nn
-# import tensorflow
 from fedot.core.data.data import InputData
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.objective import DataSource
@@ -47,7 +46,6 @@ class NasObjectiveEvaluate(ObjectiveEvaluate):
                  preprocessing_cache: Any = None,
                  eval_n_jobs: int = 1,
                  optimization_verbose=None, **objective_kwargs):
-        # Add cache
         super().__init__(objective, eval_n_jobs, **objective_kwargs)
         self._dataset_builder = dataset_builder
         self._data_producer = data_producer
@@ -101,29 +99,7 @@ class NasObjectiveEvaluate(ObjectiveEvaluate):
         for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
             fitted_model = self.one_fold_train(graph, train_data, log=self._log, fold_id=fold_id + 1)
             evaluated_fitness = self.nn_objective_on_fold(trainer=fitted_model, reference_data=test_data)
-            # try:
-            #     self.one_fold_train(graph, train_data, log=self._log, fold_id=fold_id + 1)
-            # except Exception as ex:
-            #     exc_type, exc_obj, exc_tb = sys.exc_info()
-            #     file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            #     self._log.warning(f'\nContinuing after graph fit error {ex}\n '
-            #                       f'In {file_name}\n line {exc_tb.tb_lineno}\n.')
-            # else:
-            #     evaluated_fitness = self.objective_on_fold(graph, reference_data=test_data)
-            #     if evaluated_fitness.valid:
-            #         folds_metrics.append(evaluated_fitness.values)
-            #         if not self._optimization_verbose == 'silent':
-            #             self._log.message(f'\nFor fold {fold_id + 1} fitness {evaluated_fitness}.')
-            #     else:
-            #         self._log.warning(f'\nContinuing after objective evaluation error for graph: {graph_id}')
-            #
-            #     if folds_metrics:
-            #         folds_metrics = tuple(np.mean(folds_metrics, axis=0))
-            #         self._log.message(f'\nEvaluated metrics: {folds_metrics}')
-            #     else:
-            #         folds_metrics = None
-            # finally:
-            #     graph.unfit()
+
         return to_fitness(folds_metrics, self._objective.is_multi_objective)
 
     def calculate_objective_with_cache(self, graph, train_data, fold_id=None, n_jobs=-1):

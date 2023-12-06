@@ -19,9 +19,6 @@ from nas.model.constructor import ModelConstructor
 from nas.model.model_interface import NeuralSearchModel
 
 
-# OPT_TYPES = Union[Type[torch.optim.Optimizer, torch.optim.AdamW]]
-
-# TODO rewrite dock strings; pass flag to Dataset builder to disable data transformations.
 class NASObjectiveEvaluate(ObjectiveEvaluate):
     """
     This class defines how Objective will be evaluated for neural network like graph structure.

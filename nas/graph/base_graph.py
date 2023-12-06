@@ -11,8 +11,6 @@ from golem.visualisation.graph_viz import NodeColorType
 
 from nas.graph.graph_utils import probs2labels
 from nas.graph.node.nas_graph_node import NasNode
-# from nas.model.model_interface import BaseModelInterface
-# hotfix
 from nas.utils.utils import seed_all
 
 seed_all(1)
@@ -55,7 +53,6 @@ class NasGraph(OptGraph):
                           task=test_data.task, data_type=test_data.data_type)
 
     def fit_with_cache(self, *args, **kwargs):
-        # TODO
         return False
 
     def save(self, path: Union[str, os.PathLike, pathlib.Path]):

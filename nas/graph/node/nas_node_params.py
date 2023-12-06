@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 random.seed(1)
 
 
-# TODO rewrite with builder pattern
 def _get_padding(padding: int, kernel: int):
     """
     This function checks that the given padding value matches to kernel size.

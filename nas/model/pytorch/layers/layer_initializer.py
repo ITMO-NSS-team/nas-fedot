@@ -71,7 +71,7 @@ class TorchLayerFactory:
         layer = {}
         layer_type = node.name
         layer_fun = _layers.get(layer_type)
-        layer['weighted_layer'] = layer_fun  # TODO rename 'weighted layer' to more appropriate name
+        layer['weighted_layer'] = layer_fun
         if layer_fun is None:
             raise ValueError(f'Wrong layer type: {layer_type}')
         if 'momentum' in node.parameters:

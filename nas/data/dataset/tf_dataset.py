@@ -37,7 +37,6 @@ class KerasDataset(tf.keras.utils.Sequence):
     def shuffle_dataset(self):
         return sklearn.utils.shuffle(self._loader.features, self._loader.target)
 
-    # Hotfixes
     @property
     def num_classes(self):
         return self._loader.dataset.num_classes

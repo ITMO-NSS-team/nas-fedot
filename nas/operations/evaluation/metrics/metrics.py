@@ -6,7 +6,6 @@ from fedot.core.data.data import InputData, OutputData
 from nas.data.dataset.builder import ImageDatasetBuilder
 
 
-# Hotfix
 def get_predictions(graph, data: InputData, data_transformer: ImageDatasetBuilder) -> Tuple[OutputData, OutputData]:
     multiclass = data.num_classes > 2
     data_generator_to_predict = data_transformer.build(data, batch_size=1, mode='test')

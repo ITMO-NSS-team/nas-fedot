@@ -33,8 +33,6 @@ class InputDataNN(Data):
                     target.extend(labels[labels['id'] == int(item.name[:-4])]['label'].values)
                 else:
                     target.append(item.parent.name)
-        # target = OneHotEncoder().fit_transform(target).toarray()
-        # target = LabelEncoder().fit_transform(target)
         features = np.reshape(features, (-1, 1))
         idx = np.arange(0, len(features))
         return InputData(idx=idx, features=features, target=target, task=task, data_type=data_type)

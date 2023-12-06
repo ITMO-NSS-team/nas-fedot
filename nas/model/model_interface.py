@@ -97,7 +97,6 @@ class BaseModelInterface(ABC):
         """
         raise NotImplementedError
 
-    # @abstractmethod
     def save(self, save_path: Union[str, os.PathLike, pathlib.Path]):
         raise NotImplementedError
 

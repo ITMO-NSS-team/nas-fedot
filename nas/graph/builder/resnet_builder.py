@@ -64,7 +64,6 @@ class ResNetBuilder(GraphGenerator):
 
     def _make_skip_connection(self, start_node: Union[NasNode, GraphNode], end_node: Union[NasNode, GraphNode],
                               input_stride: List[int], downsample, expansion, stride):
-        # downsample = True if input_stride == [2, 2] else False
         out_shape = end_node.parameters['out_shape'] if end_node.parameters.get('out_shape') is not None \
             else end_node.nodes_from[0].parameters['out_shape']
         if downsample:

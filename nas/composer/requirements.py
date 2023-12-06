@@ -126,7 +126,6 @@ class ConvRequirements(BaseLayerRequirements):
             raise ValueError('Pool of possible strides must be an iterable object')
 
     def force_output_shape(self, output_shape: int) -> ConvRequirements:
-        # TODO add output shape check
         self.max_number_of_neurons = output_shape
         self.min_number_of_neurons = output_shape
         return self
@@ -180,8 +179,6 @@ class ModelRequirements:
 
     primary: Optional[List[LayersPoolEnum]] = None
     secondary: Optional[List[LayersPoolEnum]] = None
-
-    # _has_skip_connection: Optional[bool] = False
 
     epochs: int = 1
     batch_size: int = 32
@@ -238,7 +235,6 @@ class NNComposerRequirements(PipelineComposerRequirements):
     split_ratio: float = .8
 
     def __post_init__(self):
-        # TODO type fix
         self.primary = self.model_requirements.primary
         self.secondary = self.model_requirements.secondary
         self.max_depth = self.model_requirements.max_depth

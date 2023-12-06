@@ -16,7 +16,6 @@ from nas.repository.layer_types_enum import LayersPoolEnum
 random.seed(1)
 
 
-# TODO outdated function. Need to update.
 def _add_skip_connections(graph: NasGraph, params):
     skip_connections_id = params[0]
     shortcut_len = params[1]
@@ -69,7 +68,6 @@ class ConvGraphMaker(GraphGenerator):
                                           self.requirements.max_num_of_conv_layers)
         total_fc_nodes = random.randint(self.requirements.min_nn_depth,
                                         self.requirements.max_nn_depth)
-        # hotfix
         zero_node = LayersPoolEnum.conv2d
         graph_nodes = [zero_node]
         for i in range(1, total_conv_nodes + total_fc_nodes):

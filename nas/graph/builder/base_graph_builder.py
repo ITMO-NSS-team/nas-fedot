@@ -25,5 +25,4 @@ class BaseGraphBuilder:
         pass
 
     def build_from_existed_graph(self, path):
-        # TODO
         return self._builder.load_graph(path)
