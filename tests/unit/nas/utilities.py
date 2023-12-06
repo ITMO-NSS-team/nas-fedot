@@ -1,7 +1,7 @@
-from nas.composer.nn_composer_requirements import load_default_requirements
-from nas.graph.graph_builder.cnn_builder import ConvGraphMaker
-from nas.graph.cnn_graph import NasGraph
-from nas.graph.graph_builder.base_graph_builder import BaseGraphBuilder
+from nas.composer.requirements import load_default_requirements
+from nas.graph.base_graph import NasGraph
+from nas.graph.builder.base_graph_builder import BaseGraphBuilder
+from nas.graph.builder.cnn_builder import ConvGraphMaker
 
 
 def get_graph() -> NasGraph:

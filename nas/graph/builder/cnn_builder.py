@@ -1,12 +1,16 @@
 import random
 from typing import List, Optional
 
-from nas.composer.nn_composer_requirements import ModelRequirements
-from nas.graph.cnn_graph import NasGraph
-from nas.graph.graph_builder.base_graph_builder import GraphGenerator
-from nas.graph.node.nas_graph_node import NasNode, get_node_params_by_type
-from nas.operations.validation_rules.cnn_val_rules import model_has_several_starts, \
-    model_has_wrong_number_of_flatten_layers, conv_net_check_structure, model_has_no_conv_layers
+from golem.core.dag.verification_rules import has_no_cycle, has_no_self_cycled_nodes
+
+from nas.composer.requirements import ModelRequirements
+from nas.graph.base_graph import NasGraph
+from nas.graph.builder.base_graph_builder import GraphGenerator
+from nas.graph.node.nas_graph_node import NasNode
+from nas.graph.node.nas_node_params import NasNodeFactory
+from nas.operations.validation_rules.cnn_val_rules import model_has_several_roots, \
+    model_has_wrong_number_of_flatten_layers, model_has_no_conv_layers, \
+    model_has_several_starts, model_has_dim_mismatch, skip_has_no_pools
 from nas.repository.layer_types_enum import LayersPoolEnum
 
 random.seed(1)
@@ -29,8 +33,7 @@ class ConvGraphMaker(GraphGenerator):
                  initial_struct: Optional[List] = None, max_generation_attempts: int = 100):
         self._initial_struct = initial_struct
         self._requirements = requirements
-        self._rules = [model_has_several_starts, model_has_wrong_number_of_flatten_layers, conv_net_check_structure,
-                       model_has_no_conv_layers]
+        self._rules = [model_has_dim_mismatch]
         self._generation_attempts = max_generation_attempts
 
     @property
@@ -65,22 +68,19 @@ class ConvGraphMaker(GraphGenerator):
                                           self.requirements.max_num_of_conv_layers)
         total_fc_nodes = random.randint(self.requirements.min_nn_depth,
                                         self.requirements.max_nn_depth)
-        # hotfix
-        zero_node = random.choice(self.requirements.primary)
+        zero_node = LayersPoolEnum.conv2d
         graph_nodes = [zero_node]
         for i in range(1, total_conv_nodes + total_fc_nodes):
             if i == 0:
-                node = random.choice(self.requirements.primary)
-            elif i < total_conv_nodes:
-                node = random.choice(self.requirements.primary + self.requirements.secondary) \
-                    if i != total_conv_nodes - 1 else LayersPoolEnum.flatten
+                node = random.choice([LayersPoolEnum.conv2d, LayersPoolEnum.pooling2d])
             else:
-                node = random.choice([LayersPoolEnum.dropout, LayersPoolEnum.dense])
+                node = LayersPoolEnum.conv2d if i != total_conv_nodes else LayersPoolEnum.adaptive_pool2d
             graph_nodes.append(node)
+        graph_nodes.append(LayersPoolEnum.flatten)
         return graph_nodes
 
-    def _add_node(self, node_to_add, parent_node):
-        node_params = get_node_params_by_type(node_to_add, self.requirements)
+    def _add_node(self, node_to_add: LayersPoolEnum, parent_node: List[NasNode], node_name=None):
+        node_params = NasNodeFactory(self.requirements).get_node_params(node_to_add)
         node = NasNode(content={'name': node_to_add.value, 'params': node_params}, nodes_from=parent_node)
         return node
 
@@ -93,8 +93,6 @@ class ConvGraphMaker(GraphGenerator):
                 node = self._add_node(node, parent_node)
                 parent_node = [node]
                 graph.add_node(node)
-            if self.requirements.has_skip_connection:
-                _add_skip_connections(graph, self._get_skip_connection_params(graph))
             if self.check_generated_graph(graph):
                 return graph
         raise ValueError(f"Max number of generation attempts was reached and graph verification wasn't successful."

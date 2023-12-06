@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from math import log2
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple, Sequence, Collection
 
 from fedot.core.pipelines.pipeline_composer_requirements import PipelineComposerRequirements
 from golem.core.optimisers.genetic.operators.mutation import MutationStrengthEnum
@@ -28,8 +28,7 @@ def get_list_of_power_of_2(min_value: int, max_value: int) -> List[int]:
 
 
 def load_default_requirements() -> NNComposerRequirements:
-    primary_nodes_list = [LayersPoolEnum.conv2d_3x3, LayersPoolEnum.conv2d_1x1, LayersPoolEnum.conv2d_5x5,
-                          LayersPoolEnum.conv2d_7x7]
+    primary_nodes_list = [LayersPoolEnum.conv2d, LayersPoolEnum.adaptive_pool2d, LayersPoolEnum.pooling2d]
     fc_requirements = BaseLayerRequirements()
     conv_requirements = ConvRequirements()
     model_requirements = ModelRequirements(input_data_shape=[64, 64], num_of_classes=5, color_mode='color',
@@ -99,26 +98,34 @@ class BaseLayerRequirements:
 
 @dataclass
 class ConvRequirements(BaseLayerRequirements):
-    conv_strides: Optional[List[List[int]]] = None
-    pool_size: Optional[List[List[int]]] = None
-    pool_strides: Optional[List[List[int]]] = None
+    conv_strides: Optional[List[int], Tuple[int]] = None
+    pool_size: Optional[List[int], Tuple[int]] = None
+    pool_strides: Optional[List[int], Tuple[int]] = None
+    pooling_mode: Optional[List[str], Tuple[str]] = None
     dilation_rate: Optional[List[int]] = None
+    padding: Union[str, Collection[Collection[int]]] = None
+    kernel_size: Union[List[int], Tuple[int]] = None
 
     def __post_init__(self):
         if not self.dilation_rate:
             self.dilation_rate = [1]
         if not self.conv_strides:
-            self.conv_strides = [[1, 1]]
+            self.conv_strides = [1]
         if not self.pool_size:
-            self.pool_size = [[2, 2]]
+            self.pool_size = [2]
         if not self.pool_strides:
             self.pool_strides = copy.deepcopy(self.pool_size)
+        if self.pooling_mode is None:
+            self.pooling_mode = ['max', 'avg']
+        if self.kernel_size is None:
+            self.kernel_size = [3, 5, 7]
+        if self.padding is None:
+            self.padding = [1, 2, 3]
 
         if not hasattr(self.conv_strides, '__iter__'):
             raise ValueError('Pool of possible strides must be an iterable object')
 
     def force_output_shape(self, output_shape: int) -> ConvRequirements:
-        # TODO add output shape check
         self.max_number_of_neurons = output_shape
         self.min_number_of_neurons = output_shape
         return self
@@ -164,7 +171,7 @@ class ConvRequirements(BaseLayerRequirements):
 
 @dataclass
 class ModelRequirements:
-    input_data_shape: List[int, int]
+    input_data_shape: List[int]
     conv_requirements: ConvRequirements = None
     fc_requirements: BaseLayerRequirements = None
     color_mode: str = 'color'
@@ -172,8 +179,6 @@ class ModelRequirements:
 
     primary: Optional[List[LayersPoolEnum]] = None
     secondary: Optional[List[LayersPoolEnum]] = None
-
-    _has_skip_connection: Optional[bool] = False
 
     epochs: int = 1
     batch_size: int = 32
@@ -196,10 +201,10 @@ class ModelRequirements:
         if not self.channels_num:
             raise ValueError(f'{self.color_mode} if unacceptable')
         if not self.primary:
-            self.primary = [LayersPoolEnum.conv2d_3x3]
+            self.primary = [LayersPoolEnum.conv2d]
         if not self.secondary:
-            self.secondary = [LayersPoolEnum.dropout, LayersPoolEnum.dense,
-                              LayersPoolEnum.max_pool2d, LayersPoolEnum.average_poold2]
+            self.secondary = [LayersPoolEnum.dropout, LayersPoolEnum.linear,
+                              LayersPoolEnum.pooling2d, LayersPoolEnum.adaptive_pool2d]
 
     @property
     def channels_num(self) -> int:
@@ -227,13 +232,15 @@ class ModelRequirements:
 class NNComposerRequirements(PipelineComposerRequirements):
     model_requirements: ModelRequirements = None
     opt_epochs: int = 5
+    split_ratio: float = .8
 
     def __post_init__(self):
-        # TODO type fix
         self.primary = self.model_requirements.primary
         self.secondary = self.model_requirements.secondary
         self.max_depth = self.model_requirements.max_depth
         self.mutation_strength = MutationStrengthEnum.strong
+        if not 0 < self.split_ratio < 1:
+            raise ValueError(f'{self.split_ratio} is unacceptable.')
         if self.opt_epochs < 1:
             raise ValueError(f'{self.opt_epochs} is unacceptable number of optimization epochs.')
 

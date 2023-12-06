@@ -10,20 +10,16 @@ class FrameworkTypesEnum(Enum):
 
 class LayersPoolEnum(Enum):
     conv2d = 'conv2d'
-    conv2d_1x1 = 'conv2d_1x1'
-    conv2d_3x3 = 'conv2d_3x3'
-    conv2d_5x5 = 'conv2d_5x5'
-    conv2d_7x7 = 'conv2d_7x7'
+    batch_norm2d = 'batch_norm2d'
     dilation_conv2d = 'dilation_conv2d'
     flatten = 'flatten'
-    dense = 'dense'
+    linear = 'linear'
     dropout = 'dropout'
-    max_pool2d = 'max_pool2d'
-    average_poold2 = 'average_pool2d'
+    adaptive_pool2d = 'adaptive_pool2d'
+    pooling2d = 'pooling2d'
 
 
 class ActivationTypesIdsEnum(Enum):
-    softmax = 'softmax'
     elu = 'elu'
     selu = 'selu'
     softplus = 'softplus'
@@ -32,4 +28,4 @@ class ActivationTypesIdsEnum(Enum):
     tanh = 'tanh'
     hard_sigmoid = 'hard_sigmoid'
     sigmoid = 'sigmoid'
-    linear = 'linear'
+    # linear = 'linear'

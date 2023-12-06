@@ -1,21 +1,28 @@
-from typing import Optional
-
-import keras.utils.layer_utils
+import torch
 from golem.core.dag.verification_rules import ERROR_PREFIX
 
-from nas.graph.cnn_graph import NasGraph
-from nas.model.tensorflow.tf_model import KerasModelMaker
-from nas.model.utils.model_structure import ModelStructure
+from nas.graph.base_graph import NasGraph
+from nas.model.model_interface import NeuralSearchModel
+from nas.model.pytorch.base_model import NASTorchModel
+
+
+def model_has_several_roots(graph: NasGraph):
+    if hasattr(graph.root_node, '__iter__'):
+        raise ValueError(f'{ERROR_PREFIX} model must not has more than 1 root node.')
 
 
 def model_has_several_starts(graph: NasGraph):
-    if hasattr(graph.root_node, '__iter__'):
-        raise ValueError(f'{ERROR_PREFIX} model must not has more than 1 start.')
+    starts = 0
+    for node in graph.nodes:
+        n = 0 if node.nodes_from else 1
+        starts += n
+        if starts > 1:
+            raise ValueError(f'{ERROR_PREFIX} model must not has more than 1 start.')
 
 
 def model_has_wrong_number_of_flatten_layers(graph: NasGraph):
     flatten_count = 0
-    for node in graph.graph_struct[::-1]:
+    for node in graph.nodes:
         if node.content['name'] == 'flatten':
             flatten_count += 1
     if flatten_count != 1:
@@ -24,7 +31,7 @@ def model_has_wrong_number_of_flatten_layers(graph: NasGraph):
 
 def conv_net_check_structure(graph: NasGraph):
     prohibited_node_types = ['average_pool2d', 'max_pool2d', 'conv2d']
-    for node in graph.graph_struct[::-1]:
+    for node in graph.nodes:
         node_name = 'conv2d' if 'conv' in node.content['name'] else node.content['name']
         if node_name == 'flatten':
             return True
@@ -35,7 +42,7 @@ def conv_net_check_structure(graph: NasGraph):
 def model_has_no_conv_layers(graph: NasGraph):
     was_flatten = False
     was_conv = False
-    for node in graph.graph_struct:
+    for node in graph.nodes:
         node_name = 'conv2d' if 'conv' in node.content['name'] else node.content['name']
         if node_name == 'conv2d':
             was_conv = True
@@ -45,50 +52,22 @@ def model_has_no_conv_layers(graph: NasGraph):
         raise ValueError(f'{ERROR_PREFIX} model has no convolutional layers.')
 
 
-class ConvNetChecker:
-    params_limit: int = 5e7
-    error_message: Optional[str] = None
-    model: Optional = None
+def model_has_dim_mismatch(graph: NasGraph):
+    try:
+        with torch.no_grad():
+            input_shape = [[64, 64, 3], [512, 512, 3]]
+            for shape in input_shape:
+                m = NeuralSearchModel(NASTorchModel).compile_model(graph, shape, 5).model
+                m.to('cpu')
+                m.forward(torch.rand([4, *shape[::-1]]))
+    except RuntimeError:
+        raise ValueError(f'{ERROR_PREFIX} graph has dimension conflict.')
+    return True
 
-    @classmethod
-    def check_cnn(cls, graph: NasGraph):
-        cls.error_message = None
-        cls.model = None
-        rules_list = [rule for rule in dir(cls) if callable(getattr(cls, rule)) and rule.startswith('r_')]
-        for rule in rules_list:
-            getattr(cls, rule)(graph)
-            if cls.error_message:
-                cls.clear_memory()
-                raise ValueError(cls.error_message)
-        cls.clear_memory()
-        return True
 
-    @staticmethod
-    def r_is_buildable(graph: NasGraph):
-        input_shape = [12, 12, 3]
-        num_classes = 3
-        try:
-            ConvNetChecker.model = KerasModelMaker(input_shape, graph, ModelStructure, num_classes).build()
-        except Exception as ex:
-            ConvNetChecker.error_message = f'Exception {ex} occurred. Model cannot be built. {ERROR_PREFIX}.'
-
-    @staticmethod
-    def r_params_count(*args, **kwargs):
-        params = keras.utils.layer_utils.count_params(ConvNetChecker.model.trainable_variables)
-        if params > ConvNetChecker.params_limit:
-            ConvNetChecker.error_message = f'{ERROR_PREFIX}. Graph has too many trainable params: {params}'
-
-    @staticmethod
-    def r_has_correct_struct(graph: NasGraph):
-        graph_struct = graph.graph_struct
-        node = graph_struct[0]
-        if 'conv' not in node.content['name']:
-            ConvNetChecker.error_message = f'{ERROR_PREFIX}. CNN should starts with Conv layer.'
-
-    @classmethod
-    def clear_memory(cls):
-        if cls.model:
-            del cls.model
-            cls.model = None
-        if cls.error_message:
-            cls.error_message = None
+def skip_has_no_pools(graph: NasGraph):
+    for n in graph.nodes:
+        cond = len(n.nodes_from) > 1 and 'pool' in n.name
+        if cond:
+            raise ValueError(f'{ERROR_PREFIX} pooling in skip connection may lead to dimension conflict.')
+    return True

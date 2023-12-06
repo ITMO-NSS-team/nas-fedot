@@ -6,13 +6,12 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-
 from fedot.core.data.data import Data, InputData
 from fedot.core.repository.dataset_types import DataTypesEnum
 from fedot.core.repository.tasks import Task
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
-supported_images = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.jpe', '.jp2', '.tiff'}
+SUPPORTED_TYPES = {'.jpg', '.jpeg', '.png', '.bmp', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.jpe', '.jp2', '.tiff'}
 
 
 @dataclass
@@ -20,16 +19,20 @@ class InputDataNN(Data):
     """ Class for loading heavy datasets into FEDOT's InputData e.g. image datasets"""
 
     @staticmethod
-    def data_from_folder(data_path: os.PathLike, task: Task) -> InputData:
+    def data_from_folder(data_path: os.PathLike, task: Task, csv_labels: str = None) -> InputData:
+        if csv_labels:
+            labels = pd.read_csv(csv_labels)
         data_path = pathlib.Path(data_path) if not isinstance(data_path, pathlib.Path) else data_path
         data_type = DataTypesEnum.image
         features = []
         target = []
         for item in data_path.rglob('*.*'):
-            if item.suffix in supported_images:
+            if item.suffix in SUPPORTED_TYPES:
                 features.append(str(item))
-                target.append(item.parent.name)
-        target = LabelEncoder().fit_transform(target)
+                if csv_labels:
+                    target.extend(labels[labels['id'] == int(item.name[:-4])]['label'].values)
+                else:
+                    target.append(item.parent.name)
         features = np.reshape(features, (-1, 1))
         idx = np.arange(0, len(features))
         return InputData(idx=idx, features=features, target=target, task=task, data_type=data_type)

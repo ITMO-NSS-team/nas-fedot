@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nas.composer.nn_composer_requirements import ConvRequirements
+from nas.composer.requirements import ConvRequirements
 
 
 def test_set_shape_is_iterable():

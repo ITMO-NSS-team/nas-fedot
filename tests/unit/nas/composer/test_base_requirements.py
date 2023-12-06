@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nas.composer.nn_composer_requirements import BaseLayerRequirements
+from nas.composer.requirements import BaseLayerRequirements
 
 
 def test_neurons_num():

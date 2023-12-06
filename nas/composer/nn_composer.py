@@ -1,7 +1,5 @@
-from __future__ import annotations
-
-import pathlib
-from typing import Sequence, Tuple, Union, Optional
+from pathlib import Path
+from typing import Optional, Union, List
 
 from fedot.core.caching.pipelines_cache import OperationsCache
 from fedot.core.caching.preprocessing_cache import PreprocessingCache
@@ -9,73 +7,74 @@ from fedot.core.composer.composer import Composer
 from fedot.core.data.data import InputData
 from fedot.core.data.multi_modal import MultiModalData
 from fedot.core.optimisers.objective.data_source_splitter import DataSourceSplitter
+from fedot.core.pipelines.pipeline import Pipeline
 from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
-from golem.core.optimisers.graph import OptGraph
 
-from nas.composer.nn_composer_requirements import NNComposerRequirements
+from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import ImageDatasetBuilder
-from nas.graph.cnn_graph import NasGraph
-from nas.optimizer.objective.nas_objective_evaluate import NasObjectiveEvaluate
+from nas.model.model_interface import BaseModelInterface
+from nas.optimizer.objective.future.nas_objective_evaluate import NASObjectiveEvaluate
 
 
-class NasComposer(Composer):
-    def __init__(self, optimizer: EvoGraphOptimizer,
+class NNComposer(Composer):
+    def __init__(self,
+                 optimizer: EvoGraphOptimizer,
                  composer_requirements: NNComposerRequirements,
-                 pipelines_cache: Optional[OperationsCache] = None,
+                 pipeline_cache: Optional[OperationsCache] = None,
                  preprocessing_cache: Optional[PreprocessingCache] = None,
-                 verbose: 'VerboseLevelsEnum' = 'VerboseLevelsEnum.default'):
-        super().__init__(optimizer, composer_requirements)
-
+                 **kwargs):
+        super().__init__(optimizer=optimizer)
         self.best_models = ()
-        self._dataset_builder: Optional[ImageDatasetBuilder] = None
-        self.pipelines_cache = pipelines_cache
+        self._dataset_builder = None
+        self.trainer = None
+        self.pipeline_cache = pipeline_cache
         self.preprocessing_cache = preprocessing_cache
+        self.composer_requirements = composer_requirements
 
-    def _convert_opt_results_to_nn_graph(self, graphs: Sequence[OptGraph]) -> Tuple[NasGraph, Sequence[NasGraph]]:
-        adapter = self.optimizer.graph_generation_params.adapter
-        multi_objective = self.optimizer.objective.is_multi_objective
-        best_graphs = [adapter.restore(graph) for graph in graphs]
-        best_graph = best_graphs if multi_objective else best_graphs[0]
-        return best_graph, best_graphs
+    @property
+    def dataset_builder(self):
+        return self._dataset_builder
 
-    def set_dataset_builder(self, dataset_builder: ImageDatasetBuilder) -> NasComposer:
-        self._dataset_builder = dataset_builder
+    @dataset_builder.setter
+    def dataset_builder(self, val):
+        self._dataset_builder = val
+
+    def set_dataset_builder(self, dataset_builder: ImageDatasetBuilder):
+        self.dataset_builder = dataset_builder
         return self
 
-    def set_callbacks(self, callbacks):
-        raise NotImplementedError
+    def set_trainer(self, trainer: BaseModelInterface):
+        self.trainer = trainer
+        return self
 
-    def compose_pipeline(self, data: Union[InputData, MultiModalData], optimization_verbose=None) -> NasGraph:
-        """ Method for objective evaluation"""
-
-        data.shuffle()
+    def compose_pipeline(self, data: Union[InputData, MultiModalData]) -> Union[Pipeline, List[Pipeline]]:
         if self.history:
             self.history.clean_results()
 
+        # Data preparation phase
         data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
-
-        objective_evaluator = NasObjectiveEvaluate(self.optimizer.objective, data_producer, self._dataset_builder,
-                                                   self.composer_requirements, self.pipelines_cache,
-                                                   self.preprocessing_cache, optimization_verbose)
-        objective_function = objective_evaluator.evaluate
+        objective_eval = NASObjectiveEvaluate(objective=self.optimizer.objective,
+                                              data_producer=data_producer,
+                                              model_trainer_builder=self.trainer,
+                                              pipeline_cache=self.pipeline_cache,
+                                              preprocessing_cache=self.preprocessing_cache,
+                                              requirements=self.composer_requirements,
+                                              nn_dataset_builder=self.dataset_builder)
 
         if self.composer_requirements.collect_intermediate_metric:
-            self.optimizer.set_evaluation_callback(objective_evaluator.evaluate_intermediate_metrics)
+            self.optimizer.set_evaluation_callback(objective_eval.evaluate_intermediate_metrics)
 
-        opt_result = self.optimizer.optimise(objective_function)
-        best_model, self.best_models = self._convert_opt_results_to_nn_graph(opt_result)
-        self.log.info('NAS composition has been finished')
-        return best_model
+        optimization_result = self.optimizer.optimise(objective_eval.evaluate)
+        self._convert_best_model(optimization_result)
+        return self.best_models if self.optimizer.objective.is_multi_objective else self.best_models[0]
 
-    def save(self, path):
-        path = pathlib.Path('..', path) if not isinstance(path, pathlib.Path) else path
-        path.mkdir(parents=True, exist_ok=True)
-        self.log.info(f'Saving results into {path.resolve()}')
-        if self.best_models:
-            graph = self.best_models[0]
-            if not isinstance(graph, NasGraph):
-                graph = self.graph_generation_params.adapter.restore(graph)
-            graph.save(path)
+    def _convert_best_model(self, optimization_result):
+        adapter = self.optimizer.graph_generation_params.adapter
+        self.best_models = [adapter.restore(g) for g in optimization_result]
 
+    def save(self, path: str):
+        path = Path(path)
+        path.mkdir(exist_ok=True, parents=True)
+        self.best_models[0].save(path)
         if self.history:
             self.history.save(path / 'history.json')
