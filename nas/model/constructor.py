@@ -9,7 +9,7 @@ from nas.model.model_interface import BaseModelInterface
 
 class ModelConstructor:
     """
-    Class that creates a new instance of a model from given parameters.
+    Class that creates a new instance of Trainer session class with given train parameters.
     """
 
     def __init__(self,
@@ -30,10 +30,10 @@ class ModelConstructor:
 
     def build(self, input_shape: Union[Tuple[int], List[int]], output_shape: int, graph: NasGraph):
         """
-        Builds the actual model with all its layers based on graph structure and compiles it for training/evaluation.
+        Creates new Trainer class instance for train/evaluation session and initializes model from given graph object.
 
-        :param input_shape (int) - The shape of an individual sample's input vector in this network
-        :param output_shape (int) - The number of classes to predict per sample
+        :param input_shape (int) - The shape of an individual sample in HWC format.
+        :param output_shape (int) - Number of output channels.
         :param graph (NASGraph object) -
         :return class with compiled keras or pytorch model
         """

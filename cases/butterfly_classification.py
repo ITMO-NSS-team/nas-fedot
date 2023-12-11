@@ -1,8 +1,8 @@
 import datetime
-import os
 import pathlib
 
 import numpy as np
+from albumentations.pytorch import ToTensorV2
 from fedot.core.composer.composer_builder import ComposerBuilder
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
@@ -17,6 +17,8 @@ from golem.core.optimisers.genetic.operators.mutation import MutationTypesEnum
 from golem.core.optimisers.genetic.operators.regularization import RegularizationTypesEnum
 from golem.core.optimisers.optimizer import GraphGenerationParams
 from sklearn.metrics import log_loss, roc_auc_score, f1_score
+
+import albumentations as A
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
@@ -92,11 +94,15 @@ def build_butterfly_cls(save_path=None):
                                                            n_jobs=1,
                                                            cv_folds=cv_folds)
 
-    data_preprocessor = Preprocessor()
+    data_preprocessor = [A.RandomCrop(width=image_side_size, height=image_side_size),
+                         A.HorizontalFlip(),
+                         A.RandomBrightnessContrast(),
+                         A.ToFloat(),
+                         ToTensorV2()]
     dataset_builder = ImageDatasetBuilder(dataset_cls=TorchDataset, image_size=(image_side_size, image_side_size),
                                           shuffle=True).set_data_preprocessor(data_preprocessor)
 
-    model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda',
+    model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel, device='cuda:0',
                                      loss_function=CrossEntropyLoss(), optimizer=AdamW)
 
     validation_rules = [model_has_several_starts, model_has_no_conv_layers, model_has_wrong_number_of_flatten_layers,
