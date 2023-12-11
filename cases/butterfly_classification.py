@@ -2,7 +2,6 @@ import datetime
 import pathlib
 
 import numpy as np
-from albumentations.pytorch import ToTensorV2
 from fedot.core.composer.composer_builder import ComposerBuilder
 from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
@@ -19,6 +18,7 @@ from golem.core.optimisers.optimizer import GraphGenerationParams
 from sklearn.metrics import log_loss, roc_auc_score, f1_score
 
 import albumentations as A
+from albumentations.pytorch import ToTensorV2
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
