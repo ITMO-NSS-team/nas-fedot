@@ -22,27 +22,32 @@ from nas.utils.utils import project_root
 dataset_results_dir = {
     "MNIST": {
         # Less iterations:
-        "less-iter-kan": r"C:\dev\aim\nas_kan_results\_results\smaller-kans-mnist",
-        "less-iter-cnn": r"C:\dev\aim\nas_kan_results\_results\better-cnn-mnist",
+        # "less-iter-kan": r"C:\dev\aim\nas_kan_results\_results\smaller-kans-mnist",
+        # "less-iter-cnn": r"C:\dev\aim\nas_kan_results\_results\better-cnn-mnist",
 
         # More iterations:
-        "kan": r"C:\dev\aim\nas_kan_results\_results\kan-much-epochs-mnist",
-        "cnn": r"C:\dev\aim\nas_kan_results\_results\cnn-much-epochs-mnist",
-        "cnn-kan": r"C:\dev\aim\nas_kan_results\_results\cnn-kan-much-epochs-mnist",
-        "cnn-kan-smaller": r"C:\dev\aim\nas_kan_results\_results\mnist-kan-cnn-smaller",
-        "dense-kan": r"C:\dev\aim\nas_kan_results\_results\dense-kan-mnist"
+        # "kan": r"C:\dev\aim\nas_kan_results\_results\kan-much-epochs-mnist",
+        # "cnn": r"C:\dev\aim\nas_kan_results\_results\cnn-much-epochs-mnist",
+        # "cnn-kan": r"C:\dev\aim\nas_kan_results\_results\cnn-kan-much-epochs-mnist",
+        # "cnn-kan-smaller": r"C:\dev\aim\nas_kan_results\_results\mnist-kan-cnn-smaller",
+        # "dense-kan": r"C:\dev\aim\nas_kan_results\_results\dense-kan-mnist"
+
+        "cnn": r"C:\dev\aim\nas_kan_results\_results\ltr-cnn-mnist",
     },
     "FashionMNIST": {
         # Less iterations:
-        "less-iter-smaller-kan": r"C:\dev\aim\nas_kan_results\_results\smaller-kan-fashion",
-        "less-iter-kan": r"C:\dev\aim\nas_kan_results\_results\kan-fashion-mnist",
-        "less-iter-cnn": r"C:\dev\aim\nas_kan_results\_results\better-cnn-fashion",
+        # "less-iter-smaller-kan": r"C:\dev\aim\nas_kan_results\_results\smaller-kan-fashion",
+        # "less-iter-kan": r"C:\dev\aim\nas_kan_results\_results\kan-fashion-mnist",
+        # "less-iter-cnn": r"C:\dev\aim\nas_kan_results\_results\better-cnn-fashion",
 
         # More iterations:
-        "kan": r"C:\dev\aim\nas_kan_results\_results\kan-fashion-mnist-much-epochs",
-        "cnn": r"C:\dev\aim\nas_kan_results\_results\cnn-fashion-mnist-much-epochs",
-        "cnn-kan": r"C:\dev\aim\nas_kan_results\_results\kan-cnn-fashion-mnist-more-epochs",
-        "dense-kan": r"C:\dev\aim\nas_kan_results\_results\dense-kans-fashion",
+        # "kan": r"C:\dev\aim\nas_kan_results\_results\kan-fashion-mnist-much-epochs",
+        # "cnn": r"C:\dev\aim\nas_kan_results\_results\cnn-fashion-mnist-much-epochs",
+        # "cnn-kan": r"C:\dev\aim\nas_kan_results\_results\kan-cnn-fashion-mnist-more-epochs",
+        # "dense-kan": r"C:\dev\aim\nas_kan_results\_results\dense-kans-fashion",
+
+        # LTR
+        "cnn": r"C:\dev\aim\nas_kan_results\_results\ltr-cnn-fashion-mnist",
     },
     "EuroSAT": {
         # "kan": r"C:\dev\aim\nas_kan_results\_results\eurosat-kan",
@@ -51,6 +56,32 @@ dataset_results_dir = {
         "cnn": r"C:\dev\aim\nas_kan_results\_results\eurosat-cnn",
     },
 }
+
+
+def dir_dict_with_grid(root_dir, modification, dataset_names: List[Tuple[str, str]], algorithm_names,
+                       only_existing_dirs=False):
+    resultant_root = f"{root_dir}/{modification}"
+    res = {}
+    for (ds_presentation_name, ds_path_name) in dataset_names:
+        ds_res = {}
+        for algo_name in algorithm_names:
+            result_dir = f"{resultant_root}-{algo_name}-{ds_path_name}"
+            if not only_existing_dirs or os.path.isdir(result_dir):
+                ds_res[algo_name] = result_dir
+        res[ds_presentation_name] = ds_res
+    return res
+
+
+dataset_results_dir = dir_dict_with_grid(
+    "C:/dev/aim/nas_kan_results/_results",
+    "ltr",
+    [
+        ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"),
+        # ("EuroSAT", "eurosat")
+    ],
+    ["cnn", "kan", "cnn-kan"],
+    False
+)
 
 
 def deduplicate_by_lambda(items, key_func):
@@ -153,12 +184,19 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
 
     front = []
     for ind in final_choices:
-        print(ind.fitness, ind.uid)
-        print(final_results[ind.uid])
+        # print(ind.fitness, ind.uid)
+        # print(final_results[ind.uid])
+        assert final_metric_name == "accuracy"
+        complexity_metric = ind.fitness.values[1]
+        final_metric = final_results[ind.uid][final_metric_name]
+
+        if final_metric < 0.5:
+            continue
+
         front.append(
             (
-                final_results[ind.uid][final_metric_name],
-                ind.fitness.values[1]
+                final_metric,
+                complexity_metric
             )
         )
 
