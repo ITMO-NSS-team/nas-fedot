@@ -395,6 +395,6 @@ if __name__ == '__main__':
         # FashionMNIST
         # EuroSAT
     ]:
-        path = f'./_results/debug/master_2/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        path = f'./_results/unnamed-runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         print(f"Save path: {path}")
         build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=False, conv_is_kan=False)
