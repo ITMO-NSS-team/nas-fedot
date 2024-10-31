@@ -79,7 +79,7 @@ dataset_results_dir = dir_dict_with_grid(
         ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"),
         # ("EuroSAT", "eurosat")
     ],
-    ["cnn", "kan", "cnn-kan"],
+    ["cnn", "dense-kan", "cnn-kan"],
     False
 )
 
