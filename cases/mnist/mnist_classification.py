@@ -125,21 +125,19 @@ def generate_basic_kkan(starting_value, factor) -> NasGraph:
     return graph
 
 
-def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=False):
+def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=False, repetitions_for_final_choices=1,
+                    history_path_instead_of_evolution=None):
     visualize = False
     cv_folds = None
     num_classes = 10
     image_side_size = 28
     batch_size = 16
-    epochs = 30
+    epochs = 10
     optimization_epochs = 10
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
     color_mode = 'grayscale'
-
-    history_path_instead_of_evolution = None  # For evolution
-    # history_path_instead_of_evolution = project_root() / "_results/kan-mnist-no-final-fitting/history.json"  # For skipping the evolution step, just loading the history of a ready evolution
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -259,7 +257,8 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_trainer = ModelConstructor(model_class=NASTorchModel, trainer=NeuralSearchModel,
                                      device=device,
-                                     loss_function=CrossEntropyLoss(), optimizer=AdamW, metrics=[lambda *args: -accuracy_score(*args)])
+                                     loss_function=CrossEntropyLoss(), optimizer=AdamW,
+                                     metrics=[lambda *args: -accuracy_score(*args)])
 
     basic_graph_time = get_time_from_graph(generate_basic_kkan(input_channels, 5),
                                            [image_side_size, image_side_size, input_channels],
@@ -357,44 +356,55 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                                        shuffle=False)
 
     final_results = {}
-    for final_choice in final_choices:
+    for final_choice_i, final_choice in enumerate(final_choices):
         optimized_network = composer.optimizer.graph_generation_params.adapter.restore(final_choice.graph)
-        trainer = model_trainer.build([image_side_size, image_side_size, input_channels], num_classes,
-                                      optimized_network)
-        trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 20)
-        predictions, targets = trainer.predict(final_test_dataloader)
+        for repetition in range(repetitions_for_final_choices):
+            trainer = model_trainer.build([image_side_size, image_side_size, input_channels], num_classes,
+                                          optimized_network)
+            trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 20)
+            predictions, targets = trainer.predict(final_test_dataloader)
 
-        loss = log_loss(targets, predictions)
-        roc = roc_auc_score(targets, predictions, multi_class='ovo')
-        major_predictions = np.argmax(predictions, axis=-1)
-        f1 = f1_score(targets, major_predictions, average='weighted')
-        accuracy = accuracy_score(targets, major_predictions)
+            loss = log_loss(targets, predictions)
+            roc = roc_auc_score(targets, predictions, multi_class='ovo')
+            major_predictions = np.argmax(predictions, axis=-1)
+            f1 = f1_score(targets, major_predictions, average='weighted')
+            accuracy = accuracy_score(targets, major_predictions)
 
-        print(f'Composed ROC AUC of {final_choice.uid} is {round(roc, 3)}')
-        print(f'Composed LOG LOSS of {final_choice.uid} is {round(loss, 3)}')
-        print(f'Composed F1 of {final_choice.uid} is {round(f1, 3)}')
-        print(f'Composed accuracy of {final_choice.uid} is {round(accuracy, 3)}')
+            print(f"=== Trained final choice {final_choice_i + 1}/{len(final_choices)},"
+                  f"repetition {repetition + 1}/{repetitions_for_final_choices}")
 
-        final_results[final_choice.uid] = {
-            'roc_auc': roc,
-            'log_loss': loss,
-            'f1': f1,
-            'accuracy': accuracy
-        }
+            print(f'Composed ROC AUC of {final_choice.uid} is {round(roc, 3)}')
+            print(f'Composed LOG LOSS of {final_choice.uid} is {round(loss, 3)}')
+            print(f'Composed F1 of {final_choice.uid} is {round(f1, 3)}')
+            print(f'Composed accuracy of {final_choice.uid} is {round(accuracy, 3)}')
 
-        # Save json:
-        with open(f'{save_path}/final_results.json', 'w') as f:
-            json.dump(final_results, f, indent=4)
+            repetition_results = {
+                'roc_auc': roc,
+                'log_loss': loss,
+                'f1': f1,
+                'accuracy': accuracy
+            }
+            if final_choice.uid in final_results:
+                final_results[final_choice.uid].append(repetition_results)
+            else:
+                final_results[final_choice.uid] = [repetition_results]
+
+            # Save json:
+            with open(f'{save_path}/final_results.json', 'w') as f:
+                json.dump(final_results, f, indent=4)
 
 
 if __name__ == '__main__':
-    for dataset_cls in [
-        CachedMNIST,
-        CachedFashionMNIST,
-        # MNIST,
-        # FashionMNIST
-        # EuroSAT
-    ]:
-        path = f'./_results/unnamed-runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        print(f"Save path: {path}")
-        build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=False, conv_is_kan=False)
+    dataset_cls = CachedFashionMNIST
+
+    path = f'./_results/unnamed-runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    print(f"Save path: {path}")
+    build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=False, conv_is_kan=False,
+                    repetitions_for_final_choices=5,
+                    history_path_instead_of_evolution=project_root() / "_results/ltr-cnn-fashion-mnist")
+
+    path = f'./_results/unnamed-runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    print(f"Save path: {path}")
+    build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=True, conv_is_kan=True,
+                    repetitions_for_final_choices=5,
+                    history_path_instead_of_evolution=project_root() / "_results/ltr-dense-kan-fashion-mnist")
