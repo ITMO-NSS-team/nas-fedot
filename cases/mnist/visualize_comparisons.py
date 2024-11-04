@@ -79,7 +79,7 @@ dataset_results_dir = dir_dict_with_grid(
         ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"),
         # ("EuroSAT", "eurosat")
     ],
-    ["cnn", "dense-kan", "cnn-kan"],
+    ["cnn", "dense-kan", "cnn-kan", "kan"],
     False
 )
 
@@ -189,8 +189,8 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
         assert final_metric_name == "accuracy"
         complexity_metric = ind.fitness.values[1]
 
-        # final_metric = final_results[ind.uid][final_metric_name]  # For after-learning
-        final_metric = -ind.fitness.values[0]  # For in-optimizer score
+        final_metric = final_results[ind.uid][final_metric_name]  # For after-learning
+        # final_metric = -ind.fitness.values[0]  # For in-optimizer score
 
         if final_metric < 0.6:
             continue
