@@ -400,11 +400,11 @@ if __name__ == '__main__':
     path = f'./_results/unnamed-runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     print(f"Save path: {path}")
     build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=False, conv_is_kan=False,
-                    repetitions_for_final_choices=5,
+                    repetitions_for_final_choices=20,
                     history_path_instead_of_evolution=project_root() / "_results/ltr-cnn-fashion-mnist/history.json")
 
     path = f'./_results/unnamed-runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     print(f"Save path: {path}")
     build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=True, conv_is_kan=True,
-                    repetitions_for_final_choices=5,
+                    repetitions_for_final_choices=10,
                     history_path_instead_of_evolution=project_root() / "_results/ltr-dense-kan-fashion-mnist/history.json")
