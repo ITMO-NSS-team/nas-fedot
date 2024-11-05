@@ -2,7 +2,9 @@ import json
 import os
 from collections.abc import Sequence
 from copy import deepcopy
+from itertools import groupby
 
+import seaborn
 from fedot.core.visualisation.pipeline_specific_visuals import PipelineVisualizer
 from golem.core.adapter import DirectAdapter
 from golem.core.optimisers.opt_history_objects.individual import Individual
@@ -10,9 +12,10 @@ from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
 from golem.visualisation.opt_viz import PlotTypesEnum
 from golem.visualisation.opt_viz_extra import visualise_pareto
 from matplotlib import pyplot as plt
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 from seaborn import histplot
+import seaborn as sns
 
 from nas.graph.base_graph import NasGraph
 from nas.graph.node.adapter import NasNodeOperatorAdapter
@@ -72,8 +75,9 @@ def dir_dict_with_grid(root_dir, modification, dataset_names: List[Tuple[str, st
     return res
 
 
+result_root_dir = "C:/dev/aim/nas_kan_results/_results"
 dataset_results_dir = dir_dict_with_grid(
-    "C:/dev/aim/nas_kan_results/_results",
+    result_root_dir,
     "ltr",
     [
         ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"),
@@ -82,6 +86,24 @@ dataset_results_dir = dir_dict_with_grid(
     ["cnn", "dense-kan", "cnn-kan", "kan"],
     False
 )
+
+
+def transplant_path_dict(d, root_dir):
+    res = {}
+    for k, v in d.items():
+        # res[os.path.join(root_dir, k)] = os.path.join(root_dir, v)
+        res[k] = [os.path.join(root_dir, p) for p in v]
+    return res
+
+
+extra_runs_folders = transplant_path_dict({
+    "ltr-cnn-fashion-mnist": [
+        "ci-ltr-cnn-fashion-mnist", "ci2-ltr-cnn-fashion-mnist"
+    ],
+    "ltr-dense-kan-fashion-mnist": [
+        "ci-ltr-dense-kan-fashion-mnist", "ci2-ltr-dense-kan-fashion-mnist"
+    ]
+}, result_root_dir)
 
 
 def deduplicate_by_lambda(items, key_func):
@@ -115,6 +137,22 @@ def plot_opt_fitness_scatter(history_path):
     plt.scatter([ind.fitness.values[0] for ind in individuals], [ind.fitness.values[1] for ind in individuals])
 
 
+color_cycle_index = 0
+
+
+def retrieve_next_color():
+    global color_cycle_index
+    color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    res = color_cycle[color_cycle_index]
+    color_cycle_index += 1
+    return res
+
+
+def reset_next_color_index():
+    global color_cycle_index
+    color_cycle_index = 0
+
+
 def visualise_pareto_front(front: Sequence[Individual | List[float]],
                            objectives_numbers: Tuple[int, int] = (0, 1),
                            objectives_names: Sequence[str] = ('ROC-AUC', 'Complexity'),
@@ -134,10 +172,23 @@ def visualise_pareto_front(front: Sequence[Individual | List[float]],
         fit_second = fitness_list[objectives_numbers[1]]
         pareto_obj_second.append(abs(fit_second))
 
-    # plt.xscale('log')
-    plt.scatter(pareto_obj_first, pareto_obj_second, c=color)
-    # plt.xscale('log')
-    plt.plot(pareto_obj_first, pareto_obj_second, color=color, label=label)
+    # Check if there are a lot of ys for any x
+    has_duplicates = True
+    for x, xys in groupby(list(zip(pareto_obj_first, pareto_obj_second)), lambda xy: xy[0]):
+        xys = list(xys)
+        if len(xys) <= 1:
+            has_duplicates = False
+
+    if color is None:
+        color = retrieve_next_color()
+
+    if not has_duplicates:
+        # plt.xscale('log')
+        plt.scatter(pareto_obj_first, pareto_obj_second, c=color)
+        # plt.xscale('log')
+        plt.plot(pareto_obj_first, pareto_obj_second, color=color, label=label)
+    else:
+        seaborn.lineplot(x=pareto_obj_first, y=pareto_obj_second, label=label, color=color)
 
     plt.title(f'Pareto frontier for {case_name}', fontsize=15)
     plt.xlabel(objectives_names[0], fontsize=15)
@@ -160,6 +211,7 @@ def visualise_pareto_front(front: Sequence[Individual | List[float]],
         plt.savefig(path, bbox_inches='tight')
     if show:
         plt.show()
+        reset_next_color_index()
 
     # plt.cla()
     # plt.clf()
@@ -178,7 +230,25 @@ def plot_opt_pareto_front(history, case_name: str, label: str):
     )
 
 
-def plot_final_pareto_front(history, final_results, case_name: str, label: str, final_metric_name: str):
+def get_extra_final_results():
+    # this_results_folder_name = os.path.basename(this_results_dir.rstrip("\\").rstrip("/"))
+    # extra_final_result_files = extra_runs_folders.get(this_results_folder_name, [])
+    res = {}
+    for run_name, this_run_extra_runs_folders in extra_runs_folders.items():
+        for f in this_run_extra_runs_folders:
+            j = json.load(open(f + "/final_results.json"))
+            for uid, graph_res in j.items():
+                if uid not in res:
+                    res[uid] = []
+                if isinstance(graph_res, List):
+                    res[uid].extend(graph_res)
+                else:
+                    res[uid].append(graph_res)
+    return res
+
+
+def plot_final_pareto_front(history, final_results, case_name: str, label: str, final_metric_name: str,
+                            extra_results: Dict[str, List]):
     individuals = individuals_pool(history)
     final_choices = history.final_choices.data
 
@@ -189,18 +259,25 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
         assert final_metric_name == "accuracy"
         complexity_metric = ind.fitness.values[1]
 
-        final_metric = final_results[ind.uid][final_metric_name]  # For after-learning
         # final_metric = -ind.fitness.values[0]  # For in-optimizer score
 
-        if final_metric < 0.6:
-            continue
+        this_extra_final_results = extra_results.get(ind.uid, [])
+        this_results = final_results[ind.uid]
+        if not isinstance(this_results, List):
+            this_results = [this_results]
+        this_results.extend(this_extra_final_results)
+        for this_run in this_results:
+            final_metric = this_run[final_metric_name]  # For after-learning
 
-        front.append(
-            (
-                final_metric,
-                complexity_metric
+            if final_metric < 0.6:
+                continue
+
+            front.append(
+                (
+                    final_metric,
+                    complexity_metric
+                )
             )
-        )
 
     # fig, ax = plt.subplots()
 
@@ -229,10 +306,12 @@ def plot_all_pareto_fronts():
             final_results_json = json.load(open(base_eval_path + "/final_results.json"))
 
             # plot_opt_pareto_front(history, label=model, case_name=dataset)
+            extra_results = get_extra_final_results()
             plot_final_pareto_front(history, final_results_json, label=model, case_name=dataset,
-                                    final_metric_name="accuracy")
+                                    final_metric_name="accuracy", extra_results=extra_results)
         plt.legend()
         plt.show()
+        reset_next_color_index()
 
 
 def plot_parameter_numbers():
@@ -246,6 +325,7 @@ def plot_parameter_numbers():
             plot_parameter_number_hist(history)
             plt.title(f"Parameter number distribution for {dataset} {model}")
             plt.show()
+            reset_next_color_index()
 
 
 if __name__ == '__main__':
