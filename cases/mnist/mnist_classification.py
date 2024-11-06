@@ -5,6 +5,7 @@ import pathlib
 import sys
 
 from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
+from typing import NamedTuple, Type, Optional
 
 project_root_path = pathlib.Path(__file__).parent.parent.parent.absolute()
 sys.path.append(str(project_root_path))
@@ -384,24 +385,73 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                 json.dump(final_results, f, indent=4)
 
 
-def obtain_history_dir_name(name: str = None):
+class RunConfiguration(NamedTuple):
+    dataset_cls: Type
+    linear_is_kan: bool
+    conv_is_kan: bool
+    repetitions_for_final_choices: int
+    history_path_instead_of_evolution: Optional[os.PathLike]
+
+    def obtain_descriptive_name_suffix(self) -> str:
+        if self.dataset_cls in [FashionMNIST, CachedFashionMNIST]:
+            dataset_name = "fashion-mnist"
+        elif self.dataset_cls in [MNIST, CachedMNIST]:
+            dataset_name = "mnist"
+        elif self.dataset_cls in [EuroSAT]:
+            dataset_name = "eurosat"
+        else:
+            raise ValueError("Unknown-dataset")
+
+        if self.linear_is_kan and self.conv_is_kan:
+            arch_name = "kan"
+        elif self.linear_is_kan and not self.conv_is_kan:
+            arch_name = "cnn-kan"
+        elif not self.linear_is_kan and not self.conv_is_kan:
+            arch_name = "cnn"
+        else:
+            ValueError("Unknown arch")
+
+        return f"{arch_name}-{dataset_name}"
+
+
+def obtain_history_dir_name(full_name: str = None):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    if name is None:
+    if full_name is None:
         return f'./_results/unnamed-runs/{timestamp}'
     else:
-        basic_path = f'_results/{name}'
+        basic_path = f'_results/{full_name}'
         if os.path.exists(basic_path):
             basic_path += "_" + timestamp
         return basic_path
 
 
-if __name__ == '__main__':
-    dataset_cls = CachedFashionMNIST
+def run_with_configuration(cfg: RunConfiguration, full_name: Optional[str] = None, name_prefix: Optional[str] = None):
+    # Choose name:
+    assert full_name is None or name_prefix is None
 
-    path = obtain_history_dir_name(
-        # name="test-dir-2"
+    if full_name is None and name_prefix is not None:
+        full_name = f"{name_prefix}-{cfg.obtain_descriptive_name_suffix()}"
+    elif full_name is None:
+        full_name = cfg.obtain_descriptive_name_suffix()  # For now, just don't create unnamed runs
+    dir_name = obtain_history_dir_name(full_name)
+    print(f"Save path: {dir_name}")
+
+    build_mnist_cls(dir_name, dataset_cls=cfg.dataset_cls, linear_is_kan=cfg.linear_is_kan, conv_is_kan=cfg.conv_is_kan,
+                    repetitions_for_final_choices=cfg.repetitions_for_final_choices,
+                    history_path_instead_of_evolution=cfg.history_path_instead_of_evolution
+                    )
+
+
+if __name__ == '__main__':
+    run_config = RunConfiguration(
+        dataset_cls=CachedFashionMNIST,
+        linear_is_kan=True,
+        conv_is_kan=True,
+        repetitions_for_final_choices=15,
+        history_path_instead_of_evolution=project_root() / "_results/ltr-kan-fashion-mnist/history.json"
     )
-    print(f"Save path: {path}")
-    build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=True, conv_is_kan=True,
-                    repetitions_for_final_choices=15,
-                    history_path_instead_of_evolution=project_root() / "_results/ltr-kan-fashion-mnist/history.json")
+
+    run_with_configuration(run_config,
+                           # name_prefix="ltr-ci",
+                           # full_name="ltr-ci-kan-fashion-mnist"
+                           )
