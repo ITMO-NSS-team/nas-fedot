@@ -10,7 +10,6 @@ from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
 import certifi
 
 project_root_path = pathlib.Path(__file__).parent.parent.parent.absolute()
-print(project_root_path)
 sys.path.append(str(project_root_path))
 sys.path.append(str(project_root_path / "cases/mnist"))
 
@@ -394,10 +393,24 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                 json.dump(final_results, f, indent=4)
 
 
+def obtain_history_dir_name(name: str = None):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    if name is None:
+        return f'./_results/unnamed-runs/{timestamp}'
+    else:
+        basic_path = f'_results/{name}'
+        if os.path.exists(basic_path):
+            basic_path += "_" + timestamp
+        return basic_path
+
+
+
 if __name__ == '__main__':
     dataset_cls = CachedFashionMNIST
 
-    path = f'./_results/unnamed-runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    path = obtain_history_dir_name(
+        # name="test-dir-2"
+    )
     print(f"Save path: {path}")
     build_mnist_cls(path, dataset_cls=dataset_cls, linear_is_kan=True, conv_is_kan=True,
                     repetitions_for_final_choices=15,
