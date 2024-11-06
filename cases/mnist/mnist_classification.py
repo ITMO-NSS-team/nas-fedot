@@ -2,12 +2,9 @@ import datetime
 import json
 import os
 import pathlib
-import random
-import ssl
 import sys
 
 from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
-import certifi
 
 project_root_path = pathlib.Path(__file__).parent.parent.parent.absolute()
 sys.path.append(str(project_root_path))
@@ -15,7 +12,6 @@ sys.path.append(str(project_root_path / "cases/mnist"))
 
 import numpy as np
 from fedot.core.composer.composer_builder import ComposerBuilder
-from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.repository.quality_metrics_repository import ClassificationMetricsEnum, MetricsRepository
 from fedot.core.repository.tasks import TaskTypesEnum, Task
 from fedot.core.visualisation.pipeline_specific_visuals import PipelineHistoryVisualizer
@@ -39,15 +35,8 @@ from torchvision.transforms import transforms
 
 import nas.composer.requirements as nas_requirements
 from nas.composer.nn_composer import NNComposer
-from nas.data.dataset.builder import ImageDatasetBuilder
-from nas.data.dataset.torch_dataset import TorchDataset
-from nas.data.filters import NasImageNormalizer, MinMaxScaler, MakeSingleChannel
-from nas.data.nas_data import InputDataNN
-from nas.data.preprocessor import Preprocessor
 from nas.graph.builder.base_graph_builder import BaseGraphBuilder, GraphGenerator
 from nas.graph.builder.cnn_builder import ConvGraphMaker
-from nas.graph.builder.resnet_builder import ResNetBuilder
-from nas.graph.node.nas_graph_node import NasNode
 from nas.graph.node.node_factory import NNNodeFactory
 from nas.model.constructor import ModelConstructor
 from nas.model.pytorch.base_model import compute_total_graph_parameters, get_flops_from_graph, get_time_from_graph
@@ -183,6 +172,8 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                                    eager=eager,
                                    cache_before_transform=False)
         assert num_classes == len(dataset_train.classes)
+    else:
+        raise ValueError("Unknown dataset: " + dataset_cls)
 
     if linear_is_kan:
         fc_layers_pool = [LayersPoolEnum.kan_linear, ]
@@ -402,7 +393,6 @@ def obtain_history_dir_name(name: str = None):
         if os.path.exists(basic_path):
             basic_path += "_" + timestamp
         return basic_path
-
 
 
 if __name__ == '__main__':
