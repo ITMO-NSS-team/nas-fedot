@@ -102,6 +102,9 @@ extra_runs_folders = transplant_path_dict({
     ],
     "ltr-dense-kan-fashion-mnist": [
         "ci-ltr-dense-kan-fashion-mnist", "ci2-ltr-dense-kan-fashion-mnist"
+    ],
+    "ltr-cnn-kan-fashion-mnist": [
+        "ci-cnn-kan-fashion-mnist"
     ]
 }, result_root_dir)
 
