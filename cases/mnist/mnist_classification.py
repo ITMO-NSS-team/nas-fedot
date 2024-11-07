@@ -416,19 +416,19 @@ class RunConfiguration(NamedTuple):
         return f"{arch_name}-{dataset_name}"
 
 
-def obtain_history_dir_name(full_name: str = None):
+def obtain_history_dir_name(full_name: str = None, deduplicate: bool = True):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if full_name is None:
         return f'./_results/unnamed-runs/{timestamp}'
     else:
         basic_path = f'_results/{full_name}'
-        if os.path.exists(basic_path):
+        if deduplicate and os.path.exists(basic_path):
             basic_path += "_" + timestamp
         return basic_path
 
 
 def get_canonical_history_dir(cfg: RunConfiguration, full_name: Optional[str] = None,
-                              name_prefix: Optional[str] = None):
+                              name_prefix: Optional[str] = None, deduplicate: bool = True):
     # Choose name:
     assert full_name is None or name_prefix is None
 
@@ -436,7 +436,7 @@ def get_canonical_history_dir(cfg: RunConfiguration, full_name: Optional[str] = 
         full_name = f"{name_prefix}-{cfg.obtain_descriptive_name_suffix()}"
     elif full_name is None:
         full_name = cfg.obtain_descriptive_name_suffix()  # For now, just don't create unnamed runs
-    return obtain_history_dir_name(full_name)
+    return obtain_history_dir_name(full_name, deduplicate=deduplicate)
 
 
 def run_with_configuration(cfg: RunConfiguration, dir_name: Union[str, os.PathLike]):
@@ -469,13 +469,16 @@ if __name__ == '__main__':
                       ._replace(conv_is_kan=conv_is_kan)
                       )
         run_config = run_config._replace(
-            history_path_instead_of_evolution=get_canonical_history_dir(run_config, name_prefix=input_run_prefix)
+            history_path_instead_of_evolution=get_canonical_history_dir(run_config, name_prefix=input_run_prefix,
+                                                                        deduplicate=False)
         )
 
         print(f"Running with run configuration {run_config}")
         try:
             run_with_configuration(run_config,
-                                   dir_name=get_canonical_history_dir(run_config, name_prefix=output_run_prefix))
+                                   dir_name=get_canonical_history_dir(run_config, name_prefix=output_run_prefix,
+                                                                      deduplicate=True)
+                                   )
         except Exception:
             print(f"FAILED run with run configuration {run_config} with the following traceback:", file=sys.stderr)
             # sys.stdout.flush()
