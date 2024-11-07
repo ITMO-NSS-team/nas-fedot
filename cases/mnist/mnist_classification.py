@@ -470,7 +470,7 @@ if __name__ == '__main__':
                       )
         run_config = run_config._replace(
             history_path_instead_of_evolution=get_canonical_history_dir(run_config, name_prefix=input_run_prefix,
-                                                                        deduplicate=False)
+                                                                        deduplicate=False) + "/history.json"
         )
 
         print(f"Running with run configuration {run_config}")
