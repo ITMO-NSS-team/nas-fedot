@@ -3,9 +3,11 @@ import json
 import os
 import pathlib
 import sys
+import time
+import traceback
 
 from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
-from typing import NamedTuple, Type, Optional
+from typing import NamedTuple, Type, Optional, Union
 
 project_root_path = pathlib.Path(__file__).parent.parent.parent.absolute()
 sys.path.append(str(project_root_path))
@@ -390,7 +392,7 @@ class RunConfiguration(NamedTuple):
     linear_is_kan: bool
     conv_is_kan: bool
     repetitions_for_final_choices: int
-    history_path_instead_of_evolution: Optional[os.PathLike]
+    history_path_instead_of_evolution: Optional[Union[os.PathLike, str]]
 
     def obtain_descriptive_name_suffix(self) -> str:
         if self.dataset_cls in [FashionMNIST, CachedFashionMNIST]:
@@ -425,7 +427,8 @@ def obtain_history_dir_name(full_name: str = None):
         return basic_path
 
 
-def run_with_configuration(cfg: RunConfiguration, full_name: Optional[str] = None, name_prefix: Optional[str] = None):
+def get_canonical_history_dir(cfg: RunConfiguration, full_name: Optional[str] = None,
+                              name_prefix: Optional[str] = None):
     # Choose name:
     assert full_name is None or name_prefix is None
 
@@ -433,7 +436,10 @@ def run_with_configuration(cfg: RunConfiguration, full_name: Optional[str] = Non
         full_name = f"{name_prefix}-{cfg.obtain_descriptive_name_suffix()}"
     elif full_name is None:
         full_name = cfg.obtain_descriptive_name_suffix()  # For now, just don't create unnamed runs
-    dir_name = obtain_history_dir_name(full_name)
+    return obtain_history_dir_name(full_name)
+
+
+def run_with_configuration(cfg: RunConfiguration, dir_name: Union[str, os.PathLike]):
     print(f"Save path: {dir_name}")
 
     build_mnist_cls(dir_name, dataset_cls=cfg.dataset_cls, linear_is_kan=cfg.linear_is_kan, conv_is_kan=cfg.conv_is_kan,
@@ -442,16 +448,36 @@ def run_with_configuration(cfg: RunConfiguration, full_name: Optional[str] = Non
                     )
 
 
+def supported_linear_conv_configurations():
+    return [(True, True), (False, False), (True, False)]
+
+
 if __name__ == '__main__':
-    run_config = RunConfiguration(
-        dataset_cls=CachedFashionMNIST,
+    input_run_prefix = "ltr"
+    output_run_prefix = "ci-ltr"
+    basic_config = RunConfiguration(
+        dataset_cls=CachedMNIST,
         linear_is_kan=True,
         conv_is_kan=True,
-        repetitions_for_final_choices=15,
-        history_path_instead_of_evolution=project_root() / "_results/ltr-kan-fashion-mnist/history.json"
+        repetitions_for_final_choices=12,
+        history_path_instead_of_evolution=None
     )
 
-    run_with_configuration(run_config,
-                           # name_prefix="ltr-ci",
-                           # full_name="ltr-ci-kan-fashion-mnist"
-                           )
+    for (linear_is_kan, conv_is_kan) in supported_linear_conv_configurations():
+        run_config = (basic_config
+                      ._replace(linear_is_kan=linear_is_kan)
+                      ._replace(conv_is_kan=conv_is_kan)
+                      )
+        run_config = run_config._replace(
+            history_path_instead_of_evolution=get_canonical_history_dir(run_config, name_prefix=input_run_prefix)
+        )
+
+        print(f"Running with run configuration {run_config}")
+        try:
+            run_with_configuration(run_config,
+                                   dir_name=get_canonical_history_dir(run_config, name_prefix=output_run_prefix))
+        except Exception:
+            print(f"FAILED run with run configuration {run_config} with the following traceback:", file=sys.stderr)
+            # sys.stdout.flush()
+            traceback.print_exc()
+            # sys.stderr.flush()
