@@ -37,18 +37,8 @@ def kan_conv2d(node: NasNode, **inputs_dict):
     grid_size = node.parameters.get('grid_size')
     spline_order = node.parameters.get('spline_order')
 
-    return KAN_Convolutional_Layer(
-        n_convs=out_shape // input_dim,
-        kernel_size=(kernel_size, kernel_size),
-        stride=(1, 1),
-        padding=(padding, padding),
-
-        grid_size=grid_size,
-        spline_order=spline_order
-    )
-    # return KAN_CrossConvolution(
-    #     in_channels=input_dim,
-    #     out_channels=out_shape,
+    # return KAN_Convolutional_Layer(
+    #     n_convs=out_shape // input_dim,
     #     kernel_size=(kernel_size, kernel_size),
     #     stride=(1, 1),
     #     padding=(padding, padding),
@@ -56,6 +46,16 @@ def kan_conv2d(node: NasNode, **inputs_dict):
     #     grid_size=grid_size,
     #     spline_order=spline_order
     # )
+    return KAN_CrossConvolution(
+        in_channels=input_dim,
+        out_channels=out_shape,
+        kernel_size=(kernel_size, kernel_size),
+        stride=(1, 1),
+        padding=(padding, padding),
+
+        grid_size=grid_size,
+        spline_order=spline_order
+    )
 
 
 def linear(node: NasNode, **inputs_dict):

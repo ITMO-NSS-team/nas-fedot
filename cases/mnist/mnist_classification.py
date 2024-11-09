@@ -405,7 +405,7 @@ class RunConfiguration(NamedTuple):
             raise ValueError("Unknown-dataset")
 
         if self.linear_is_kan and self.conv_is_kan:
-            arch_name = "kan"
+            arch_name = "dense-kan"
         elif self.linear_is_kan and not self.conv_is_kan:
             arch_name = "cnn-kan"
         elif not self.linear_is_kan and not self.conv_is_kan:
@@ -463,7 +463,7 @@ if __name__ == '__main__':
         history_path_instead_of_evolution=None
     )
 
-    for (linear_is_kan, conv_is_kan) in supported_linear_conv_configurations():
+    for (linear_is_kan, conv_is_kan) in [(True, True)]:
         run_config = (basic_config
                       ._replace(linear_is_kan=linear_is_kan)
                       ._replace(conv_is_kan=conv_is_kan)
