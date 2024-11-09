@@ -103,12 +103,12 @@ extra_runs_folders = transplant_path_dict({
     "ltr-dense-kan-fashion-mnist": [
         "ci-ltr-dense-kan-fashion-mnist", "ci2-ltr-dense-kan-fashion-mnist"
     ],
-    "ltr-cnn-kan-fashion-mnist": [
-        "ci-cnn-kan-fashion-mnist"
-    ],
-    "ltr-kan-fashion-mnist": [
-        "ci-kan-fashion-mnist"
-    ]
+    "ltr-cnn-kan-fashion-mnist": ["ci-cnn-kan-fashion-mnist"],
+    "ltr-kan-fashion-mnist": ["ci-kan-fashion-mnist"],
+
+    "ltr-cnn-mnist": ["ci-ltr-cnn-mnist"],
+    "ltr-cnn-kan-mnist": ["ci-ltr-cnn-kan-mnist"],
+    "ltr-kan-mnist": ["ci-ltr-kan-mnist"],
 }, result_root_dir)
 
 
@@ -179,11 +179,15 @@ def visualise_pareto_front(front: Sequence[Individual | List[float]],
         pareto_obj_second.append(abs(fit_second))
 
     # Check if there are a lot of ys for any x
-    has_duplicates = True
+    n_has_duplicates = 0
+    total_xs = 0
     for x, xys in groupby(list(zip(pareto_obj_first, pareto_obj_second)), lambda xy: xy[0]):
+        total_xs += 1
         xys = list(xys)
-        if len(xys) <= 1:
-            has_duplicates = False
+        if len(xys) > 1:
+            n_has_duplicates += 1
+    print(f"{n_has_duplicates}/{total_xs}")
+    has_duplicates = n_has_duplicates / total_xs >= 0.5
 
     if color is None:
         color = retrieve_next_color()
@@ -319,7 +323,6 @@ def plot_all_pareto_fronts():
         plt.show()
         reset_next_color_index()
 
-
 def plot_parameter_numbers():
     for dataset in dataset_results_dir:
         for model in dataset_results_dir[dataset]:
@@ -332,7 +335,6 @@ def plot_parameter_numbers():
             plt.title(f"Parameter number distribution for {dataset} {model}")
             plt.show()
             reset_next_color_index()
-
 
 if __name__ == '__main__':
     plot_all_pareto_fronts()
