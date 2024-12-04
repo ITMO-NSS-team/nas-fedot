@@ -56,25 +56,22 @@ def model_has_no_conv_layers(graph: NasGraph):
         raise ValueError(f'{ERROR_PREFIX} model has no convolutional layers.')
 
 
-def model_has_dim_mismatch(graph: NasGraph):
-    try:
-        with torch.no_grad():
-            input_shape = [
-                [28, 28, 1],
-                # [64, 64, 3]
-            ]
-            for shape in input_shape:
-                m = NeuralSearchModel(NASTorchModel).compile_model(graph, shape, 10).model
+def model_has_dim_mismatch(input_shape: list):
+    def validate(graph: NasGraph):
+        try:
+            with torch.no_grad():
+                m = NeuralSearchModel(NASTorchModel).compile_model(graph, input_shape, 10).model
                 m.to('cpu')
                 try:
-                    m.forward(torch.rand([2, *shape[::-1]]))
+                    m.forward(torch.rand([2, *input_shape[::-1]]))
                 except IndexError:
                     raise ValueError(f'{ERROR_PREFIX} graph has dimension conflict.')
-    except Exception as e:
-        import traceback
-        # traceback.print_exc()
-        raise ValueError(f'{ERROR_PREFIX} graph has dimension conflict.')
-    return True
+        except Exception as e:
+            import traceback
+            # traceback.print_exc()
+            raise ValueError(f'{ERROR_PREFIX} graph has dimension conflict.')
+        return True
+    return validate
 
 
 def skip_has_no_pools(graph: NasGraph):

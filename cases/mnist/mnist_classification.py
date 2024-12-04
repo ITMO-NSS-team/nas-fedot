@@ -129,7 +129,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
-    color_mode = 'grayscale'
+    color_mode = 'color' if dataset_cls == EuroSAT else 'grayscale'
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -214,7 +214,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                                      loss_function=CrossEntropyLoss(), optimizer=AdamW,
                                      metrics=[lambda *args: -accuracy_score(*args)])
 
-    basic_graph_time = get_time_from_graph(generate_basic_kkan(input_channels, 5),
+    basic_graph_time = get_time_from_graph(generate_basic_kkan(input_channels, 4 if dataset_cls == EuroSAT else 5),
                                            [image_side_size, image_side_size, input_channels],
                                            num_classes, device, batch_size)
     print("Basic graph time: ", basic_graph_time)
@@ -237,7 +237,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
         filter_size_increases_monotonically,
         no_linear_layers_before_flatten,
 
-        model_has_dim_mismatch,
+        model_has_dim_mismatch([image_side_size, image_side_size, input_channels]),
 
         has_too_much_parameters(1_500_000, parameter_count_complexity_metric),
         # has_too_much_flops(3_000_000, flops_complexity_metric)
