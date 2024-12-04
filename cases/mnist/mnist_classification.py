@@ -6,6 +6,7 @@ import sys
 import time
 import traceback
 
+import torch.utils.data
 from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
 from typing import NamedTuple, Type, Optional, Union
 
@@ -30,7 +31,7 @@ from golem.core.optimisers.optimizer import GraphGenerationParams
 from sklearn.metrics import log_loss, roc_auc_score, f1_score, accuracy_score
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from nas.utils.random_split_hack import random_split
 from torchvision.datasets import FashionMNIST, MNIST
 from cases.mnist.cached_datasets import EuroSAT, CachedFashionMNIST, CachedMNIST
@@ -136,47 +137,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
     input_channels = _get_image_channels_num(color_mode)
 
-    transform = transforms.Compose([
-        # Only for eurosat
-        # transforms.RandomHorizontalFlip(),
-        # transforms.RandomVerticalFlip(),
-        # transforms.RandomRotation(15),
-
-        transforms.Grayscale(),  # Only for mnist
-
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-    ])
-
-    def one_hot_encode(target):
-        return torch.nn.functional.one_hot(torch.tensor(target), num_classes=num_classes).float()
-
-    dataset_path = project_root() / "cases/mnist"
-
-    eager = True
-    if dataset_cls is [EuroSAT, ]:
-        dataset_train, dataset_test = random_split(
-            EuroSAT(root=dataset_path, transform=transform, target_transform=one_hot_encode, eager=eager,
-                    cache_before_transform=True),
-            [.7, .3]
-        )
-        assert num_classes == len(dataset_train.dataset.classes)
-    elif dataset_cls in [MNIST, FashionMNIST]:
-        dataset_train = dataset_cls(root=dataset_path, train=True, download=True, transform=transform,
-                                    target_transform=one_hot_encode)
-        dataset_test = dataset_cls(root=dataset_path, train=False, download=True, transform=transform,
-                                   target_transform=one_hot_encode)
-        assert num_classes == len(dataset_train.classes)
-    elif dataset_cls in [CachedMNIST, CachedFashionMNIST]:
-        dataset_train = dataset_cls(root=dataset_path, train=True, transform=transform, target_transform=one_hot_encode,
-                                    eager=eager,
-                                    cache_before_transform=False)
-        dataset_test = dataset_cls(root=dataset_path, train=False, transform=transform, target_transform=one_hot_encode,
-                                   eager=eager,
-                                   cache_before_transform=False)
-        assert num_classes == len(dataset_train.classes)
-    else:
-        raise ValueError("Unknown dataset: " + dataset_cls)
+    dataset_train, dataset_test = RunConfiguration.construct_dataset(dataset_cls)
 
     if linear_is_kan:
         fc_layers_pool = [LayersPoolEnum.kan_linear, ]
@@ -388,11 +349,65 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
 
 class RunConfiguration(NamedTuple):
-    dataset_cls: Type
+    dataset_cls: Type[EuroSAT] | Type[CachedFashionMNIST] | Type[CachedMNIST]
     linear_is_kan: bool
     conv_is_kan: bool
     repetitions_for_final_choices: int
     history_path_instead_of_evolution: Optional[Union[os.PathLike, str]]
+
+    @staticmethod
+    def construct_dataset(dataset_cls):
+        common_transforms = [
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,))
+        ]
+        if dataset_cls == EuroSAT:
+            image_transforms = [
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(15),
+            ]
+        else:
+            image_transforms = [
+                transforms.Grayscale(),
+            ]
+
+        transform = transforms.Compose(image_transforms + common_transforms)
+        num_classes = 10  # Holds for both EuroSAT and MNIST variations
+
+        def one_hot_encode(target):
+            return torch.nn.functional.one_hot(torch.tensor(target), num_classes=num_classes).float()
+
+        dataset_path = project_root() / "cases/mnist"
+
+        eager = True
+        if dataset_cls is [EuroSAT, ]:
+            dataset_train, dataset_test = random_split(
+                EuroSAT(root=dataset_path, transform=transform, target_transform=one_hot_encode, eager=eager,
+                        cache_before_transform=True),
+                [.7, .3]
+            )
+            assert num_classes == len(dataset_train.dataset.classes)
+        elif dataset_cls in [MNIST, FashionMNIST]:
+            dataset_train = dataset_cls(root=dataset_path, train=True, download=True, transform=transform,
+                                        target_transform=one_hot_encode)
+            dataset_test = dataset_cls(root=dataset_path, train=False, download=True, transform=transform,
+                                       target_transform=one_hot_encode)
+            assert num_classes == len(dataset_train.classes)
+        elif dataset_cls in [CachedMNIST, CachedFashionMNIST]:
+            dataset_train = dataset_cls(root=dataset_path, train=True, transform=transform,
+                                        target_transform=one_hot_encode,
+                                        eager=eager,
+                                        cache_before_transform=False)
+            dataset_test = dataset_cls(root=dataset_path, train=False, transform=transform,
+                                       target_transform=one_hot_encode,
+                                       eager=eager,
+                                       cache_before_transform=False)
+            assert num_classes == len(dataset_train.classes)
+        else:
+            raise ValueError("Unknown dataset: " + dataset_cls)
+
+        return dataset_train, dataset_test
 
     def obtain_descriptive_name_suffix(self) -> str:
         if self.dataset_cls in [FashionMNIST, CachedFashionMNIST]:

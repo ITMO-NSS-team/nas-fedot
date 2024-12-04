@@ -322,6 +322,7 @@ def plot_all_pareto_fronts():
         plt.legend()
         plt.show()
         reset_next_color_index()
+        exit()
 
 def plot_parameter_numbers():
     for dataset in dataset_results_dir:
@@ -338,3 +339,4 @@ def plot_parameter_numbers():
 
 if __name__ == '__main__':
     plot_all_pareto_fronts()
+    # plot_parameter_numbers()
