@@ -276,6 +276,11 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
         if not isinstance(this_results, List):
             this_results = [this_results]
         this_results.extend(this_extra_final_results)
+
+        print(len(this_results))
+        max_measurements = 10
+        if len(this_results) > max_measurements:
+            this_results = this_results[:max_measurements]
         for this_run in this_results:
             final_metric = this_run[final_metric_name]  # For after-learning
 
@@ -324,6 +329,7 @@ def plot_all_pareto_fronts():
         reset_next_color_index()
         exit()
 
+
 def plot_parameter_numbers():
     for dataset in dataset_results_dir:
         for model in dataset_results_dir[dataset]:
@@ -336,6 +342,7 @@ def plot_parameter_numbers():
             plt.title(f"Parameter number distribution for {dataset} {model}")
             plt.show()
             reset_next_color_index()
+
 
 if __name__ == '__main__':
     plot_all_pareto_fronts()

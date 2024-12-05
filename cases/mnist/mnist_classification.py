@@ -196,9 +196,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
-                                                           timeout=datetime.timedelta(hours=12.),
-                                                           optimization_fitting_timeout_seconds=60 * (
-                                                               15 if dataset_cls == EuroSAT else 12),
+                                                           timeout=datetime.timedelta(hours=10.),
                                                            num_of_generations=num_of_generations,
                                                            early_stopping_iterations=None,
                                                            early_stopping_timeout=10000000000000000000000000000000000.,
@@ -466,7 +464,7 @@ def run_with_configuration(cfg: RunConfiguration, dir_name: Union[str, os.PathLi
 
 
 def supported_linear_conv_configurations():
-    return [(True, True), (False, False), (True, False)]
+    return [(False, False), (True, True), (True, False)]
 
 
 if __name__ == '__main__':
@@ -476,11 +474,11 @@ if __name__ == '__main__':
         dataset_cls=EuroSAT,
         linear_is_kan=True,
         conv_is_kan=True,
-        repetitions_for_final_choices=12,
+        repetitions_for_final_choices=10,
         history_path_instead_of_evolution=None
     )
 
-    for (linear_is_kan, conv_is_kan) in [(True, True)]:
+    for (linear_is_kan, conv_is_kan) in supported_linear_conv_configurations():
         run_config = (basic_config
                       ._replace(linear_is_kan=linear_is_kan)
                       ._replace(conv_is_kan=conv_is_kan)
