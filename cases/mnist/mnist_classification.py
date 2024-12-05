@@ -349,7 +349,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
 
 class RunConfiguration(NamedTuple):
-    dataset_cls: Type[EuroSAT] | Type[CachedFashionMNIST] | Type[CachedMNIST]
+    dataset_cls: Union[Type[EuroSAT], Type[CachedFashionMNIST], Type[CachedMNIST]]
     linear_is_kan: bool
     conv_is_kan: bool
     repetitions_for_final_choices: int
