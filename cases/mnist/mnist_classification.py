@@ -483,10 +483,10 @@ if __name__ == '__main__':
                       ._replace(linear_is_kan=linear_is_kan)
                       ._replace(conv_is_kan=conv_is_kan)
                       )
-        run_config = run_config._replace(
-            history_path_instead_of_evolution=get_canonical_history_dir(run_config, name_prefix=input_run_prefix,
-                                                                        deduplicate=False) + "/history.json"
-        )
+        # run_config = run_config._replace(
+        #     history_path_instead_of_evolution=get_canonical_history_dir(run_config, name_prefix=input_run_prefix,
+        #                                                                 deduplicate=False) + "/history.json"
+        # )
 
         print(f"Running with run configuration {run_config}")
         try:
