@@ -122,7 +122,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     visualize = False
     cv_folds = None
     num_classes = 10
-    image_side_size = 28
+    image_side_size = 64 if dataset_cls == EuroSAT else 28
     batch_size = 16
     epochs = 10
     optimization_epochs = 10
@@ -381,7 +381,7 @@ class RunConfiguration(NamedTuple):
         dataset_path = project_root() / "cases/mnist"
 
         eager = True
-        if dataset_cls is [EuroSAT, ]:
+        if dataset_cls in [EuroSAT, ]:
             dataset_train, dataset_test = random_split(
                 EuroSAT(root=dataset_path, transform=transform, target_transform=one_hot_encode, eager=eager,
                         cache_before_transform=True),
@@ -471,7 +471,7 @@ if __name__ == '__main__':
     input_run_prefix = "ltr"
     output_run_prefix = "ci-ltr"
     basic_config = RunConfiguration(
-        dataset_cls=CachedMNIST,
+        dataset_cls=EuroSAT,
         linear_is_kan=True,
         conv_is_kan=True,
         repetitions_for_final_choices=12,
