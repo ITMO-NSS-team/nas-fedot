@@ -125,7 +125,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     image_side_size = 64 if dataset_cls == EuroSAT else 28
     batch_size = 16
     epochs = 20 if dataset_cls == EuroSAT else 10
-    optimization_epochs = 10
+    optimization_epochs = 20 if dataset_cls == EuroSAT else 10
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
