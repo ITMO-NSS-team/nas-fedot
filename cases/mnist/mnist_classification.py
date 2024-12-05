@@ -142,7 +142,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     if linear_is_kan:
         fc_layers_pool = [LayersPoolEnum.kan_linear, ]
         min_fc_layers = 1
-        max_fc_layers = 1
+        max_fc_layers = 2 if dataset_cls == EuroSAT else 1
     else:
         fc_layers_pool = [LayersPoolEnum.linear, ]
         min_fc_layers = 2
@@ -151,12 +151,12 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     if conv_is_kan:
         conv_layers_pool = [LayersPoolEnum.kan_conv2d, ]
         min_conv_layers = 2
-        max_conv_layers = 3
+        max_conv_layers = 4 if dataset_cls == EuroSAT else 3
     else:
         conv_layers_pool = [LayersPoolEnum.conv2d, ]
 
         min_conv_layers = 2
-        max_conv_layers = 6
+        max_conv_layers = 8 if dataset_cls == EuroSAT else 6
 
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
                  MutationTypesEnum.single_change]
@@ -197,6 +197,8 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
                                                            timeout=datetime.timedelta(hours=12.),
+                                                           optimization_fitting_timeout_seconds=60 * (
+                                                               20 if dataset_cls == EuroSAT else 12),
                                                            num_of_generations=num_of_generations,
                                                            early_stopping_iterations=None,
                                                            early_stopping_timeout=10000000000000000000000000000000000.,
@@ -468,8 +470,8 @@ def supported_linear_conv_configurations():
 
 
 if __name__ == '__main__':
-    input_run_prefix = "ltr"
-    output_run_prefix = "ci-ltr"
+    # input_run_prefix = "ltr"
+    output_run_prefix = "test-eurosat"
     basic_config = RunConfiguration(
         dataset_cls=EuroSAT,
         linear_is_kan=True,
