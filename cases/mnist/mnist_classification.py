@@ -198,7 +198,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                                                            model_requirements=model_requirements,
                                                            timeout=datetime.timedelta(hours=12.),
                                                            optimization_fitting_timeout_seconds=60 * (
-                                                               20 if dataset_cls == EuroSAT else 12),
+                                                               15 if dataset_cls == EuroSAT else 12),
                                                            num_of_generations=num_of_generations,
                                                            early_stopping_iterations=None,
                                                            early_stopping_timeout=10000000000000000000000000000000000.,
