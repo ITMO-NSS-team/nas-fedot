@@ -62,13 +62,17 @@ dataset_results_dir = {
 
 
 def dir_dict_with_grid(root_dir, modification, dataset_names: List[Tuple[str, str]], algorithm_names,
-                       only_existing_dirs=False):
-    resultant_root = f"{root_dir}/{modification}"
+                       only_existing_dirs=False, special_prefix_for_configs=None):
+    if special_prefix_for_configs is None:
+        special_prefix_for_configs = {}
+
     res = {}
     for (ds_presentation_name, ds_path_name) in dataset_names:
         ds_res = {}
         for algo_name in algorithm_names:
-            result_dir = f"{resultant_root}-{algo_name}-{ds_path_name}"
+            special_prefix_trial = special_prefix_for_configs.get((ds_path_name, algo_name))
+            prefix = special_prefix_trial if special_prefix_trial is not None else modification
+            result_dir = f"{root_dir}/{prefix}-{algo_name}-{ds_path_name}"
             if not only_existing_dirs or os.path.isdir(result_dir):
                 ds_res[algo_name] = result_dir
         res[ds_presentation_name] = ds_res
@@ -83,8 +87,15 @@ dataset_results_dir = dir_dict_with_grid(
         ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"),
         # ("EuroSAT", "eurosat")
     ],
-    ["cnn", "dense-kan", "cnn-kan", "kan"],
-    False
+    ["cnn", "dense-kan", "cnn-kan",
+     "kan"
+     ],
+    only_existing_dirs=False,
+    special_prefix_for_configs={
+        # ("mnist", "dense-kan"): "ltr-re-eval",
+        ("mnist", "cnn-kan"): "ltr-re-eval",
+        # ("mnist", "cnn"): "ltr-re-eval",
+    }
 )
 
 
@@ -108,6 +119,7 @@ extra_runs_folders = transplant_path_dict({
 
     "ltr-cnn-mnist": ["ci-ltr-cnn-mnist"],
     "ltr-cnn-kan-mnist": ["ci-ltr-cnn-kan-mnist"],
+    "ltr-dense-kan-mnist": ["ltr-re-eval-dense-kan-mnist"],
     "ltr-kan-mnist": ["ci-ltr-kan-mnist"],
 }, result_root_dir)
 
@@ -170,6 +182,7 @@ def visualise_pareto_front(front: Sequence[Individual | List[float]],
                            color: str = 'red',
                            label: str = None
                            ):
+    front.sort(key=lambda t: t[1])
     pareto_obj_first, pareto_obj_second = [], []
     for ind in front:
         fitness_list = ind.fitness.values if isinstance(ind, Individual) else ind
@@ -263,11 +276,13 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
     final_choices = history.final_choices.data
 
     front = []
-    for ind in final_choices:
+    model_averages = []
+    for i, ind in enumerate(final_choices[::-1]):
         # print(ind.fitness, ind.uid)
         # print(final_results[ind.uid])
         assert final_metric_name == "accuracy"
         complexity_metric = ind.fitness.values[1]
+        print(complexity_metric)
 
         # final_metric = -ind.fitness.values[0]  # For in-optimizer score
 
@@ -278,12 +293,22 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
         this_results.extend(this_extra_final_results)
 
         print(len(this_results))
-        max_measurements = 10
-        if len(this_results) > max_measurements:
-            this_results = this_results[:max_measurements]
+        # max_measurements = 10
+        # if len(this_results) > max_measurements:
+        #     this_results = this_results[:max_measurements]
+        metric_sum = 0
         for this_run in this_results:
             final_metric = this_run[final_metric_name]  # For after-learning
+            if final_metric < 0.6:
+                continue
 
+            metric_sum += final_metric
+        model_averages.append(metric_sum / len(this_results))
+        if len(model_averages) >= 2 and model_averages[-1] < model_averages[-2]:
+            continue
+
+        for this_run in this_results:
+            final_metric = this_run[final_metric_name]
             if final_metric < 0.6:
                 continue
 
@@ -299,7 +324,8 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
     visualise_pareto_front(
         front, show=False, objectives_names=("Parameters", final_metric_name), label=label, color=None,
         case_name=case_name,
-        objectives_numbers=(1, 0)
+        objectives_numbers=(1, 0),
+        file_name=f"{case_name}-pareto.png"
     )
 
 
@@ -327,7 +353,7 @@ def plot_all_pareto_fronts():
         plt.legend()
         plt.show()
         reset_next_color_index()
-        exit()
+        # exit()
 
 
 def plot_parameter_numbers():
