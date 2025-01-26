@@ -3,6 +3,7 @@ import os
 from collections.abc import Sequence
 from copy import deepcopy
 from itertools import groupby
+from pathlib import Path
 
 import seaborn
 from fedot.core.visualisation.pipeline_specific_visuals import PipelineVisualizer
@@ -17,6 +18,7 @@ from typing import Tuple, List, Dict
 from seaborn import histplot
 import seaborn as sns
 
+from cases.mnist.experiment_utils import parse_run_name
 from nas.graph.base_graph import NasGraph
 from nas.graph.node.adapter import NasNodeOperatorAdapter
 from nas.graph.node.nas_graph_node import NasNode
@@ -114,17 +116,17 @@ dataset_results_dir = dir_dict_with_grid(
      ],
     only_existing_dirs=False,
     special_prefix_for_configs={
-        # ("mnist", "dense-kan"): "ltr-re-eval",
-        ("fashion-mnist", "kan"): "small",  # @ba51a28d977a6a518e2acc357e81289ec77bb1d3
-        ("fashion-mnist", "cnn"): "small",  # @1f8815e20dc854c80e319f8d0935e8bee9d16544
+        # ("mnist", "dense-kan"): ["ltr-re-eval"],
+        ("fashion-mnist", "kan"): [None, "small"],  # @ba51a28d977a6a518e2acc357e81289ec77bb1d3
+        ("fashion-mnist", "cnn"): [None, "small"],  # @1f8815e20dc854c80e319f8d0935e8bee9d16544
 
-        ("mnist", "cnn"): "moderate",  # @55d013d706306724fdc2be6754c1dd172b861589
-        ("fashion-mnist", "cnn"): "moderate",  # @55d013d706306724fdc2be6754c1dd172b861589
+        ("mnist", "cnn"): [None, "moderate"],  # @55d013d706306724fdc2be6754c1dd172b861589
+        ("fashion-mnist", "cnn"): [None, "moderate"],  # @55d013d706306724fdc2be6754c1dd172b861589
 
-        ("mnist", "cnn-kan"): "ltr-re-eval",
-        # ("mnist", "cnn"): "ltr-re-eval",
+        ("mnist", "cnn-kan"): ["ltr-re-eval"],
+        # ("mnist", "cnn"): ["ltr-re-eval"],
 
-        ("eurosat", "kan"): "ltr-re-eval"
+        ("eurosat", "kan"): ["ltr-re-eval"]
     }
 )
 
@@ -360,12 +362,13 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
     )
 
 
-def plot_parameter_number_hist(history):
+def plot_parameter_number_hist(histories: List, relative=True):
     param_values = []
-    for ind in individuals_pool(history):
-        param_values.append(ind.fitness.values[1])
+    for history in histories:
+        for ind in individuals_pool(history):
+            param_values.append(ind.fitness.values[1])
 
-    histplot(param_values, log_scale=True, bins=4)
+    histplot(param_values, log_scale=True, bins=4, stat="proportion" if relative else "count")
 
 
 def plot_all_pareto_fronts():
@@ -387,20 +390,30 @@ def plot_all_pareto_fronts():
         # exit()
 
 
-def plot_parameter_numbers():
+def plot_parameter_numbers(merge_groups=False, relative=True):
     for dataset in dataset_results_dir:
         for model in dataset_results_dir[dataset]:
             print(f"Dataset: {dataset}, Model: {model}")
-            base_eval_path = dataset_results_dir[dataset][model]
-            history_path = base_eval_path + "/history.json"
-            history = OptHistory.load(history_path)
+            if not merge_groups:
+                for base_eval_path in dataset_results_dir[dataset][model]:
+                    print(base_eval_path)
+                    prefix, _, _ = parse_run_name(Path(base_eval_path).name)
+                    print(f"Prefix: {prefix}")
+                    history_path = base_eval_path + "/history.json"
+                    history = OptHistory.load(history_path)
 
-            plot_parameter_number_hist(history)
-            plt.title(f"Parameter number distribution for {dataset} {model}")
-            plt.show()
-            reset_next_color_index()
+                    plot_parameter_number_hist([history], relative=relative)
+                    plt.title(f"Parameter number distribution for {dataset} {model} (run „{prefix}“)")
+                    plt.show()
+                    reset_next_color_index()
+            else:
+                histories = list(map(lambda path: OptHistory.load(path + "/history.json"), dataset_results_dir[dataset][model]))
+                plot_parameter_number_hist(histories, relative=relative)
+                plt.title(f"Parameter number distribution for {dataset} {model}")
+                plt.show()
+                reset_next_color_index()
 
 
 if __name__ == '__main__':
-    plot_all_pareto_fronts()
-    # plot_parameter_numbers()
+    # plot_all_pareto_fronts()
+    plot_parameter_numbers(merge_groups=True, relative=True)

@@ -116,8 +116,10 @@ def get_canonical_history_dir(cfg: RunConfiguration, full_name: Optional[str] = 
         full_name = cfg.obtain_descriptive_name_suffix()  # For now, just don't create unnamed runs
     return obtain_history_dir_name(full_name, deduplicate=deduplicate)
 
+
 MODEL_NAMES = ["cnn", "kan", "dense-kan", "cnn-kan"]
 DATASET_NAMES = ["mnist", "fashion-mnist", "eurosat"]
+
 
 def parse_run_name(run_name: str) -> (str, str, str):
     """Run name is formatted as {prefix}-{model}-{dataset}.
