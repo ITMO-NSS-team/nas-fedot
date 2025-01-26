@@ -85,7 +85,7 @@ dataset_results_dir = dir_dict_with_grid(
     "ltr",
     [
         ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"),
-        # ("EuroSAT", "eurosat")
+        ("EuroSAT", "eurosat")
     ],
     ["cnn", "dense-kan", "cnn-kan",
      "kan"
@@ -93,8 +93,16 @@ dataset_results_dir = dir_dict_with_grid(
     only_existing_dirs=False,
     special_prefix_for_configs={
         # ("mnist", "dense-kan"): "ltr-re-eval",
+        ("fashion-mnist", "kan"): "small",      # @ba51a28d977a6a518e2acc357e81289ec77bb1d3
+        ("fashion-mnist", "cnn"): "small",      # @1f8815e20dc854c80e319f8d0935e8bee9d16544
+
+        ("mnist", "cnn"): "moderate",           # @55d013d706306724fdc2be6754c1dd172b861589
+        ("fashion-mnist", "cnn"): "moderate",   # @55d013d706306724fdc2be6754c1dd172b861589
+
         ("mnist", "cnn-kan"): "ltr-re-eval",
         # ("mnist", "cnn"): "ltr-re-eval",
+
+        ("eurosat", "kan"): "ltr-re-eval"
     }
 )
 
