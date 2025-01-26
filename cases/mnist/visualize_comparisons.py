@@ -6,6 +6,7 @@ from itertools import groupby
 from pathlib import Path
 
 import seaborn
+import tabulate
 from fedot.core.visualisation.pipeline_specific_visuals import PipelineVisualizer
 from golem.core.adapter import DirectAdapter
 from golem.core.optimisers.opt_history_objects.individual import Individual
@@ -15,6 +16,7 @@ from golem.visualisation.opt_viz_extra import visualise_pareto
 from matplotlib import pyplot as plt
 from typing import Tuple, List, Dict
 
+from numpy import average
 from seaborn import histplot
 import seaborn as sns
 
@@ -204,7 +206,7 @@ def reset_next_color_index():
     color_cycle_index = 0
 
 
-def visualise_pareto_front(front: Sequence[Individual | List[float]],
+def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
                            objectives_numbers: Tuple[int, int] = (0, 1),
                            objectives_names: Sequence[str] = ('ROC-AUC', 'Complexity'),
                            file_name: str = 'result_pareto.png', show: bool = False, save: bool = True,
@@ -383,6 +385,56 @@ def plot_parameter_number_hist(histories: List, relative=True):
     histplot(param_values, log_scale=True, bins=4, stat="proportion" if relative else "count")
 
 
+def table_of_best_models_for_dataset():
+    """
+    For each dataset, builds a separate LaTeX table with the best models of each type.
+    The best model is determined by the highest accuracy of all its evaluation attempts.
+    
+    Use tabulate for the table building.
+    """
+    extra_results = get_extra_final_results()
+    for dataset in dataset_results_dir:
+        dataset_table = []
+        for arch in dataset_results_dir[dataset]:
+            print(f"Dataset: {dataset}, Model: {arch}")
+            base_eval_paths = dataset_results_dir[dataset][arch]
+            histories = list(
+                map(lambda path: OptHistory.load(path + "/history.json"), base_eval_paths))
+            final_results = merge_dicts(list(
+                map(lambda path: json.load(open(path + "/final_results.json")), base_eval_paths)))
+
+            best_model_uid = None
+            best_model_accuracy = 0
+            for history in histories:
+                for ind in individuals_pool(history):
+                    this_results = final_results[ind.uid]
+                    if not isinstance(this_results, List):
+                        this_results = [this_results]
+                    this_results.extend(extra_results.get(ind.uid, []))
+
+                    ind_metric_values = [this_run["accuracy"] for this_run in this_results]
+                    this_model_aggregated = max(ind_metric_values)  # average(ind_metric_values)
+
+                    if this_model_aggregated > best_model_accuracy:
+                        best_model_accuracy = this_model_aggregated
+                        best_model_uid = ind.uid
+
+            print(f"Best model: {best_model_uid}, Accuracy: {best_model_accuracy}")
+            dataset_table.append((arch, best_model_uid, best_model_accuracy))
+
+        # Now, highlight the best model's accuracy in the table in bold.
+        # Before, round the accuracy to 3 decimal places.
+        dataset_table = [(arch, uid, round(acc, 3)) for arch, uid, acc in dataset_table]
+        best_metric = max([acc for _, _, acc in dataset_table])
+        # Highlight the best model's accuracy in bold
+        dataset_table = [(arch, uid, f"\\textbf{{{acc}}}" if acc == best_metric else acc) for arch, uid, acc in
+                         dataset_table]
+        print(dataset_table)
+
+        table = tabulate.tabulate(dataset_table, headers=["Architecture", "UID", "Accuracy"], tablefmt="latex_raw")
+        print(table)
+
+
 def merge_dicts(l):
     result = {}
     for d in l:
@@ -448,5 +500,6 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    plot_all_pareto_fronts(remove_domniated=False, merge_runs=False)
+    # plot_all_pareto_fronts(remove_domniated=False, merge_runs=False)
     # plot_parameter_numbers(merge_groups=True, relative=True)
+    table_of_best_models_for_dataset()
