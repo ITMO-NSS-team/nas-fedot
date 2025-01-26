@@ -252,9 +252,9 @@ def visualise_pareto_front(front: Sequence[Individual | List[float]],
     # plt.xscale('log')
 
     if minmax_x is not None:
-        plt.xlim(minmax_x[0], minmax_x[1])
+        plt.xlim(*minmax_x)
     if minmax_y is not None:
-        plt.ylim(minmax_y[0], minmax_y[1])
+        plt.ylim(*minmax_y)
     # fig.set_figwidth(8)
     # fig.set_figheight(8)
     if save:
@@ -303,14 +303,23 @@ def get_extra_final_results():
     return res
 
 
-def plot_final_pareto_front(history, final_results, case_name: str, label: str, final_metric_name: str,
-                            extra_results: Dict[str, List]):
-    individuals = individuals_pool(history)
-    final_choices = history.final_choices.data
+def plot_final_pareto_front(histories: List[OptHistory], final_results, case_name: str, label: str,
+                            final_metric_name: str,
+                            extra_results: Dict[str, List], remove_dominated: bool):
+    """
+    Called ones per trajectory to plot.
+    The trajectory could be a scatter+line or stat-intervals if enough models have enough evaluation attempts.
+
+    The trajectory could be obtained either from a single history or from the whole collection.
+    The latter case is general, so the former one is considered as a partial case with list length = 1.
+    """
+    # individuals = individuals_pool(history)
+    final_choices: List = sum([history.final_choices.data for history in histories], [])
+    final_choices.sort(key=lambda ind: ind.fitness.values[1])
 
     front = []
     model_averages = []
-    for i, ind in enumerate(final_choices[::-1]):
+    for i, ind in enumerate(final_choices):
         # print(ind.fitness, ind.uid)
         # print(final_results[ind.uid])
         assert final_metric_name == "accuracy"
@@ -336,9 +345,13 @@ def plot_final_pareto_front(history, final_results, case_name: str, label: str, 
                 continue
 
             metric_sum += final_metric
-        model_averages.append(metric_sum / len(this_results))
-        if len(model_averages) >= 2 and model_averages[-1] < model_averages[-2]:
+        this_model_average = metric_sum / len(this_results)
+
+        # Remove dominated by any of the previous models of the front
+        if remove_dominated and len(model_averages) >= 2 and this_model_average < model_averages[-1]:
             continue
+        model_averages.append(this_model_average)
+
 
         for this_run in this_results:
             final_metric = this_run[final_metric_name]
@@ -371,19 +384,28 @@ def plot_parameter_number_hist(histories: List, relative=True):
     histplot(param_values, log_scale=True, bins=4, stat="proportion" if relative else "count")
 
 
-def plot_all_pareto_fronts():
+def merge_dicts(l):
+    result = {}
+    for d in l:
+        result.update(d)
+    return result
+
+
+def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool):
     for dataset in dataset_results_dir:
         for model in dataset_results_dir[dataset]:
             print(f"Dataset: {dataset}, Model: {model}")
             base_eval_path = dataset_results_dir[dataset][model]
-            history_path = base_eval_path + "/history.json"
-            history = OptHistory.load(history_path)
-            final_results_json = json.load(open(base_eval_path + "/final_results.json"))
+            histories = list(
+                map(lambda path: OptHistory.load(path + "/history.json"), base_eval_path))
+            final_results = list(
+                map(lambda path: json.load(open(path + "/final_results.json")), base_eval_path))
 
             # plot_opt_pareto_front(history, label=model, case_name=dataset)
             extra_results = get_extra_final_results()
-            plot_final_pareto_front(history, final_results_json, label=model, case_name=dataset,
-                                    final_metric_name="accuracy", extra_results=extra_results)
+            plot_final_pareto_front(histories, merge_dicts(final_results), label=model, case_name=dataset,
+                                    final_metric_name="accuracy", extra_results=extra_results,
+                                    remove_dominated=remove_domniated)
         plt.legend()
         plt.show()
         reset_next_color_index()
@@ -407,7 +429,8 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
                     plt.show()
                     reset_next_color_index()
             else:
-                histories = list(map(lambda path: OptHistory.load(path + "/history.json"), dataset_results_dir[dataset][model]))
+                histories = list(
+                    map(lambda path: OptHistory.load(path + "/history.json"), dataset_results_dir[dataset][model]))
                 plot_parameter_number_hist(histories, relative=relative)
                 plt.title(f"Parameter number distribution for {dataset} {model}")
                 plt.show()
@@ -415,5 +438,5 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    # plot_all_pareto_fronts()
-    plot_parameter_numbers(merge_groups=True, relative=True)
+    plot_all_pareto_fronts(remove_domniated=True, merge_runs=True)
+    # plot_parameter_numbers(merge_groups=True, relative=True)
