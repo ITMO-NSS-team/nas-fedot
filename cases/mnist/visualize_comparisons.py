@@ -215,7 +215,9 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
                            minmax_x: List[float] = None,
                            minmax_y: List[float] = None,
                            color: str = 'red',
-                           label: str = None
+                           label: str = None,
+                           try_building_statintervals: bool = True,
+                           plot_line_between_points: bool = False
                            ):
     front.sort(key=lambda t: t[1])
     pareto_obj_first, pareto_obj_second = [], []
@@ -234,17 +236,18 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
         xys = list(xys)
         if len(xys) > 1:
             n_has_duplicates += 1
-    print(f"{n_has_duplicates}/{total_xs}")
+    print(f"{n_has_duplicates}/{total_xs} samples have duplicates")
     has_duplicates = n_has_duplicates / total_xs >= 0.5
 
     if color is None:
         color = retrieve_next_color()
 
-    if not has_duplicates:
-        # plt.xscale('log')
+    if not try_building_statintervals or not has_duplicates:
+        # Didn't want to or failed to build stat-intervals
         plt.scatter(pareto_obj_first, pareto_obj_second, c=color)
         # plt.xscale('log')
-        plt.plot(pareto_obj_first, pareto_obj_second, color=color, label=label)
+        if plot_line_between_points:
+            plt.plot(pareto_obj_first, pareto_obj_second, color=color, label=label)
     else:
         seaborn.lineplot(x=pareto_obj_first, y=pareto_obj_second, label=label, color=color)
 
@@ -307,7 +310,10 @@ def get_extra_final_results():
 
 def plot_final_pareto_front(histories: List[OptHistory], final_results, case_name: str, label: str,
                             final_metric_name: str,
-                            extra_results: Dict[str, List], remove_dominated: bool):
+                            extra_results: Dict[str, List], remove_dominated: bool,
+                            try_building_statintervals: bool,
+                            plot_line_between_points: bool
+                            ):
     """
     Called ones per trajectory to plot.
     The trajectory could be a scatter+line or stat-intervals if enough models have enough evaluation attempts.
@@ -372,7 +378,9 @@ def plot_final_pareto_front(histories: List[OptHistory], final_results, case_nam
         front, show=False, objectives_names=("Parameters", final_metric_name), label=label, color=None,
         case_name=case_name,
         objectives_numbers=(1, 0),
-        file_name=f"{case_name}-pareto.png"
+        file_name=f"{case_name}-pareto.png",
+        try_building_statintervals=try_building_statintervals,
+        plot_line_between_points=plot_line_between_points
     )
 
 
@@ -442,7 +450,10 @@ def merge_dicts(l):
     return result
 
 
-def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool):
+def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
+                           try_building_statintervals: bool = True,
+                           plot_line_between_points: bool = False
+                           ):
     for dataset in dataset_results_dir:
         for model in dataset_results_dir[dataset]:
             print(f"Dataset: {dataset}, Model: {model}")
@@ -467,7 +478,9 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool):
             for group_model_name, group_histories in zip(group_model_names, history_groups):
                 plot_final_pareto_front(group_histories, final_results, label=group_model_name, case_name=dataset,
                                         final_metric_name="accuracy", extra_results=extra_results,
-                                        remove_dominated=remove_domniated)
+                                        remove_dominated=remove_domniated,
+                                        try_building_statintervals=try_building_statintervals,
+                                        plot_line_between_points=plot_line_between_points)
         plt.legend()
         plt.show()
         reset_next_color_index()
@@ -500,6 +513,7 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    # plot_all_pareto_fronts(remove_domniated=False, merge_runs=False)
+    plot_all_pareto_fronts(remove_domniated=False, merge_runs=False, try_building_statintervals=False,
+                           plot_line_between_points=False)
     # plot_parameter_numbers(merge_groups=True, relative=True)
-    table_of_best_models_for_dataset()
+    # table_of_best_models_for_dataset()
