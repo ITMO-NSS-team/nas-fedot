@@ -63,6 +63,12 @@ dataset_results_dir = {
 
 def dir_dict_with_grid(root_dir, modification, dataset_names: List[Tuple[str, str]], algorithm_names,
                        only_existing_dirs=False, special_prefix_for_configs=None):
+    """
+    :param special_prefix_for_configs: indexed by [(dataset, model)], is List[prefix | None]
+    Empty list designates ignoring this pair. None in the list means the :param modification: prefix.
+
+    :returns: d[dataset][model]: List[path]; Configurations with empty lists are not present in the dict
+    """
     if special_prefix_for_configs is None:
         special_prefix_for_configs = {}
 
@@ -70,16 +76,32 @@ def dir_dict_with_grid(root_dir, modification, dataset_names: List[Tuple[str, st
     for (ds_presentation_name, ds_path_name) in dataset_names:
         ds_res = {}
         for algo_name in algorithm_names:
-            special_prefix_trial = special_prefix_for_configs.get((ds_path_name, algo_name))
-            prefix = special_prefix_trial if special_prefix_trial is not None else modification
-            result_dir = f"{root_dir}/{prefix}-{algo_name}-{ds_path_name}"
-            if not only_existing_dirs or os.path.isdir(result_dir):
-                ds_res[algo_name] = result_dir
+            config_res = []
+            special_prefixes_trial = special_prefix_for_configs.get((ds_path_name, algo_name))
+            if special_prefixes_trial is not None:
+                if special_prefixes_trial == []:
+                    continue
+                input_prefixes = special_prefixes_trial
+            else:
+                input_prefixes = [modification]
+
+            for prefix in input_prefixes:
+                if prefix is None:
+                    prefix = modification
+                result_dir = f"{root_dir}/{prefix}-{algo_name}-{ds_path_name}"
+                if not only_existing_dirs or os.path.isdir(result_dir):
+                    config_res.append(result_dir)
+
+            ds_res[algo_name] = config_res
         res[ds_presentation_name] = ds_res
     return res
 
 
 result_root_dir = "C:/dev/aim/nas_kan_results/_results"
+
+"""
+See :dir_dict_with_grid: for the format
+"""
 dataset_results_dir = dir_dict_with_grid(
     result_root_dir,
     "ltr",
@@ -93,11 +115,11 @@ dataset_results_dir = dir_dict_with_grid(
     only_existing_dirs=False,
     special_prefix_for_configs={
         # ("mnist", "dense-kan"): "ltr-re-eval",
-        ("fashion-mnist", "kan"): "small",      # @ba51a28d977a6a518e2acc357e81289ec77bb1d3
-        ("fashion-mnist", "cnn"): "small",      # @1f8815e20dc854c80e319f8d0935e8bee9d16544
+        ("fashion-mnist", "kan"): "small",  # @ba51a28d977a6a518e2acc357e81289ec77bb1d3
+        ("fashion-mnist", "cnn"): "small",  # @1f8815e20dc854c80e319f8d0935e8bee9d16544
 
-        ("mnist", "cnn"): "moderate",           # @55d013d706306724fdc2be6754c1dd172b861589
-        ("fashion-mnist", "cnn"): "moderate",   # @55d013d706306724fdc2be6754c1dd172b861589
+        ("mnist", "cnn"): "moderate",  # @55d013d706306724fdc2be6754c1dd172b861589
+        ("fashion-mnist", "cnn"): "moderate",  # @55d013d706306724fdc2be6754c1dd172b861589
 
         ("mnist", "cnn-kan"): "ltr-re-eval",
         # ("mnist", "cnn"): "ltr-re-eval",
@@ -115,7 +137,8 @@ def transplant_path_dict(d, root_dir):
     return res
 
 
-extra_runs_folders = transplant_path_dict({
+""" Doesn't exhibit new runs, new models. Is only treated as a container for additional stat evaluations """
+extra_evals_folders = transplant_path_dict({
     "ltr-cnn-fashion-mnist": [
         "ci-ltr-cnn-fashion-mnist", "ci2-ltr-cnn-fashion-mnist"
     ],
@@ -265,8 +288,8 @@ def get_extra_final_results():
     # this_results_folder_name = os.path.basename(this_results_dir.rstrip("\\").rstrip("/"))
     # extra_final_result_files = extra_runs_folders.get(this_results_folder_name, [])
     res = {}
-    for run_name, this_run_extra_runs_folders in extra_runs_folders.items():
-        for f in this_run_extra_runs_folders:
+    for run_name, this_run_extra_evals_folders in extra_evals_folders.items():
+        for f in this_run_extra_evals_folders:
             j = json.load(open(f + "/final_results.json"))
             for uid, graph_res in j.items():
                 if uid not in res:
