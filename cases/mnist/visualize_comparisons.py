@@ -352,7 +352,6 @@ def plot_final_pareto_front(histories: List[OptHistory], final_results, case_nam
             continue
         model_averages.append(this_model_average)
 
-
         for this_run in this_results:
             final_metric = this_run[final_metric_name]
             if final_metric < 0.6:
@@ -395,17 +394,28 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool):
     for dataset in dataset_results_dir:
         for model in dataset_results_dir[dataset]:
             print(f"Dataset: {dataset}, Model: {model}")
-            base_eval_path = dataset_results_dir[dataset][model]
+            base_eval_paths = dataset_results_dir[dataset][model]
             histories = list(
-                map(lambda path: OptHistory.load(path + "/history.json"), base_eval_path))
-            final_results = list(
-                map(lambda path: json.load(open(path + "/final_results.json")), base_eval_path))
+                map(lambda path: OptHistory.load(path + "/history.json"), base_eval_paths))
+            final_results = merge_dicts(list(
+                map(lambda path: json.load(open(path + "/final_results.json")), base_eval_paths)))
 
             # plot_opt_pareto_front(history, label=model, case_name=dataset)
             extra_results = get_extra_final_results()
-            plot_final_pareto_front(histories, merge_dicts(final_results), label=model, case_name=dataset,
-                                    final_metric_name="accuracy", extra_results=extra_results,
-                                    remove_dominated=remove_domniated)
+
+            if merge_runs:
+                history_groups = [histories]
+                group_model_names = [model]
+            else:
+                def listify(l):
+                    return [[el] for el in l]
+
+                history_groups = listify(histories)
+                group_model_names = [f"{model} ({parse_run_name(Path(path).name)[0]})" for path in base_eval_paths]
+            for group_model_name, group_histories in zip(group_model_names, history_groups):
+                plot_final_pareto_front(group_histories, final_results, label=group_model_name, case_name=dataset,
+                                        final_metric_name="accuracy", extra_results=extra_results,
+                                        remove_dominated=remove_domniated)
         plt.legend()
         plt.show()
         reset_next_color_index()
@@ -425,7 +435,7 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
                     history = OptHistory.load(history_path)
 
                     plot_parameter_number_hist([history], relative=relative)
-                    plt.title(f"Parameter number distribution for {dataset} {model} (run „{prefix}“)")
+                    plt.title(f"Parameter number distribution for {dataset} {model} ({prefix})")
                     plt.show()
                     reset_next_color_index()
             else:
@@ -438,5 +448,5 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    plot_all_pareto_fronts(remove_domniated=True, merge_runs=True)
+    plot_all_pareto_fronts(remove_domniated=False, merge_runs=False)
     # plot_parameter_numbers(merge_groups=True, relative=True)
