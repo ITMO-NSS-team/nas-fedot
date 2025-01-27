@@ -247,20 +247,27 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
     # Check if there are a lot of ys for any x
     n_has_duplicates = 0
     total_xs = 0
-    if only_best_run:
-        tmp_pareto_obj_first = []
-        tmp_pareto_obj_second = []
+    tmp_pareto_obj_first = []
+    tmp_pareto_obj_second = []
+    real_x = -1e10
     for x, xys in groupby(list(zip(pareto_obj_first, pareto_obj_second)), lambda xy: xy[0]):
         total_xs += 1
+        if x - real_x < pareto_obj_first[-1] / 35:
+            x = real_x
+        else:
+            real_x = x
         xys = list(xys)
         if len(xys) > 1:
             n_has_duplicates += 1
+
         if only_best_run:
             tmp_pareto_obj_first.append(x)
-            tmp_pareto_obj_second.append(max([y for x, y in xys]))
-    if only_best_run:
-        pareto_obj_second = tmp_pareto_obj_second
-        pareto_obj_first = tmp_pareto_obj_first
+            tmp_pareto_obj_second.append(max([y for _, y in xys]))
+        else:
+            tmp_pareto_obj_first.extend([x] * len(xys))
+            tmp_pareto_obj_second.extend([y for _, y in xys])
+    pareto_obj_second = tmp_pareto_obj_second
+    pareto_obj_first = tmp_pareto_obj_first
 
     print(f"{n_has_duplicates}/{total_xs} samples have duplicates")
     has_duplicates = n_has_duplicates / total_xs >= 0.5
@@ -270,17 +277,17 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
 
     if not try_building_statintervals or not has_duplicates:
         # Didn't want to or failed to build stat-intervals
-        deduplicate_params = deduplicate_by_lambda(pareto_obj_first, lambda p: p)
-        dists_adj = [deduplicate_params[i + 1] - deduplicate_params[i] for i in range(len(deduplicate_params) - 1)]
-        target_width_anchor = min([d for d in dists_adj if d > deduplicate_params[-1] / 10])
-        anchored_width = min(dists_adj)
+        # deduplicate_params = deduplicate_by_lambda(pareto_obj_first, lambda p: p)
+        # dists_adj = [deduplicate_params[i + 1] - deduplicate_params[i] for i in range(len(deduplicate_params) - 1)]
+        # target_width_anchor = min([d for d in dists_adj if d > deduplicate_params[-1] / 10])
+        # anchored_width = min(dists_adj)
         sns.boxplot(x=pareto_obj_first, y=pareto_obj_second,
                     color=color,
-                    # label=None if plot_line_between_points else label,
-                    native_scale=True,
-                    width=0.18 * target_width_anchor/anchored_width
+                    native_scale=True
+                    # width=0.18 * target_width_anchor/anchored_width
                     )
         plt.scatter([], [], color=color, label=label, alpha=1)
+        # label=None if plot_line_between_points else label,
         # plt.show()
 
         # plt.xscale('log')
