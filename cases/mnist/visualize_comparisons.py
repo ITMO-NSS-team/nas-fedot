@@ -13,7 +13,7 @@ from golem.core.optimisers.opt_history_objects.individual import Individual
 from golem.core.optimisers.opt_history_objects.opt_history import OptHistory
 from golem.visualisation.opt_viz import PlotTypesEnum
 from golem.visualisation.opt_viz_extra import visualise_pareto
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, ticker, rcParams
 from typing import Tuple, List, Dict
 
 from numpy import average
@@ -283,10 +283,13 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
         # anchored_width = min(dists_adj)
         sns.boxplot(x=pareto_obj_first, y=pareto_obj_second,
                     color=color,
-                    native_scale=True
+                    native_scale=True,
                     # width=0.18 * target_width_anchor/anchored_width
+                    fliersize=0
                     )
-        plt.scatter([], [], color=color, label=label, alpha=1)
+        # plt.scatter([], [], color=color, label=label, alpha=1)
+
+        seaborn.lineplot(x=pareto_obj_first, y=pareto_obj_second, label=label, color=color)
         # label=None if plot_line_between_points else label,
         # plt.show()
 
@@ -314,7 +317,7 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
             os.mkdir(f'{folder}')
 
         path = f'{folder}/{file_name}'
-        plt.savefig(path, bbox_inches='tight')
+        plt.savefig(path, bbox_inches='tight', dpi=600)
     if show:
         plt.show()
         reset_next_color_index()
@@ -505,6 +508,12 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
                            only_best_run: bool = False
                            ):
     for dataset in dataset_results_dir:
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{int(x/1000)}k' if x != 0 else 0))
+        plt.rc('xtick', labelsize=12)
+        plt.rc('ytick', labelsize=12)
+        plt.rc('legend', fontsize=14)
+
         for model in dataset_results_dir[dataset]:
             print(f"Dataset: {dataset}, Model: {model}")
             base_eval_paths = dataset_results_dir[dataset][model]
@@ -534,6 +543,7 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
                                         only_best_run=only_best_run
                                         )
         plt.legend()
+        # plt.tight_layout()
         plt.show()
         reset_next_color_index()
         # exit()
