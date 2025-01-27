@@ -270,7 +270,17 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
 
     if not try_building_statintervals or not has_duplicates:
         # Didn't want to or failed to build stat-intervals
-        plt.scatter(pareto_obj_first, pareto_obj_second, c=color, label=None if plot_line_between_points else label)
+        deduplicate_params = deduplicate_by_lambda(pareto_obj_first, lambda p: p)
+        dists_adj = [deduplicate_params[i + 1] - deduplicate_params[i] for i in range(len(deduplicate_params) - 1)]
+        target_width_anchor = min([d for d in dists_adj if d > deduplicate_params[-1] / 10])
+        anchored_width = min(dists_adj)
+        sns.boxplot(x=pareto_obj_first, y=pareto_obj_second,
+                    color=color,
+                    # label=None if plot_line_between_points else label,
+                    native_scale=True,
+                    width=0.25 * target_width_anchor/anchored_width
+                    )
+        plt.show()
 
         # plt.xscale('log')
         if plot_line_between_points:
