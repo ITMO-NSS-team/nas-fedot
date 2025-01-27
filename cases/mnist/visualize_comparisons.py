@@ -428,7 +428,7 @@ def table_of_best_models_for_dataset():
             best_model_uid = None
             best_model_accuracy = 0
             for history in histories:
-                for ind in individuals_pool(history):
+                for ind in history.final_choices:
                     this_results = final_results[ind.uid]
                     if not isinstance(this_results, List):
                         this_results = [this_results]
@@ -449,11 +449,11 @@ def table_of_best_models_for_dataset():
         dataset_table = [(arch, uid, round(acc, 3)) for arch, uid, acc in dataset_table]
         best_metric = max([acc for _, _, acc in dataset_table])
         # Highlight the best model's accuracy in bold
-        dataset_table = [(arch, uid, f"\\textbf{{{acc}}}" if acc == best_metric else acc) for arch, uid, acc in
+        dataset_table = [(arch, f"\\textbf{{{acc}}}" if acc == best_metric else acc) for arch, uid, acc in
                          dataset_table]
         print(dataset_table)
 
-        table = tabulate.tabulate(dataset_table, headers=["Architecture", "UID", "Accuracy"], tablefmt="latex_raw")
+        table = tabulate.tabulate(dataset_table, headers=["Architecture", "Accuracy"], tablefmt="latex_raw")
         print(table)
 
 
@@ -530,7 +530,7 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
-                           plot_line_between_points=False, only_best_run=True)
+    # plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
+    #                        plot_line_between_points=False, only_best_run=True)
     # plot_parameter_numbers(merge_groups=True, relative=True)
-    # table_of_best_models_for_dataset()
+    table_of_best_models_for_dataset()
