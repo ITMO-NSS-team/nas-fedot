@@ -242,7 +242,7 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
             n_has_duplicates += 1
         if only_best_run:
             tmp_pareto_obj_first.append(x)
-            tmp_pareto_obj_second.append(average([y for x, y in xys]))
+            tmp_pareto_obj_second.append(max([y for x, y in xys]))
     if only_best_run:
         pareto_obj_second = tmp_pareto_obj_second
         pareto_obj_first = tmp_pareto_obj_first
@@ -454,7 +454,8 @@ def table_of_best_models_for_dataset():
                          dataset_table]
         print(dataset_table)
 
-        table = tabulate.tabulate(dataset_table, headers=["Architecture", "#Parameters", "Accuracy"], tablefmt="latex_raw")
+        table = tabulate.tabulate(dataset_table, headers=["Architecture", "#Parameters", "Accuracy"],
+                                  tablefmt="latex_raw")
         print(table)
 
 
@@ -531,7 +532,12 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
-                           plot_line_between_points=False, only_best_run=True)
+    # Scatter
+    plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
+                           plot_line_between_points=False, only_best_run=False)
+    
+    # Non-dominated stat-intervals
+    # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
+    #                        plot_line_between_points=True, only_best_run=False)
     # plot_parameter_numbers(merge_groups=True, relative=True)
-    table_of_best_models_for_dataset()
+    # table_of_best_models_for_dataset()
