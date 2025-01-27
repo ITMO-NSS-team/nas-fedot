@@ -278,9 +278,10 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
                     color=color,
                     # label=None if plot_line_between_points else label,
                     native_scale=True,
-                    width=0.25 * target_width_anchor/anchored_width
+                    width=0.18 * target_width_anchor/anchored_width
                     )
-        plt.show()
+        plt.scatter([], [], color=color, label=label, alpha=1)
+        # plt.show()
 
         # plt.xscale('log')
         if plot_line_between_points:
