@@ -128,7 +128,18 @@ dataset_results_dir = dir_dict_with_grid(
         ("mnist", "cnn-kan"): ["ltr-re-eval"],
         # ("mnist", "cnn"): ["ltr-re-eval"],
 
-        ("eurosat", "kan"): ["ltr-re-eval"]
+        ("eurosat", "kan"): [
+            "ltr-re-eval",
+            # "old-revision"
+        ],
+        ("eurosat", "cnn-kan"): [
+            None,
+            # "old-revision"
+        ],
+        ("eurosat", "cnn"): [
+            None,
+            # "old-revision"
+        ]
     }
 )
 
@@ -156,6 +167,10 @@ extra_evals_folders = transplant_path_dict({
     "ltr-cnn-kan-mnist": ["ci-ltr-cnn-kan-mnist"],
     "ltr-dense-kan-mnist": ["ltr-re-eval-dense-kan-mnist"],
     "ltr-kan-mnist": ["ci-ltr-kan-mnist"],
+
+    # "old-revision-kan-eurosat": ["old-stats-extra-kan-eurosat", "old-stats-kan-eurosat"],
+    # "old-revision-cnn-kan-eurosat": ["old-stats-cnn-kan-eurosat"],
+    # "old-revision-cnn-eurosat": ["old-stats-cnn-eurosat"],
 }, result_root_dir)
 
 
@@ -535,7 +550,7 @@ if __name__ == '__main__':
     # Scatter
     plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
                            plot_line_between_points=False, only_best_run=False)
-    
+
     # Non-dominated stat-intervals
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
     #                        plot_line_between_points=True, only_best_run=False)
