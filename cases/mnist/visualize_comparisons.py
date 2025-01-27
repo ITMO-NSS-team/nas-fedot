@@ -256,7 +256,7 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
     if not try_building_statintervals or not has_duplicates:
         # Didn't want to or failed to build stat-intervals
         plt.scatter(pareto_obj_first, pareto_obj_second, c=color, label=None if plot_line_between_points else label)
-        
+
         # plt.xscale('log')
         if plot_line_between_points:
             plt.plot(pareto_obj_first, pareto_obj_second, color=color, label=label)
@@ -444,7 +444,6 @@ def table_of_best_models_for_dataset():
             print(f"Best model: {best_model_uid}, Accuracy: {best_model_accuracy}")
             dataset_table.append((arch, best_model_uid, best_model_accuracy))
 
-        # Now, highlight the best model's accuracy in the table in bold.
         # Before, round the accuracy to 3 decimal places.
         dataset_table = [(arch, uid, round(acc, 3)) for arch, uid, acc in dataset_table]
         best_metric = max([acc for _, _, acc in dataset_table])
