@@ -242,7 +242,7 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
             n_has_duplicates += 1
         if only_best_run:
             tmp_pareto_obj_first.append(x)
-            tmp_pareto_obj_second.append(max([y for x, y in xys]))
+            tmp_pareto_obj_second.append(average([y for x, y in xys]))
     if only_best_run:
         pareto_obj_second = tmp_pareto_obj_second
         pareto_obj_first = tmp_pareto_obj_first
@@ -427,6 +427,7 @@ def table_of_best_models_for_dataset():
 
             best_model_uid = None
             best_model_accuracy = 0
+            best_model_params = 0
             for history in histories:
                 for ind in history.final_choices:
                     this_results = final_results[ind.uid]
@@ -440,19 +441,20 @@ def table_of_best_models_for_dataset():
                     if this_model_aggregated > best_model_accuracy:
                         best_model_accuracy = this_model_aggregated
                         best_model_uid = ind.uid
+                        best_model_params = ind.fitness.values[1]
 
             print(f"Best model: {best_model_uid}, Accuracy: {best_model_accuracy}")
-            dataset_table.append((arch, best_model_uid, best_model_accuracy))
+            dataset_table.append((arch, best_model_params, best_model_accuracy))
 
         # Before, round the accuracy to 3 decimal places.
-        dataset_table = [(arch, uid, round(acc, 3)) for arch, uid, acc in dataset_table]
+        dataset_table = [(arch, params, round(acc, 3)) for arch, params, acc in dataset_table]
         best_metric = max([acc for _, _, acc in dataset_table])
         # Highlight the best model's accuracy in bold
-        dataset_table = [(arch, f"\\textbf{{{acc}}}" if acc == best_metric else acc) for arch, uid, acc in
+        dataset_table = [(arch, params, f"\\textbf{{{acc}}}" if acc == best_metric else acc) for arch, params, acc in
                          dataset_table]
         print(dataset_table)
 
-        table = tabulate.tabulate(dataset_table, headers=["Architecture", "Accuracy"], tablefmt="latex_raw")
+        table = tabulate.tabulate(dataset_table, headers=["Architecture", "#Parameters", "Accuracy"], tablefmt="latex_raw")
         print(table)
 
 
@@ -529,7 +531,7 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    # plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
-    #                        plot_line_between_points=False, only_best_run=True)
+    plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
+                           plot_line_between_points=False, only_best_run=True)
     # plot_parameter_numbers(merge_groups=True, relative=True)
     table_of_best_models_for_dataset()
