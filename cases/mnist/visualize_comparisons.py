@@ -122,7 +122,7 @@ dataset_results_dir = dir_dict_with_grid(
         ("fashion-mnist", "kan"): [None, "small"],  # @ba51a28d977a6a518e2acc357e81289ec77bb1d3
         ("fashion-mnist", "cnn"): [None, "small"],  # @1f8815e20dc854c80e319f8d0935e8bee9d16544
 
-        ("mnist", "cnn"): [None, "moderate"],  # @55d013d706306724fdc2be6754c1dd172b861589
+        ("mnist", "cnn"): ["moderate"],  # @55d013d706306724fdc2be6754c1dd172b861589
         ("fashion-mnist", "cnn"): [None, "moderate"],  # @55d013d706306724fdc2be6754c1dd172b861589
 
         ("mnist", "cnn-kan"): ["ltr-re-eval"],
@@ -217,7 +217,8 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
                            color: str = 'red',
                            label: str = None,
                            try_building_statintervals: bool = True,
-                           plot_line_between_points: bool = False
+                           plot_line_between_points: bool = False,
+                           only_best_run: bool = False
                            ):
     front.sort(key=lambda t: t[1])
     pareto_obj_first, pareto_obj_second = [], []
@@ -231,11 +232,21 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
     # Check if there are a lot of ys for any x
     n_has_duplicates = 0
     total_xs = 0
+    if only_best_run:
+        tmp_pareto_obj_first = []
+        tmp_pareto_obj_second = []
     for x, xys in groupby(list(zip(pareto_obj_first, pareto_obj_second)), lambda xy: xy[0]):
         total_xs += 1
         xys = list(xys)
         if len(xys) > 1:
             n_has_duplicates += 1
+        if only_best_run:
+            tmp_pareto_obj_first.append(x)
+            tmp_pareto_obj_second.append(max([y for x, y in xys]))
+    if only_best_run:
+        pareto_obj_second = tmp_pareto_obj_second
+        pareto_obj_first = tmp_pareto_obj_first
+
     print(f"{n_has_duplicates}/{total_xs} samples have duplicates")
     has_duplicates = n_has_duplicates / total_xs >= 0.5
 
@@ -244,7 +255,8 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
 
     if not try_building_statintervals or not has_duplicates:
         # Didn't want to or failed to build stat-intervals
-        plt.scatter(pareto_obj_first, pareto_obj_second, c=color)
+        plt.scatter(pareto_obj_first, pareto_obj_second, c=color, label=None if plot_line_between_points else label)
+        
         # plt.xscale('log')
         if plot_line_between_points:
             plt.plot(pareto_obj_first, pareto_obj_second, color=color, label=label)
@@ -312,7 +324,8 @@ def plot_final_pareto_front(histories: List[OptHistory], final_results, case_nam
                             final_metric_name: str,
                             extra_results: Dict[str, List], remove_dominated: bool,
                             try_building_statintervals: bool,
-                            plot_line_between_points: bool
+                            plot_line_between_points: bool,
+                            only_best_run: bool
                             ):
     """
     Called ones per trajectory to plot.
@@ -380,7 +393,8 @@ def plot_final_pareto_front(histories: List[OptHistory], final_results, case_nam
         objectives_numbers=(1, 0),
         file_name=f"{case_name}-pareto.png",
         try_building_statintervals=try_building_statintervals,
-        plot_line_between_points=plot_line_between_points
+        plot_line_between_points=plot_line_between_points,
+        only_best_run=only_best_run
     )
 
 
@@ -452,7 +466,8 @@ def merge_dicts(l):
 
 def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
                            try_building_statintervals: bool = True,
-                           plot_line_between_points: bool = False
+                           plot_line_between_points: bool = False,
+                           only_best_run: bool = False
                            ):
     for dataset in dataset_results_dir:
         for model in dataset_results_dir[dataset]:
@@ -480,7 +495,9 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
                                         final_metric_name="accuracy", extra_results=extra_results,
                                         remove_dominated=remove_domniated,
                                         try_building_statintervals=try_building_statintervals,
-                                        plot_line_between_points=plot_line_between_points)
+                                        plot_line_between_points=plot_line_between_points,
+                                        only_best_run=only_best_run
+                                        )
         plt.legend()
         plt.show()
         reset_next_color_index()
@@ -513,7 +530,7 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    plot_all_pareto_fronts(remove_domniated=False, merge_runs=False, try_building_statintervals=False,
-                           plot_line_between_points=False)
+    plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
+                           plot_line_between_points=False, only_best_run=True)
     # plot_parameter_numbers(merge_groups=True, relative=True)
     # table_of_best_models_for_dataset()
