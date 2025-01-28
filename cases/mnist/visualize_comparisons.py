@@ -480,6 +480,7 @@ def table_of_best_models_for_dataset():
     """
     convkan_metrics = {
         "FashionMNIST": {"cnn": (157_030, 0.9014), "kan": (94_875, 0.8969), "cnn-kan": (94_950, 0.8884)},
+        "MNIST": {"cnn": (157_030, 0.9912), "kan": (94_875, 0.9890), "cnn-kan": (94_950, 0.9875)},
     }
     extra_results = get_extra_final_results()
     for dataset in dataset_results_dir:
@@ -520,7 +521,8 @@ def table_of_best_models_for_dataset():
             if convkan_metric is not None:
                 smallest_model_winning_convkan = best_model_by(lambda new, old: new[0] < old[0],
                                                                lambda p, acc: acc > convkan_metric[1])
-                dataset_table.append((arch, smallest_model_winning_convkan[0], smallest_model_winning_convkan[1]))
+                if smallest_model_winning_convkan[1] is not None and smallest_model_winning_convkan != best_accuracy_model:
+                    dataset_table.append((arch, smallest_model_winning_convkan[0], smallest_model_winning_convkan[1]))
 
                 # Add the ConvKAN metric to the table
                 dataset_table.append((f"{arch} (ConvKAN)", convkan_metric[0], convkan_metric[1]))
