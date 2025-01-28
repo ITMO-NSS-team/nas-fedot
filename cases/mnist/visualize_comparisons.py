@@ -130,15 +130,15 @@ dataset_results_dir = dir_dict_with_grid(
 
         ("eurosat", "kan"): [
             "ltr-re-eval",
-            # "old-revision"
+            "old-revision"
         ],
         ("eurosat", "cnn-kan"): [
             None,
-            # "old-revision"
+            "old-revision"
         ],
         ("eurosat", "cnn"): [
             None,
-            # "old-revision"
+            "old-revision"
         ]
     }
 )
@@ -168,9 +168,9 @@ extra_evals_folders = transplant_path_dict({
     "ltr-dense-kan-mnist": ["ltr-re-eval-dense-kan-mnist"],
     "ltr-kan-mnist": ["ci-ltr-kan-mnist"],
 
-    # "old-revision-kan-eurosat": ["old-stats-extra-kan-eurosat", "old-stats-kan-eurosat"],
-    # "old-revision-cnn-kan-eurosat": ["old-stats-cnn-kan-eurosat"],
-    # "old-revision-cnn-eurosat": ["old-stats-cnn-eurosat"],
+    "old-revision-kan-eurosat": ["old-stats-extra-kan-eurosat", "old-stats-kan-eurosat"],
+    "old-revision-cnn-kan-eurosat": ["old-stats-cnn-kan-eurosat"],
+    "old-revision-cnn-eurosat": ["old-stats-cnn-eurosat"],
 }, result_root_dir)
 
 
@@ -521,7 +521,8 @@ def table_of_best_models_for_dataset():
             if convkan_metric is not None:
                 smallest_model_winning_convkan = best_model_by(lambda new, old: new[0] < old[0],
                                                                lambda p, acc: acc > convkan_metric[1])
-                if smallest_model_winning_convkan[1] is not None and smallest_model_winning_convkan != best_accuracy_model:
+                if smallest_model_winning_convkan[
+                    1] is not None and smallest_model_winning_convkan != best_accuracy_model:
                     dataset_table.append((arch, smallest_model_winning_convkan[0], smallest_model_winning_convkan[1]))
 
                 # Add the ConvKAN metric to the table
@@ -621,13 +622,13 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 
 if __name__ == '__main__':
-    # Scatter
-    # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
-    #                        plot_line_between_points=False, only_best_run=False)
+    # Boxplot
+    plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
+                           plot_line_between_points=False, only_best_run=False)
 
     # Non-dominated stat-intervals
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
     #                        plot_line_between_points=True, only_best_run=False)
 
     # plot_parameter_numbers(merge_groups=True, relative=True)
-    table_of_best_models_for_dataset()
+    # table_of_best_models_for_dataset()
