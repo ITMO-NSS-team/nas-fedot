@@ -471,7 +471,34 @@ def format_parameter_count(n, decimals=1):
     return formatted
 
 
-def table_of_best_models_for_dataset():
+def count_graph_flops(graph: NasGraph, side_size, colors):
+    from nas.model.pytorch.base_model import NASTorchModel
+    from nas.model.model_interface import NeuralSearchModel
+
+    input_shape = [side_size, side_size, colors]
+    m = NeuralSearchModel(NASTorchModel).compile_model(graph, input_shape, 10).model
+    return count_flops(m, side_size, colors)
+
+
+def count_flops(torch_model, side_size, colors):
+    import torch
+    from torchtnt.utils.flops import FlopTensorDispatchMode
+    import copy
+    input = torch.randn(1, colors, side_size, side_size).to(torch_model.parameters().__next__().device)
+
+    with FlopTensorDispatchMode(torch_model) as ftdm:
+        # count forward flops
+        res = torch_model(input).mean()
+        flops_forward = copy.deepcopy(ftdm.flop_counts)
+
+        # reset count before counting backward flops
+        # ftdm.reset()
+        # res.backward()
+        # flops_backward = copy.deepcopy(ftdm.flop_counts)
+    return flops_forward
+
+
+def table_of_best_models_for_dataset(include_flops=False):
     """
     For each dataset, builds a separate LaTeX table with the best models of each type.
     The best model is determined by the highest accuracy of all its evaluation attempts.
@@ -479,8 +506,10 @@ def table_of_best_models_for_dataset():
     Use tabulate for the table building.
     """
     convkan_metrics = {
-        "FashionMNIST": {"cnn": (157_030, 0.9014), "kan": (94_875, 0.8969), "cnn-kan": (94_950, 0.8884)},
-        "MNIST": {"cnn": (157_030, 0.9912), "kan": (94_875, 0.9890), "cnn-kan": (94_950, 0.9875)},
+        "FashionMNIST": {"cnn": (157_030, 0.9014, 32_340_992), "kan": (94_875, 0.8969, 606_305),
+                         "cnn-kan": (94_950, 0.8884, 113_680)},
+        "MNIST": {"cnn": (157_030, 0.9912, 32_340_992), "kan": (94_875, 0.9890, 606_305),
+                  "cnn-kan": (94_950, 0.9875, 113_680)},
     }
     extra_results = get_extra_final_results()
     for dataset in dataset_results_dir:
@@ -498,6 +527,7 @@ def table_of_best_models_for_dataset():
             def best_model_by(first_better, filter):
                 best_model_accuracy = None
                 best_model_params = None
+                best_model_flops = None
                 for history in histories:
                     for ind in history.final_choices:
                         this_results = final_results[ind.uid]
@@ -514,30 +544,42 @@ def table_of_best_models_for_dataset():
                                                                      (best_model_params, best_model_accuracy)):
                             best_model_accuracy = this_model_aggregated
                             best_model_params = this_model_params
-                return best_model_params, best_model_accuracy
+                            best_model_flops = sum(count_graph_flops(
+                                DirectAdapter(base_graph_class=NasGraph, base_node_class=NasNode).restore(ind.graph),
+                                28 if dataset != "EuroSAT" else 64,
+                                1 if dataset != "EuroSAT" else 3)[""].values())
+                return best_model_params, best_model_accuracy, best_model_flops
 
             best_accuracy_model = best_model_by(lambda new, old: new[1] > old[1], None)
-            dataset_table.append((arch, best_accuracy_model[0], best_accuracy_model[1]))
+            dataset_table.append((arch, best_accuracy_model[0], best_accuracy_model[1], best_accuracy_model[2]))
             if convkan_metric is not None:
                 smallest_model_winning_convkan = best_model_by(lambda new, old: new[0] < old[0],
                                                                lambda p, acc: acc > convkan_metric[1])
                 if smallest_model_winning_convkan[
                     1] is not None and smallest_model_winning_convkan != best_accuracy_model:
-                    dataset_table.append((arch, smallest_model_winning_convkan[0], smallest_model_winning_convkan[1]))
+                    dataset_table.append((arch, smallest_model_winning_convkan[0], smallest_model_winning_convkan[1],
+                                          smallest_model_winning_convkan[2]))
 
                 # Add the ConvKAN metric to the table
-                dataset_table.append((f"{arch} (ConvKAN)", convkan_metric[0], convkan_metric[1]))
+                dataset_table.append((f"{arch} (ConvKAN)", convkan_metric[0], convkan_metric[1], convkan_metric[2]))
 
         # Before, round the accuracy to 3 decimal places.
-        dataset_table = [(arch, params, round(acc, 3)) for arch, params, acc in dataset_table]
-        best_metric = max([acc for _, _, acc in dataset_table])
+        dataset_table = [(arch, params, round(acc, 3), flops) for arch, params, acc, flops in dataset_table]
+        best_metric = max([acc for _, _, acc, _ in dataset_table])
         # Highlight the best model's accuracy in bold
-        dataset_table = [(arch, format_parameter_count(params), f"\\textbf{{{acc}}}" if acc == best_metric else acc) for
-                         arch, params, acc in
+        dataset_table = [(arch, format_parameter_count(params), f"\\textbf{{{acc}}}" if acc == best_metric else acc,
+                          format_parameter_count(flops)) for
+                         arch, params, acc, flops in
                          dataset_table]
         print(dataset_table)
 
-        table = tabulate.tabulate(dataset_table, headers=["Architecture", "#Parameters", "Accuracy"],
+        if not include_flops:
+            dataset_table = [(arch, params, acc) for arch, params, acc, _ in dataset_table]
+
+        headers = ["Architecture", "\\#Parameters", "Accuracy"]
+        if include_flops:
+            headers.append("FLOPs")
+        table = tabulate.tabulate(dataset_table, headers=headers,
                                   tablefmt="latex_raw")
         print(table)
 
@@ -621,6 +663,17 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
                 reset_next_color_index()
 
 
+def plot_fitness_line():
+    for dataset in dataset_results_dir:
+        for model in dataset_results_dir[dataset]:
+            print(f"Dataset: {dataset}, Model: {model}")
+            for history_path in dataset_results_dir[dataset][model]:
+                print(history_path)
+                history = OptHistory.load(history_path + "/history.json")
+
+                history.show(PlotTypesEnum.fitness_line)
+
+
 if __name__ == '__main__':
     # Boxplot
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
@@ -631,4 +684,7 @@ if __name__ == '__main__':
     #                        plot_line_between_points=True, only_best_run=False)
 
     # plot_parameter_numbers(merge_groups=True, relative=True)
+
     table_of_best_models_for_dataset()
+
+    # plot_fitness_line()
