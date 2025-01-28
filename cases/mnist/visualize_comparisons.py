@@ -443,6 +443,34 @@ def plot_parameter_number_hist(histories: List, relative=True):
     histplot(param_values, log_scale=True, bins=4, stat="proportion" if relative else "count")
 
 
+def format_parameter_count(n, decimals=1):
+    """
+    Format a number into a string with suffixes: k for thousands, M for millions, B for billions, etc.
+
+    Args:
+        n (int or float): The number to format.
+        decimals (int): Number of decimal places.
+
+    Returns:
+        str: The formatted string.
+    """
+    suffixes = ['', 'k', 'M', 'B', 'T']
+    magnitude = 0
+    abs_n = abs(n)
+
+    while abs_n >= 1000 and magnitude < len(suffixes) - 1:
+        abs_n /= 1000.0
+        magnitude += 1
+
+    formatted = f"{n / (1000 ** magnitude):.{decimals}f}{suffixes[magnitude]}"
+
+    # Remove trailing zeros and decimal point if not needed
+    if '.' in formatted:
+        formatted = formatted.rstrip('0').rstrip('.')
+
+    return formatted
+
+
 def table_of_best_models_for_dataset():
     """
     For each dataset, builds a separate LaTeX table with the best models of each type.
@@ -486,7 +514,8 @@ def table_of_best_models_for_dataset():
         dataset_table = [(arch, params, round(acc, 3)) for arch, params, acc in dataset_table]
         best_metric = max([acc for _, _, acc in dataset_table])
         # Highlight the best model's accuracy in bold
-        dataset_table = [(arch, params, f"\\textbf{{{acc}}}" if acc == best_metric else acc) for arch, params, acc in
+        dataset_table = [(arch, format_parameter_count(params), f"\\textbf{{{acc}}}" if acc == best_metric else acc) for
+                         arch, params, acc in
                          dataset_table]
         print(dataset_table)
 
@@ -509,7 +538,7 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
                            ):
     for dataset in dataset_results_dir:
         ax = plt.gca()
-        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{int(x/1000)}k' if x != 0 else 0))
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{int(x / 1000)}k' if x != 0 else 0))
         plt.rc('xtick', labelsize=12)
         plt.rc('ytick', labelsize=12)
         plt.rc('legend', fontsize=14)
@@ -582,5 +611,6 @@ if __name__ == '__main__':
     # Non-dominated stat-intervals
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
     #                        plot_line_between_points=True, only_best_run=False)
+
     # plot_parameter_numbers(merge_groups=True, relative=True)
     # table_of_best_models_for_dataset()
