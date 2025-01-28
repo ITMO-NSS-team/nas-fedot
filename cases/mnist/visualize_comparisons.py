@@ -478,10 +478,15 @@ def table_of_best_models_for_dataset():
     
     Use tabulate for the table building.
     """
+    convkan_metrics = {
+        "FashionMNIST": {"cnn": (157_030, 0.9014), "kan": (94_875, 0.8969), "cnn-kan": (94_950, 0.8884)},
+    }
     extra_results = get_extra_final_results()
     for dataset in dataset_results_dir:
         dataset_table = []
         for arch in dataset_results_dir[dataset]:
+            convkan_metric = convkan_metrics.get(dataset, {}).get(arch, None)
+
             print(f"Dataset: {dataset}, Model: {arch}")
             base_eval_paths = dataset_results_dir[dataset][arch]
             histories = list(
@@ -489,26 +494,36 @@ def table_of_best_models_for_dataset():
             final_results = merge_dicts(list(
                 map(lambda path: json.load(open(path + "/final_results.json")), base_eval_paths)))
 
-            best_model_uid = None
-            best_model_accuracy = 0
-            best_model_params = 0
-            for history in histories:
-                for ind in history.final_choices:
-                    this_results = final_results[ind.uid]
-                    if not isinstance(this_results, List):
-                        this_results = [this_results]
-                    this_results.extend(extra_results.get(ind.uid, []))
+            def best_model_by(first_better, filter):
+                best_model_accuracy = None
+                best_model_params = None
+                for history in histories:
+                    for ind in history.final_choices:
+                        this_results = final_results[ind.uid]
+                        if not isinstance(this_results, List):
+                            this_results = [this_results]
+                        this_results.extend(extra_results.get(ind.uid, []))
 
-                    ind_metric_values = [this_run["accuracy"] for this_run in this_results]
-                    this_model_aggregated = max(ind_metric_values)  # average(ind_metric_values)
+                        ind_metric_values = [this_run["accuracy"] for this_run in this_results]
+                        this_model_aggregated = max(ind_metric_values)  # average(ind_metric_values)
+                        this_model_params = ind.fitness.values[1]
+                        if filter is not None and not filter(this_model_params, this_model_aggregated):
+                            continue
+                        if best_model_params is None or first_better((this_model_params, this_model_aggregated),
+                                                                     (best_model_params, best_model_accuracy)):
+                            best_model_accuracy = this_model_aggregated
+                            best_model_params = this_model_params
+                return best_model_params, best_model_accuracy
 
-                    if this_model_aggregated > best_model_accuracy:
-                        best_model_accuracy = this_model_aggregated
-                        best_model_uid = ind.uid
-                        best_model_params = ind.fitness.values[1]
+            best_accuracy_model = best_model_by(lambda new, old: new[1] > old[1], None)
+            dataset_table.append((arch, best_accuracy_model[0], best_accuracy_model[1]))
+            if convkan_metric is not None:
+                smallest_model_winning_convkan = best_model_by(lambda new, old: new[0] < old[0],
+                                                               lambda p, acc: acc > convkan_metric[1])
+                dataset_table.append((arch, smallest_model_winning_convkan[0], smallest_model_winning_convkan[1]))
 
-            print(f"Best model: {best_model_uid}, Accuracy: {best_model_accuracy}")
-            dataset_table.append((arch, best_model_params, best_model_accuracy))
+                # Add the ConvKAN metric to the table
+                dataset_table.append((f"{arch} (ConvKAN)", convkan_metric[0], convkan_metric[1]))
 
         # Before, round the accuracy to 3 decimal places.
         dataset_table = [(arch, params, round(acc, 3)) for arch, params, acc in dataset_table]
@@ -605,12 +620,12 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
 
 if __name__ == '__main__':
     # Scatter
-    plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
-                           plot_line_between_points=False, only_best_run=False)
+    # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
+    #                        plot_line_between_points=False, only_best_run=False)
 
     # Non-dominated stat-intervals
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
     #                        plot_line_between_points=True, only_best_run=False)
 
     # plot_parameter_numbers(merge_groups=True, relative=True)
-    # table_of_best_models_for_dataset()
+    table_of_best_models_for_dataset()
