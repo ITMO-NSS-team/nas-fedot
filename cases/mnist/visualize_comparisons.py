@@ -308,7 +308,9 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
     else:
         seaborn.lineplot(x=pareto_obj_first, y=pareto_obj_second, label=label, color=color)
 
-    plt.title(f'Pareto frontier for {case_name}', fontsize=15)
+    # plt.title(f'Pareto frontier for {case_name}', fontsize=15)
+    plt.tight_layout()
+
     plt.xlabel(objectives_names[0], fontsize=15)
     plt.ylabel(objectives_names[1], fontsize=15)
     # plt.xscale('log')
