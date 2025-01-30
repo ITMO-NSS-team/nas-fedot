@@ -39,7 +39,7 @@ dataset_results_dir = {
         # "cnn-kan-smaller": r"C:\dev\aim\nas_kan_results\_results\mnist-kan-cnn-smaller",
         # "dense-kan": r"C:\dev\aim\nas_kan_results\_results\dense-kan-mnist"
 
-        "cnn": r"C:\dev\aim\nas_kan_results\_results\ltr-cnn-mnist",
+        # "cnn": r"C:\dev\aim\nas_kan_results\_results\ltr-cnn-mnist",
     },
     "FashionMNIST": {
         # Less iterations:
@@ -54,13 +54,13 @@ dataset_results_dir = {
         # "dense-kan": r"C:\dev\aim\nas_kan_results\_results\dense-kans-fashion",
 
         # LTR
-        "cnn": r"C:\dev\aim\nas_kan_results\_results\ltr-cnn-fashion-mnist",
+        # "cnn": r"C:\dev\aim\nas_kan_results\_results\ltr-cnn-fashion-mnist",
     },
     "EuroSAT": {
         # "kan": r"C:\dev\aim\nas_kan_results\_results\eurosat-kan",
-        "kan": r"C:\dev\aim\nas_kan_results\_results\more-iters-kan-eurosat",
-        "cnn-kan": r"C:\dev\aim\nas_kan_results\_results\cnn-kan-eurosat-many-epochs",
-        "cnn": r"C:\dev\aim\nas_kan_results\_results\eurosat-cnn",
+        "kan": [r"C:\dev\aim\nas_kan_results\_results\more-iters-kan-eurosat"],
+        "cnn-kan": [r"C:\dev\aim\nas_kan_results\_results\cnn-kan-eurosat-many-epochs"],
+        "cnn": [r"C:\dev\aim\nas_kan_results\_results\eurosat-cnn"],
     },
 }
 
@@ -142,6 +142,13 @@ dataset_results_dir = dir_dict_with_grid(
         ]
     }
 )
+
+graph_name_mapping = {
+    "kan": "KAN",
+    "dense-kan": "denseConvKAN",
+    "cnn": "CNN",
+    "cnn-kan": "CNN+KAN"
+}
 
 
 def transplant_path_dict(d, root_dir):
@@ -251,6 +258,8 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
     tmp_pareto_obj_second = []
     real_x = -1e10
     for x, xys in groupby(list(zip(pareto_obj_first, pareto_obj_second)), lambda xy: xy[0]):
+        if x >= 800_000:  # Excessively large models hinder the study
+            continue
         total_xs += 1
         if x - real_x < pareto_obj_first[-1] / 35:
             x = real_x
@@ -551,17 +560,20 @@ def table_of_best_models_for_dataset(include_flops=False):
                 return best_model_params, best_model_accuracy, best_model_flops
 
             best_accuracy_model = best_model_by(lambda new, old: new[1] > old[1], None)
-            dataset_table.append((arch, best_accuracy_model[0], best_accuracy_model[1], best_accuracy_model[2]))
+            dataset_table.append(
+                (graph_name_mapping[arch], best_accuracy_model[0], best_accuracy_model[1], best_accuracy_model[2]))
             if convkan_metric is not None:
                 smallest_model_winning_convkan = best_model_by(lambda new, old: new[0] < old[0],
                                                                lambda p, acc: acc > convkan_metric[1])
                 if smallest_model_winning_convkan[
                     1] is not None and smallest_model_winning_convkan != best_accuracy_model:
-                    dataset_table.append((arch, smallest_model_winning_convkan[0], smallest_model_winning_convkan[1],
-                                          smallest_model_winning_convkan[2]))
+                    dataset_table.append(
+                        (graph_name_mapping[arch], smallest_model_winning_convkan[0], smallest_model_winning_convkan[1],
+                         smallest_model_winning_convkan[2]))
 
                 # Add the ConvKAN metric to the table
-                dataset_table.append((f"{arch} (ConvKAN)", convkan_metric[0], convkan_metric[1], convkan_metric[2]))
+                dataset_table.append(
+                    (f"{graph_name_mapping[arch]} (ConvKAN)", convkan_metric[0], convkan_metric[1], convkan_metric[2]))
 
         # Before, round the accuracy to 3 decimal places.
         dataset_table = [(arch, params, round(acc, 3), flops) for arch, params, acc, flops in dataset_table]
@@ -622,9 +634,11 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
                     return [[el] for el in l]
 
                 history_groups = listify(histories)
-                group_model_names = [f"{model} ({parse_run_name(Path(path).name)[0]})" for path in base_eval_paths]
+                group_model_names = [f"{graph_name_mapping[model]} ({parse_run_name(Path(path).name)[0]})" for path in
+                                     base_eval_paths]
             for group_model_name, group_histories in zip(group_model_names, history_groups):
-                plot_final_pareto_front(group_histories, final_results, label=group_model_name, case_name=dataset,
+                plot_final_pareto_front(group_histories, final_results, label=graph_name_mapping[group_model_name],
+                                        case_name=dataset,
                                         final_metric_name="accuracy", extra_results=extra_results,
                                         remove_dominated=remove_domniated,
                                         try_building_statintervals=try_building_statintervals,
@@ -651,14 +665,15 @@ def plot_parameter_numbers(merge_groups=False, relative=True):
                     history = OptHistory.load(history_path)
 
                     plot_parameter_number_hist([history], relative=relative)
-                    plt.title(f"Parameter number distribution for {dataset} {model} ({prefix})")
+                    plt.title(f"Parameter number distribution for {dataset} {graph_name_mapping[model]} ({prefix})")
                     plt.show()
                     reset_next_color_index()
             else:
                 histories = list(
                     map(lambda path: OptHistory.load(path + "/history.json"), dataset_results_dir[dataset][model]))
                 plot_parameter_number_hist(histories, relative=relative)
-                plt.title(f"Parameter number distribution for {dataset} {model}")
+                plt.title(f"Parameter number distribution for {dataset} {graph_name_mapping[model]}")
+                plt.savefig(f"../../tmp/pareto/{dataset.lower()}-{model}-hist.png")
                 plt.show()
                 reset_next_color_index()
 
