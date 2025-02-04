@@ -152,3 +152,27 @@ class CachedFashionMNIST(GpuCachedImageFolder):
 
     def _check_exists(self) -> bool:
         return os.path.exists(self.folder)
+
+
+class CachedCIFAR10(GpuCachedImageFolder):
+    def __init__(
+            self,
+            root: Union[str, Path],
+            transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
+            eager: bool = False,
+            train: bool = True,
+            cache_before_transform: bool = False
+    ) -> None:
+        self.root = os.path.expanduser(root)
+        self.folder = os.path.join(self.root, "CIFAR10Folder", "train" if train else "test")
+
+        if not self._check_exists():
+            raise RuntimeError("Dataset not found.")
+
+        super().__init__(self.folder, transform=transform, target_transform=target_transform, eager=eager,
+                         cache_before_transform=cache_before_transform)
+        self.root = os.path.expanduser(root)
+
+    def _check_exists(self) -> bool:
+        return os.path.exists(self.folder)
