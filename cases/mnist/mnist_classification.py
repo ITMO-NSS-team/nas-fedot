@@ -121,17 +121,19 @@ def generate_basic_kkan(starting_value, factor) -> NasGraph:
 
 def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=False, repetitions_for_final_choices=1,
                     history_path_instead_of_evolution=None):
+    colored_datasets = [EuroSAT, CachedCIFAR10]
+
     visualize = False
     cv_folds = None
     num_classes = 10
-    image_side_size = 64 if dataset_cls == EuroSAT else 28
+    image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
     batch_size = 16
-    epochs = 70 if dataset_cls == EuroSAT else 50
-    optimization_epochs = 50 if dataset_cls == EuroSAT else 30
+    epochs = 20 if dataset_cls in colored_datasets else 10
+    optimization_epochs = epochs
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
-    color_mode = 'color' if dataset_cls == EuroSAT else 'grayscale'
+    color_mode = 'color' if dataset_cls in colored_datasets else 'grayscale'
 
     set_root(project_root())
     task = Task(TaskTypesEnum.classification)
@@ -144,7 +146,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     if linear_is_kan:
         fc_layers_pool = [LayersPoolEnum.kan_linear, ]
         min_fc_layers = 1
-        max_fc_layers = 2 if dataset_cls == EuroSAT else 1
+        max_fc_layers = 2 if dataset_cls in colored_datasets else 1
     else:
         fc_layers_pool = [LayersPoolEnum.linear, ]
         min_fc_layers = 2
@@ -153,12 +155,12 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     if conv_is_kan:
         conv_layers_pool = [LayersPoolEnum.kan_conv2d, ]
         min_conv_layers = 2
-        max_conv_layers = 4 if dataset_cls == EuroSAT else 3
+        max_conv_layers = 4 if dataset_cls in colored_datasets else 3
     else:
         conv_layers_pool = [LayersPoolEnum.conv2d, ]
 
         min_conv_layers = 2
-        max_conv_layers = 8 if dataset_cls == EuroSAT else 6
+        max_conv_layers = 8 if dataset_cls in colored_datasets else 6
 
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
                  MutationTypesEnum.single_change]
@@ -216,7 +218,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                                      loss_function=CrossEntropyLoss(), optimizer=AdamW,
                                      metrics=[lambda *args: -accuracy_score(*args)])
 
-    basic_graph_time = get_time_from_graph(generate_basic_kkan(input_channels, 4 if dataset_cls == EuroSAT else 5),
+    basic_graph_time = get_time_from_graph(generate_basic_kkan(input_channels, 4 if dataset_cls in colored_datasets else 5),
                                            [image_side_size, image_side_size, input_channels],
                                            num_classes, device, batch_size)
     print("Basic graph time: ", basic_graph_time)
@@ -360,17 +362,17 @@ def run_with_configuration(cfg: RunConfiguration, dir_name: Union[str, os.PathLi
 
 
 def supported_linear_conv_configurations():
-    return [(False, False), (True, True), (True, False)]
+    return [(False, False), (True, False), (True, True)]
 
 
 if __name__ == '__main__':
     # input_run_prefix = "ltr"
     output_run_prefix = "test-eurosat"
     basic_config = RunConfiguration(
-        dataset_cls=EuroSAT,
+        dataset_cls=CachedCIFAR10,
         linear_is_kan=True,
         conv_is_kan=True,
-        repetitions_for_final_choices=10,
+        repetitions_for_final_choices=7,
         history_path_instead_of_evolution=None
     )
 

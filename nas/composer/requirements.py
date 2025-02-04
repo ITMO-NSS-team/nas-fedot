@@ -341,7 +341,7 @@ class NNComposerRequirements(PipelineComposerRequirements):
     opt_epochs: int = 5
     split_ratio: float = .8
 
-    optimization_fitting_timeout_seconds: Optional[int] = 60 * 40
+    optimization_fitting_timeout_seconds: Optional[int] = 60 * 12
 
     def __post_init__(self):
         self.primary = self.model_requirements.primary

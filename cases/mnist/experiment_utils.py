@@ -6,13 +6,13 @@ import torch
 from torchvision import transforms
 from torchvision.datasets import FashionMNIST, MNIST
 
-from cases.mnist.cached_datasets import EuroSAT, CachedFashionMNIST, CachedMNIST
+from cases.mnist.cached_datasets import EuroSAT, CachedFashionMNIST, CachedMNIST, CachedCIFAR10
 from nas.utils.random_split_hack import random_split
 from nas.utils.utils import project_root
 
 
 class RunConfiguration(NamedTuple):
-    dataset_cls: Union[Type[EuroSAT], Type[CachedFashionMNIST], Type[CachedMNIST]]
+    dataset_cls: Union[Type[EuroSAT], Type[CachedFashionMNIST], Type[CachedMNIST], Type[CachedCIFAR10]]
     linear_is_kan: bool
     conv_is_kan: bool
     repetitions_for_final_choices: int
@@ -30,13 +30,15 @@ class RunConfiguration(NamedTuple):
                 transforms.RandomVerticalFlip(),
                 transforms.RandomRotation(15),
             ]
-        else:
+        elif dataset_cls in [CachedMNIST, CachedFashionMNIST]:
             image_transforms = [
                 transforms.Grayscale(),
             ]
+        else:
+            image_transforms = []
 
         transform = transforms.Compose(image_transforms + common_transforms)
-        num_classes = 10  # Holds for both EuroSAT and MNIST variations
+        num_classes = 10  # Holds for all of: EuroSAT, CIFAR10 and MNIST variations
 
         def one_hot_encode(target):
             return torch.nn.functional.one_hot(torch.tensor(target), num_classes=num_classes).float()
@@ -57,7 +59,7 @@ class RunConfiguration(NamedTuple):
         #     dataset_test = dataset_cls(root=dataset_path, train=False, download=True, transform=transform,
         #                                target_transform=one_hot_encode)
         #     assert num_classes == len(dataset_train.classes)
-        elif dataset_cls in [CachedMNIST, CachedFashionMNIST]:
+        elif dataset_cls in [CachedMNIST, CachedFashionMNIST, CachedCIFAR10]:
             dataset_train = dataset_cls(root=dataset_path, train=True, transform=transform,
                                         target_transform=one_hot_encode,
                                         eager=eager,
@@ -77,6 +79,8 @@ class RunConfiguration(NamedTuple):
             dataset_name = "fashion-mnist"
         elif self.dataset_cls in [MNIST, CachedMNIST]:
             dataset_name = "mnist"
+        elif self.dataset_cls in [CachedCIFAR10]:
+            dataset_name = "cifar10"
         elif self.dataset_cls in [EuroSAT]:
             dataset_name = "eurosat"
         else:
@@ -118,7 +122,7 @@ def get_canonical_history_dir(cfg: RunConfiguration, full_name: Optional[str] = 
 
 
 MODEL_NAMES = ["cnn", "kan", "dense-kan", "cnn-kan"]
-DATASET_NAMES = ["mnist", "fashion-mnist", "eurosat"]
+DATASET_NAMES = ["mnist", "fashion-mnist", "eurosat", "cifar10"]
 
 
 def parse_run_name(run_name: str) -> (str, str, str):
