@@ -367,7 +367,7 @@ def supported_linear_conv_configurations():
 
 if __name__ == '__main__':
     # input_run_prefix = "ltr"
-    output_run_prefix = "test-eurosat"
+    output_run_prefix = "cifar-trial"
     basic_config = RunConfiguration(
         dataset_cls=CachedCIFAR10,
         linear_is_kan=True,
