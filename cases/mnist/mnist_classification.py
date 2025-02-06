@@ -372,7 +372,7 @@ if __name__ == '__main__':
         dataset_cls=CachedCIFAR10,
         linear_is_kan=True,
         conv_is_kan=True,
-        repetitions_for_final_choices=7,
+        repetitions_for_final_choices=4,
         history_path_instead_of_evolution=None
     )
 
