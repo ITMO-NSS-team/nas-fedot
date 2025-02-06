@@ -128,8 +128,8 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     num_classes = 10
     image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
     batch_size = 1024
-    epochs = 100 if dataset_cls in colored_datasets else 20
-    optimization_epochs = 50 if dataset_cls in colored_datasets else 10
+    epochs = 200 if dataset_cls in colored_datasets else 20
+    optimization_epochs = 100 if dataset_cls in colored_datasets else 10
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
