@@ -128,8 +128,8 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     num_classes = 10
     image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
     batch_size = 1024
-    epochs = 50 if dataset_cls in colored_datasets else 20
-    optimization_epochs = 35 if dataset_cls in colored_datasets else 10
+    epochs = 100 if dataset_cls in colored_datasets else 20
+    optimization_epochs = 50 if dataset_cls in colored_datasets else 10
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
@@ -159,19 +159,19 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     else:
         conv_layers_pool = [LayersPoolEnum.conv2d, ]
 
-        min_conv_layers = 2
-        max_conv_layers = 8 if dataset_cls in colored_datasets else 6
+        min_conv_layers = 4
+        max_conv_layers = 10 if dataset_cls in colored_datasets else 6
 
     mutations = [MutationTypesEnum.single_add, MutationTypesEnum.single_drop, MutationTypesEnum.single_edge,
                  MutationTypesEnum.single_change]
 
-    fc_requirements = nas_requirements.BaseLayerRequirements(min_number_of_neurons=32,
-                                                             max_number_of_neurons=128)
+    fc_requirements = nas_requirements.BaseLayerRequirements(min_number_of_neurons=64,
+                                                             max_number_of_neurons=1024)
     conv_requirements = nas_requirements.ConvRequirements(
-        min_number_of_neurons=16, max_number_of_neurons=64,
+        min_number_of_neurons=32, max_number_of_neurons=256,
         conv_strides=[1],
         pool_size=[2], pool_strides=[2],
-        supplementary_pooling_prob=0.5
+        supplementary_pooling_prob=0.35
     )
 
     kan_linear_requirements = nas_requirements.KANLinearRequirements(min_number_of_neurons=32,
@@ -243,9 +243,9 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
         model_has_dim_mismatch([image_side_size, image_side_size, input_channels]),
 
-        has_too_much_parameters(1_500_000, parameter_count_complexity_metric),
+        has_too_much_parameters(10_000_000, parameter_count_complexity_metric),
         # has_too_much_flops(3_000_000, flops_complexity_metric)
-        has_too_much_time(basic_graph_time * 2.5, time_complexity_metric)
+        # has_too_much_time(basic_graph_time * 2.5, time_complexity_metric)
     ]
 
     optimizer_parameters = GPAlgorithmParameters(genetic_scheme_type=GeneticSchemeTypesEnum.steady_state,
