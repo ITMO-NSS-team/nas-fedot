@@ -127,7 +127,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     cv_folds = None
     num_classes = 10
     image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
-    batch_size = {(False, False): 256, (True, False): 256, (True, True): 32}[linear_is_kan, conv_is_kan]
+    batch_size = {(False, False): 256, (True, False): 1024, (True, True): 32}[linear_is_kan, conv_is_kan]
     epochs = 200 if dataset_cls in colored_datasets else 20
     optimization_epochs = 10 if dataset_cls in colored_datasets else 10
     num_of_generations = 7
