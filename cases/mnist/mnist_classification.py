@@ -127,9 +127,9 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     cv_folds = None
     num_classes = 10
     image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
-    batch_size = {(False, False): 256, (True, False): 1024, (True, True): 32}[linear_is_kan, conv_is_kan]
+    batch_size = {(False, False): 256, (True, False): 128, (True, True): 128}[linear_is_kan, conv_is_kan]
     epochs = 200 if dataset_cls in colored_datasets else 20
-    optimization_epochs = 10 if dataset_cls in colored_datasets else 10
+    optimization_epochs = 4 if dataset_cls in colored_datasets else 10
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
@@ -362,7 +362,7 @@ def run_with_configuration(cfg: RunConfiguration, dir_name: Union[str, os.PathLi
 
 
 def supported_linear_conv_configurations():
-    return [(True, False), (False, False), (True, True)]
+    return [(True, True), (True, False), (False, False)]
 
 
 if __name__ == '__main__':
