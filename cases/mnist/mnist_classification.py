@@ -129,7 +129,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
     batch_size = {(False, False): 256, (True, False): 128, (True, True): 32}[linear_is_kan, conv_is_kan]
     epochs = 200 if dataset_cls in colored_datasets else 20
-    optimization_epochs = 4 if dataset_cls in colored_datasets else 10
+    optimization_epochs = 100 if dataset_cls in colored_datasets else 10
     num_of_generations = 7
     initial_population_size = 8
     max_population_size = 8
@@ -178,7 +178,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
                                                                      max_number_of_neurons=128)
     kan_conv_requirements = nas_requirements.KANConvRequirements(
         min_number_of_neurons=3, max_number_of_neurons=24,
-        pooling_prob=0.7
+        pooling_prob=0.45
     )
 
     model_requirements = nas_requirements.ModelRequirements(input_data_shape=[image_side_size, image_side_size],
@@ -319,7 +319,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
         for repetition in range(repetitions_for_final_choices):
             trainer = model_trainer.build([image_side_size, image_side_size, input_channels], num_classes,
                                           optimized_network)
-            trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 20)
+            trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 40)
             predictions, targets = trainer.predict(final_test_dataloader)
 
             loss = log_loss(targets, predictions)
@@ -362,12 +362,12 @@ def run_with_configuration(cfg: RunConfiguration, dir_name: Union[str, os.PathLi
 
 
 def supported_linear_conv_configurations():
-    return [(True, True), (True, False), (False, False)]
+    return [(False, False), (True, False), (True, True), ]
 
 
 if __name__ == '__main__':
     # input_run_prefix = "ltr"
-    output_run_prefix = "cifar-trial"
+    output_run_prefix = "cifar-bigger"
     basic_config = RunConfiguration(
         dataset_cls=CachedCIFAR10,
         linear_is_kan=True,
