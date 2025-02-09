@@ -367,7 +367,7 @@ def supported_linear_conv_configurations():
 
 if __name__ == '__main__':
     # input_run_prefix = "ltr"
-    output_run_prefix = "cifar-bigger"
+    output_run_prefix = "cifar-bigger-kan-conv"
     basic_config = RunConfiguration(
         dataset_cls=CachedCIFAR10,
         linear_is_kan=True,
@@ -376,7 +376,7 @@ if __name__ == '__main__':
         history_path_instead_of_evolution=None
     )
 
-    for (linear_is_kan, conv_is_kan) in supported_linear_conv_configurations():
+    for (linear_is_kan, conv_is_kan) in [(True, True)]:
         run_config = (basic_config
                       ._replace(linear_is_kan=linear_is_kan)
                       ._replace(conv_is_kan=conv_is_kan)
