@@ -698,15 +698,15 @@ def plot_fitness_line():
 
 if __name__ == '__main__':
     # Boxplot
-    plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
-                           plot_line_between_points=False, only_best_run=False)
+    # plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
+    #                        plot_line_between_points=False, only_best_run=False)
 
     # Non-dominated stat-intervals
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
     #                        plot_line_between_points=True, only_best_run=False)
 
-    # plot_parameter_numbers(merge_groups=True, relative=True)
+    # plot_parameter_numbers(merge_groups=True, relative=False)
 
     # table_of_best_models_for_dataset()
 
-    # plot_fitness_line()
+    plot_fitness_line()
