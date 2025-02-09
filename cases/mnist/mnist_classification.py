@@ -155,7 +155,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     if conv_is_kan:
         conv_layers_pool = [LayersPoolEnum.kan_conv2d, ]
         min_conv_layers = 2
-        max_conv_layers = 4 if dataset_cls in colored_datasets else 3
+        max_conv_layers = 5 if dataset_cls in colored_datasets else 3
     else:
         conv_layers_pool = [LayersPoolEnum.conv2d, ]
 
@@ -175,10 +175,10 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     )
 
     kan_linear_requirements = nas_requirements.KANLinearRequirements(min_number_of_neurons=32,
-                                                                     max_number_of_neurons=128)
+                                                                     max_number_of_neurons=256)
     kan_conv_requirements = nas_requirements.KANConvRequirements(
-        min_number_of_neurons=3, max_number_of_neurons=24,
-        pooling_prob=0.45
+        min_number_of_neurons=12, max_number_of_neurons=96,
+        pooling_prob=0.4
     )
 
     model_requirements = nas_requirements.ModelRequirements(input_data_shape=[image_side_size, image_side_size],
