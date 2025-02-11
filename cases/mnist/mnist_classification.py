@@ -145,7 +145,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
     if linear_is_kan:
         fc_layers_pool = [LayersPoolEnum.kan_linear, ]
-        min_fc_layers = 1
+        min_fc_layers = 2
         max_fc_layers = 2 if dataset_cls in colored_datasets else 1
     else:
         fc_layers_pool = [LayersPoolEnum.linear, ]
@@ -376,7 +376,7 @@ if __name__ == '__main__':
         history_path_instead_of_evolution=None
     )
 
-    for (linear_is_kan, conv_is_kan) in [(True, True)]:
+    for (linear_is_kan, conv_is_kan) in [(True, False), (True, True)]:
         run_config = (basic_config
                       ._replace(linear_is_kan=linear_is_kan)
                       ._replace(conv_is_kan=conv_is_kan)
