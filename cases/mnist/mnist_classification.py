@@ -128,7 +128,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     num_classes = 10
     image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
     batch_size = {(False, False): 256, (True, False): 128, (True, True): 8}[linear_is_kan, conv_is_kan]
-    epochs = 200 if dataset_cls in colored_datasets else 20
+    epochs = 100 if dataset_cls in colored_datasets else 20
     optimization_epochs = 100 if dataset_cls in colored_datasets else 10
     num_of_generations = 7
     initial_population_size = 8
@@ -200,7 +200,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
-                                                           timeout=datetime.timedelta(hours=10.),
+                                                           timeout=datetime.timedelta(hours=20.),
                                                            num_of_generations=num_of_generations,
                                                            early_stopping_iterations=None,
                                                            early_stopping_timeout=10000000000000000000000000000000000.,
@@ -319,7 +319,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
         for repetition in range(repetitions_for_final_choices):
             trainer = model_trainer.build([image_side_size, image_side_size, input_channels], num_classes,
                                           optimized_network)
-            trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 40)
+            trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 60)
             predictions, targets = trainer.predict(final_test_dataloader)
 
             loss = log_loss(targets, predictions)
@@ -376,7 +376,7 @@ if __name__ == '__main__':
         history_path_instead_of_evolution=None
     )
 
-    for (linear_is_kan, conv_is_kan) in [(True, False), (True, True)]:
+    for (linear_is_kan, conv_is_kan) in [(True, True)]:
         run_config = (basic_config
                       ._replace(linear_is_kan=linear_is_kan)
                       ._replace(conv_is_kan=conv_is_kan)
