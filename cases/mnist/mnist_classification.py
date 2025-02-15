@@ -319,7 +319,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
         for repetition in range(repetitions_for_final_choices):
             trainer = model_trainer.build([image_side_size, image_side_size, input_channels], num_classes,
                                           optimized_network)
-            trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 60)
+            trainer.fit_model(final_train_dataloader, final_val_dataloader, epochs, timeout_seconds=60 * 30)
             predictions, targets = trainer.predict(final_test_dataloader)
 
             loss = log_loss(targets, predictions)
