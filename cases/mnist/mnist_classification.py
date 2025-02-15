@@ -130,7 +130,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     batch_size = {(False, False): 256, (True, False): 128, (True, True): 4}[linear_is_kan, conv_is_kan]
     epochs = 100 if dataset_cls in colored_datasets else 20
     optimization_epochs = 100 if dataset_cls in colored_datasets else 10
-    num_of_generations = 7
+    num_of_generations = 25
     initial_population_size = 8
     max_population_size = 8
     color_mode = 'color' if dataset_cls in colored_datasets else 'grayscale'
@@ -168,7 +168,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     fc_requirements = nas_requirements.BaseLayerRequirements(min_number_of_neurons=64,
                                                              max_number_of_neurons=1024)
     conv_requirements = nas_requirements.ConvRequirements(
-        min_number_of_neurons=32, max_number_of_neurons=256,
+        min_number_of_neurons=32, max_number_of_neurons=512,
         conv_strides=[1],
         pool_size=[2], pool_strides=[2],
         supplementary_pooling_prob=0.35
@@ -200,7 +200,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
     requirements = nas_requirements.NNComposerRequirements(opt_epochs=optimization_epochs,
                                                            model_requirements=model_requirements,
-                                                           timeout=datetime.timedelta(hours=20.),
+                                                           timeout=datetime.timedelta(hours=30.),
                                                            num_of_generations=num_of_generations,
                                                            early_stopping_iterations=None,
                                                            early_stopping_timeout=10000000000000000000000000000000000.,
@@ -243,7 +243,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
         model_has_dim_mismatch([image_side_size, image_side_size, input_channels]),
 
-        has_too_much_parameters(10_000_000, parameter_count_complexity_metric),
+        has_too_much_parameters(15_000_000, parameter_count_complexity_metric),
         # has_too_much_flops(3_000_000, flops_complexity_metric)
         # has_too_much_time(basic_graph_time * 2.5, time_complexity_metric)
     ]
@@ -372,11 +372,11 @@ if __name__ == '__main__':
         dataset_cls=CachedCIFAR10,
         linear_is_kan=True,
         conv_is_kan=True,
-        repetitions_for_final_choices=4,
+        repetitions_for_final_choices=7,
         history_path_instead_of_evolution=None
     )
 
-    for (linear_is_kan, conv_is_kan) in [(True, True)]:
+    for (linear_is_kan, conv_is_kan) in [(False, False)]:
         run_config = (basic_config
                       ._replace(linear_is_kan=linear_is_kan)
                       ._replace(conv_is_kan=conv_is_kan)
