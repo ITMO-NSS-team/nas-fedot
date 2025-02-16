@@ -243,7 +243,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
 
         model_has_dim_mismatch([image_side_size, image_side_size, input_channels]),
 
-        has_too_much_parameters(15_000_000, parameter_count_complexity_metric),
+        has_too_much_parameters(10_000_000, parameter_count_complexity_metric),
         # has_too_much_flops(3_000_000, flops_complexity_metric)
         # has_too_much_time(basic_graph_time * 2.5, time_complexity_metric)
     ]
