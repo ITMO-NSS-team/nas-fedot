@@ -129,7 +129,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     image_side_size = {EuroSAT: 64, CachedCIFAR10: 32, CachedMNIST: 28, CachedFashionMNIST: 28}[dataset_cls]
     batch_size = {(False, False): 256, (True, False): 128, (True, True): 4}[linear_is_kan, conv_is_kan]
     epochs = 100 if dataset_cls in colored_datasets else 20
-    optimization_epochs = 35 if dataset_cls in colored_datasets else 10
+    optimization_epochs = 50 if dataset_cls in colored_datasets else 10
     num_of_generations = 25
     initial_population_size = 14
     max_population_size = 14
@@ -168,7 +168,7 @@ def build_mnist_cls(save_path, dataset_cls, conv_is_kan=False, linear_is_kan=Fal
     fc_requirements = nas_requirements.BaseLayerRequirements(min_number_of_neurons=64,
                                                              max_number_of_neurons=1024)
     conv_requirements = nas_requirements.ConvRequirements(
-        min_number_of_neurons=32, max_number_of_neurons=512,
+        min_number_of_neurons=32, max_number_of_neurons=256,
         conv_strides=[1],
         pool_size=[2], pool_strides=[2],
         supplementary_pooling_prob=0.35
