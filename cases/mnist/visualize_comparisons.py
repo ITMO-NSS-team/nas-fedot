@@ -141,7 +141,11 @@ dataset_results_dir = dir_dict_with_grid(
             "old-revision"
         ],
 
-        ("cifar10", "cnn") : ["cifar-bigger"],
+        ("cifar10", "cnn") : [
+            # "cifar-bigger"
+            # "cifar-giant"
+            "cifar-thorough"
+        ],
         ("cifar10", "cnn-kan") : ["cifar-bigger"],
         ("cifar10", "kan") : [],
         ("cifar10", "dense-kan") : ["cifar-bigger"],
@@ -705,8 +709,8 @@ if __name__ == '__main__':
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
     #                        plot_line_between_points=True, only_best_run=False)
 
-    plot_parameter_numbers(merge_groups=True, relative=False)
+    # plot_parameter_numbers(merge_groups=True, relative=False)
 
     # table_of_best_models_for_dataset()
 
-    # plot_fitness_line()
+    plot_fitness_line()

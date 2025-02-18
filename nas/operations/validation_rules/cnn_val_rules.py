@@ -61,7 +61,7 @@ def model_has_dim_mismatch(input_shape: list):
         try:
             with torch.no_grad():
                 m = NeuralSearchModel(NASTorchModel).compile_model(graph, input_shape, 10).model
-                m.to('cpu')
+                m.to('cuda')
                 try:
                     m.forward(torch.rand([2, *input_shape[::-1]]))
                 except IndexError:
