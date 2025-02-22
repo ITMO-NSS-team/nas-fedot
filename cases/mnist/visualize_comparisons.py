@@ -141,14 +141,20 @@ dataset_results_dir = dir_dict_with_grid(
             "old-revision"
         ],
 
-        ("cifar10", "cnn") : [
-            # "cifar-bigger"
-            # "cifar-giant"
-            "cifar-thorough"
+        ("cifar10", "cnn"): [
+            "cifar-bigger",
+            "cifar-thorough",
+            "cifar-giant",
         ],
-        ("cifar10", "cnn-kan") : ["cifar-bigger"],
-        ("cifar10", "kan") : [],
-        ("cifar10", "dense-kan") : ["cifar-bigger"],
+        ("cifar10", "cnn-kan"): [
+            "cifar-bigger",
+            "cifar-bigger-kan-conv"
+        ],
+        ("cifar10", "kan"): [],
+        ("cifar10", "dense-kan"): [
+            # "cifar-bigger",
+            # "cifar-bigger-kan-conv"
+        ],
     }
 )
 
@@ -702,8 +708,8 @@ def plot_fitness_line():
 
 if __name__ == '__main__':
     # Boxplot
-    # plot_all_pareto_fronts(remove_domniated=False, merge_runs=True, try_building_statintervals=False,
-    #                        plot_line_between_points=False, only_best_run=False)
+    plot_all_pareto_fronts(remove_domniated=False, merge_runs=False, try_building_statintervals=False,
+                           plot_line_between_points=False, only_best_run=False)
 
     # Non-dominated stat-intervals
     # plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=True,
@@ -713,4 +719,4 @@ if __name__ == '__main__':
 
     # table_of_best_models_for_dataset()
 
-    plot_fitness_line()
+    # plot_fitness_line()
