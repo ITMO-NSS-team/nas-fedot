@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import log2
-from typing import List, Optional, Union, Tuple, Sequence, Collection
+from typing import List, Optional, Union, Tuple, Collection
 
 from fedot.core.pipelines.pipeline_composer_requirements import PipelineComposerRequirements
 from golem.core.optimisers.genetic.operators.mutation import MutationStrengthEnum
@@ -25,6 +25,17 @@ def get_nearest_power_of_2(number: int) -> int:
 
 def get_list_of_power_of_2(min_value: int, max_value: int) -> List[int]:
     return [2 ** n for n in range(int(log2(max_value)) + 1) if 2 ** n >= min_value]
+
+
+def get_nearest_multiple_of_power_of_2(number: int, factor: int) -> int:
+    """
+    Such 2^k * factor that is closest to the given number
+    """
+    return get_nearest_power_of_2(number // factor) * factor
+
+
+def get_list_of_multiples_of_power_of_2(min_value: int, max_value: int, factor: int) -> List[int]:
+    return [factor * n for n in get_list_of_power_of_2(min_value // factor, max_value // factor)]
 
 
 def load_default_requirements() -> NNComposerRequirements:
@@ -98,6 +109,7 @@ class BaseLayerRequirements:
 
 @dataclass
 class ConvRequirements(BaseLayerRequirements):
+    filter_size_factor: int = 1
     conv_strides: Optional[List[int], Tuple[int]] = None
     pool_size: Optional[List[int], Tuple[int]] = None
     pool_strides: Optional[List[int], Tuple[int]] = None
@@ -105,6 +117,8 @@ class ConvRequirements(BaseLayerRequirements):
     dilation_rate: Optional[List[int]] = None
     padding: Union[str, Collection[Collection[int]]] = None
     kernel_size: Union[List[int], Tuple[int]] = None
+
+    supplementary_pooling_prob: float = .5  # Nobody knows which order of magnitude this should be (or pretends so) → it's set to .5
 
     def __post_init__(self):
         if not self.dilation_rate:
@@ -124,6 +138,11 @@ class ConvRequirements(BaseLayerRequirements):
 
         if not hasattr(self.conv_strides, '__iter__'):
             raise ValueError('Pool of possible strides must be an iterable object')
+
+    @property
+    def neurons_num(self) -> List[int]:
+        return get_list_of_multiples_of_power_of_2(self.min_number_of_neurons, self.max_number_of_neurons,
+                                                   self.filter_size_factor)
 
     def force_output_shape(self, output_shape: int) -> ConvRequirements:
         self.max_number_of_neurons = output_shape
@@ -170,10 +189,75 @@ class ConvRequirements(BaseLayerRequirements):
 
 
 @dataclass
+class KANSplineRequirements:
+    grid_size: List[int] = field(default_factory=lambda: [5, 10])  # 3?
+    spline_order: List[int] = field(default_factory=lambda: [3, ])  # 2, 5?
+    # Shouldn't depend on torch, no need for excessive hyperparameters → just use SiLU
+    # base_activation: List[torch.nn.Module] = field(default_factory=lambda: [torch.nn.SiLU])
+
+    # Auto-scaled anyway
+    # grid_range: List[Tuple[int, int]] = field(default_factory=lambda: [(-1, 1)])
+
+
+@dataclass
+class KANLinearRequirements(KANSplineRequirements):
+    min_number_of_neurons: int = 32
+    max_number_of_neurons: int = 256
+
+    def __post_init__(self):
+        self.min_number_of_neurons = get_nearest_power_of_2(self.min_number_of_neurons)
+        self.max_number_of_neurons = get_nearest_power_of_2(self.max_number_of_neurons)
+
+        if self.max_number_of_neurons < self.min_number_of_neurons:
+            raise ValueError('Min number of neurons in requirements cannot be greater than max number of neurons.')
+        if self.min_number_of_neurons < 2:
+            raise ValueError(f'Min number of neurons = {self.min_number_of_neurons} is unacceptable.')
+        if self.max_number_of_neurons < 2:
+            raise ValueError(f'Max number of neurons = {self.max_number_of_neurons} is unacceptable.')
+
+    @property
+    def neurons_num(self) -> List[int]:
+        return get_list_of_power_of_2(self.min_number_of_neurons, self.max_number_of_neurons)
+
+
+@dataclass
+class KANConvRequirements(KANSplineRequirements):
+    min_number_of_neurons: int = 2
+    max_number_of_neurons: int = 32
+    kernel_size: List[int] = field(default_factory=lambda: [3, 5])
+
+    pooling_prob: float = .8
+    pooling_kernel_size: List[int] = field(default_factory=lambda: [2, ])  # Could be 3?
+
+    # Padding would be computed automatically form kernel size to maintain the feature map size:
+    # padding: List[int] = field(default_factory=lambda: [0, 1])
+
+    filter_size_factor: int = 3
+
+    def __post_init__(self):
+        if self.max_number_of_neurons < self.min_number_of_neurons:
+            raise ValueError(
+                'Min number of convolutions in requirements cannot be greater than max number of convolutions.')
+        if self.min_number_of_neurons < 1:
+            raise ValueError(f'Min number of convolutions = {self.min_number_of_neurons} is unacceptable.')
+        if self.max_number_of_neurons < 1:
+            raise ValueError(f'Max number of convolutions = {self.max_number_of_neurons} is unacceptable.')
+
+    @property
+    def neurons_num(self) -> List[int]:
+        return get_list_of_multiples_of_power_of_2(self.min_number_of_neurons, self.max_number_of_neurons,
+                                                   self.filter_size_factor)
+
+
+@dataclass
 class ModelRequirements:
     input_data_shape: List[int]
+
     conv_requirements: ConvRequirements = None
     fc_requirements: BaseLayerRequirements = None
+    kan_conv_requirements: KANConvRequirements = None
+    kan_linear_requirements: KANLinearRequirements = None
+
     color_mode: str = 'color'
     num_of_classes: int = None
 
@@ -194,6 +278,15 @@ class ModelRequirements:
             self.conv_requirements = ConvRequirements()
         if not self.fc_requirements:
             self.fc_requirements = BaseLayerRequirements()
+        if not self.kan_conv_requirements:
+            self.kan_conv_requirements = KANConvRequirements()
+        if not self.kan_linear_requirements:
+            self.kan_linear_requirements = KANLinearRequirements()
+
+        # Regular convs can work with any dimensions:
+        # self.conv_requirements.filter_size_factor = _get_image_channels_num(self.color_mode)
+        self.kan_conv_requirements.filter_size_factor = _get_image_channels_num(self.color_mode)
+
         if self.epochs < 1:
             raise ValueError(f'{self.epochs} is unacceptable number of train epochs.')
         if not all([side_size >= 3 for side_size in self.input_data_shape]):
@@ -227,12 +320,28 @@ class ModelRequirements:
     def min_depth(self):
         return self.min_nn_depth + self.min_num_of_conv_layers
 
+    def linear_is_kan(self):
+        if LayersPoolEnum.kan_linear in self.secondary:
+            return True
+        elif LayersPoolEnum.linear in self.secondary:
+            return False
+        raise ValueError('No linear layer in the secondary list')
+
+    def conv_is_kan(self):
+        if LayersPoolEnum.kan_conv2d in self.primary:
+            return True
+        elif LayersPoolEnum.conv2d in self.primary:
+            return False
+        raise ValueError('No linear layer in the primary list')
+
 
 @dataclass
 class NNComposerRequirements(PipelineComposerRequirements):
     model_requirements: ModelRequirements = None
     opt_epochs: int = 5
     split_ratio: float = .8
+
+    optimization_fitting_timeout_seconds: Optional[int] = 60 * 10
 
     def __post_init__(self):
         self.primary = self.model_requirements.primary

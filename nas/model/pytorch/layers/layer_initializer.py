@@ -1,30 +1,78 @@
-from typing import Union, Dict
+from typing import Union, Dict, Sequence
 
 import torch.nn as nn
 from golem.core.dag.graph_node import GraphNode
 
 from nas.graph.node.nas_graph_node import NasNode
+from nas.model.pytorch.layers.kan_convolutional.KANConv import KAN_Convolutional_Layer, KAN_CrossConvolution
+from nas.model.pytorch.layers.kan_convolutional.KANLinear import KANLinear
 
 
 def conv2d(node: NasNode, **inputs_dict):
-    """
-    TODO
-    """
     input_dim = inputs_dict.get('input_dim')
     out_shape = node.parameters.get('out_shape')
     kernel_size = node.parameters.get('kernel_size')
     stride = node.parameters.get('stride', 1)
-    padding = node.parameters.get('padding')
-    return nn.Conv2d(input_dim, out_shape, kernel_size, stride, padding)
+    _padding = node.parameters.get('padding')
+    return nn.Conv2d(input_dim, out_shape, kernel_size, stride, padding='same')
+
+
+def kan_conv2d(node: NasNode, **inputs_dict):
+    input_dim = inputs_dict.get('input_dim')
+    out_shape = node.parameters.get('out_shape')
+    # Check the out_shape % input_dim == 0:
+    # print(input_dim, out_shape, out_shape % input_dim == 0)
+    if out_shape % input_dim != 0:
+        print("FAIL")
+        raise ValueError(f'out_shape must be divisible by input_dim')
+
+    kernel_size = node.parameters.get('kernel_size')
+    # stride = node.parameters.get('stride', 1)
+    # padding = node.parameters.get('padding')
+    # if isinstance(padding, Sequence):
+    #     padding = padding[0]
+    padding = kernel_size // 2
+
+    # Spline stuff:
+    grid_size = node.parameters.get('grid_size')
+    spline_order = node.parameters.get('spline_order')
+
+    # return KAN_Convolutional_Layer(
+    #     n_convs=out_shape // input_dim,
+    #     kernel_size=(kernel_size, kernel_size),
+    #     stride=(1, 1),
+    #     padding=(padding, padding),
+    # 
+    #     grid_size=grid_size,
+    #     spline_order=spline_order
+    # )
+    return KAN_CrossConvolution(
+        in_channels=input_dim,
+        out_channels=out_shape,
+        kernel_size=(kernel_size, kernel_size),
+        stride=(1, 1),
+        padding=(padding, padding),
+
+        grid_size=grid_size,
+        spline_order=spline_order
+    )
 
 
 def linear(node: NasNode, **inputs_dict):
-    """
-    TODO
-    """
     input_dim = inputs_dict.get('input_dim')
     out_shape = node.parameters.get('out_shape')
     return nn.Linear(input_dim, out_shape)
+
+
+def kan_linear(node: NasNode, **inputs_dict):
+    input_dim = inputs_dict.get('input_dim')
+    out_shape = node.parameters.get('out_shape')
+
+    # Spline stuff:
+    grid_size = node.parameters.get('grid_size')
+    spline_order = node.parameters.get('spline_order')
+
+    return KANLinear(in_features=input_dim, out_features=out_shape, grid_size=grid_size, spline_order=spline_order)
 
 
 def dropout(node: NasNode, **kwargs):
@@ -37,6 +85,13 @@ def batch_norm(node: NasNode, **inputs_dict):
     eps = node.parameters.get('epsilon')
     momentum = node.parameters.get('momentum')
     return nn.BatchNorm2d(input_dim, eps, momentum)
+
+
+def supplementary_pooling(node: NasNode, **inputs_dict):
+    # Just kernel size:
+    kernel_size = node.parameters.get('pooling_kernel_size')
+    pool_layer = nn.MaxPool2d if node.parameters['pooling_mode'] == 'max' else nn.AvgPool2d
+    return pool_layer(kernel_size)
 
 
 def pooling(node: NasNode, **inputs_dict):
@@ -62,7 +117,9 @@ class TorchLayerFactory:
     @staticmethod
     def get_layer(node: Union[GraphNode, NasNode]) -> Dict:
         _layers = {'conv2d': conv2d,
+                   'kan_conv2d': kan_conv2d,
                    'linear': linear,
+                   'kan_linear': kan_linear,
                    'dropout': dropout,
                    'batch_norm': batch_norm,
                    'pooling2d': pooling,
@@ -76,6 +133,8 @@ class TorchLayerFactory:
             raise ValueError(f'Wrong layer type: {layer_type}')
         if 'momentum' in node.parameters:
             layer['normalization'] = _layers.get('batch_norm')
+        if 'pooling_kernel_size' in node.parameters:
+            layer['pooling'] = supplementary_pooling
         return layer
 
     @staticmethod

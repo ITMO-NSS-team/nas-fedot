@@ -17,6 +17,8 @@ class LayersPoolEnum(Enum):
     dropout = 'dropout'
     adaptive_pool2d = 'adaptive_pool2d'
     pooling2d = 'pooling2d'
+    kan_conv2d = 'kan_conv2d'
+    kan_linear = 'kan_linear'
 
 
 class ActivationTypesIdsEnum(Enum):

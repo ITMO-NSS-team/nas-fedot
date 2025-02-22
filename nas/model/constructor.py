@@ -19,6 +19,7 @@ class ModelConstructor:
                  optimizer: Type[Optimizer],
                  callbacks_lst: Optional[Union[List, Tuple]] = None,
                  device: str = 'cpu',
+                 metrics: List[Callable] = [],
                  **additional_model_parameters):
         self.trainer = trainer
         self._model_class = model_class
@@ -27,6 +28,7 @@ class ModelConstructor:
         self._callbacks = callbacks_lst
         self._device = device
         self._additional_model_parameters = additional_model_parameters
+        self._metrics = metrics
 
     def build(self, input_shape: Union[Tuple[int], List[int]], output_shape: int, graph: NasGraph):
         """
@@ -43,4 +45,5 @@ class ModelConstructor:
         trainer.set_loss(self._loss_function)
         trainer.set_optimizer(self._optimizer)
         trainer.set_callbacks(self._callbacks)
+        trainer.add_metric(*self._metrics)
         return trainer

@@ -21,6 +21,7 @@ class NNNodeFactory(OptNodeFactory):
             return self._pool_conv_nodes
         else:
             return self._pool_fc_nodes
+        # …well, anyway, the incorrect variants would be filtered out by validation rules
 
     def exchange_node(self, node: NasNode) -> Optional[NasNode]:
         candidates = self._get_possible_candidates(node)

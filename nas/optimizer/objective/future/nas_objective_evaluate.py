@@ -1,4 +1,5 @@
 import gc
+import random
 
 import numpy as np
 import torch
@@ -7,16 +8,18 @@ from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.optimisers.objective import DataSource
 from fedot.core.repository.tasks import Task, TaskTypesEnum
 from golem.core.log import default_log
-from golem.core.optimisers.fitness import Fitness
+from golem.core.optimisers.fitness import Fitness, SingleObjFitness, MultiObjFitness
 from golem.core.optimisers.objective import ObjectiveEvaluate, Objective
 from golem.core.optimisers.objective.objective import to_fitness
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
+from nas.utils.random_split_hack import random_split
 
 from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import BaseNNDatasetBuilder
 from nas.graph.base_graph import NasGraph
 from nas.model.constructor import ModelConstructor
 from nas.model.model_interface import NeuralSearchModel
+from nas.operations.validation_rules.cnn_val_rules import model_has_dim_mismatch
 
 
 class NASObjectiveEvaluate(ObjectiveEvaluate):
@@ -26,40 +29,32 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
 
     def __init__(self,
                  objective: Objective,
-                 data_producer: DataSource,
+                 dataset: Dataset,
                  model_trainer_builder: ModelConstructor,
                  requirements: NNComposerRequirements,
-                 nn_dataset_builder: BaseNNDatasetBuilder,
                  verbose_level=None,
                  eval_n_jobs: int = 1,
                  **objective_kwargs):
         super().__init__(objective=objective, eval_n_jobs=eval_n_jobs, **objective_kwargs)
         self.verbose_level = verbose_level
-        self._data_producer = data_producer
-        self._dataset_builder = nn_dataset_builder
+        # self._data_producer = data_producer
+        # self._dataset_builder = nn_dataset_builder
+        self._dataset = dataset
         self._model_trainer_builder = model_trainer_builder
         self._requirements = requirements
         self._log = default_log(self)
 
     def evaluate(self, graph: NasGraph) -> Fitness:
-        fold_metrics = []
-        for fold_id, (train_data, test_data) in enumerate(self._data_producer()):
-            gc.collect()
-            torch.cuda.empty_cache()
-            fitted_model = self._graph_fit(graph, train_data, log=self._log, fold_id=fold_id + 1)
-            fold_fitness = self._evaluate_fitted_model(fitted_model, test_data, graph, log=self._log,
-                                                       fold_id=fold_id + 1)
-            del fitted_model
-            if fold_fitness.valid:
-                fold_metrics.append(fold_fitness.values)
-            else:
-                self._log.warning(f'\nContinuing after objective evaluation error.')
-            if fold_metrics:
-                fold_metrics = tuple(np.mean(fold_metrics, axis=0))
-                self._log.message(f'\nEvaluated metrics: {fold_metrics}')
-        return to_fitness(fold_metrics, self._objective.is_multi_objective)
+        # return MultiObjFitness([random.random(), list(self._objective.metrics)[-1][1](graph)])
+        train_data, test_data = random_split(self._dataset, [.8, .2])
+        gc.collect()
+        torch.cuda.empty_cache()
+        fitted_model = self._graph_fit(graph, train_data, log=self._log, debug_test_data=test_data)
+        fold_fitness = self._evaluate_fitted_model(fitted_model, test_data, graph, log=self._log)
+        del fitted_model
+        return fold_fitness
 
-    def _graph_fit(self, graph: NasGraph, train_data: InputData, log, fold_id) -> NeuralSearchModel:
+    def _graph_fit(self, graph: NasGraph, train_data: Dataset, log, debug_test_data: Dataset) -> NeuralSearchModel:
         """
         This method compiles and fits a neural network based on given parameters and graph structure.
 
@@ -70,29 +65,36 @@ class NASObjectiveEvaluate(ObjectiveEvaluate):
          Returns:
              Fitted model object
         """
-        shuffle_flag = train_data.task != Task(TaskTypesEnum.ts_forecasting)
-        classes = train_data.num_classes
+        shuffle_flag = True
+        classes = self._requirements.model_requirements.num_of_classes
         batch_size = self._requirements.model_requirements.batch_size
         opt_epochs = self._requirements.opt_epochs
 
         # opt_data, val_data = train_test_data_setup(train_data, stratify=train_data.target)
-        opt_dataset = DataLoader(self._dataset_builder.build(train_data), batch_size=batch_size, shuffle=shuffle_flag)
+        opt_dataset = DataLoader(train_data, batch_size=batch_size, shuffle=shuffle_flag, num_workers=0)
         # val_dataset = DataLoader(self._dataset_builder.build(val_data), batch_size=batch_size, shuffle=shuffle_flag)
 
         input_shape = self._requirements.model_requirements.input_shape
         trainer = self._model_trainer_builder.build(input_shape=input_shape, output_shape=classes, graph=graph)
-        trainer.fit_model(train_data=opt_dataset, epochs=opt_epochs)
+        # NOTE: COMMENT OUT TO SKIP TRAINING IN DEBUG PURPOSES
+        trainer.fit_model(train_data=opt_dataset,
+                          # val_data=debug_test_data,
+                          timeout_seconds=self._requirements.optimization_fitting_timeout_seconds,
+                          epochs=opt_epochs)
         return trainer
 
-    def _evaluate_fitted_model(self, fitted_model: NeuralSearchModel, test_data: InputData, graph: NasGraph,
-                               log, fold_id):
+    def _evaluate_fitted_model(self, fitted_model: NeuralSearchModel, test_data: Dataset, graph: NasGraph,
+                               log):
         """
         Method for graph's fitness estimation on given data. Estimates fitted model fitness.
         """
-        complexity_matrics = [m(graph) for _, m in self._objective.complexity_metrics.items()]
-        test_dataset = DataLoader(self._dataset_builder.build(test_data),
+        # complexity_metrics = [m(graph) for _, m in self._objective.complexity_metrics.items()]
+        # complexity_metrics.extend([m(graph) for m in self._objective.quality_metrics[1:].values()])
+        complexity_metrics = [m(graph) for _, m in
+                              self._objective.metrics[1:]]  # dicts maintain insertion order, first is loss
+        test_dataset = DataLoader(test_data,
                                   batch_size=self._requirements.model_requirements.batch_size,
-                                  shuffle=False)
+                                  shuffle=False, num_workers=0)
         eval_metrics = fitted_model.validate(test_dataset)
         eval_metrics = [m for m in eval_metrics.values()]
-        return to_fitness([*eval_metrics, *complexity_matrics], self._objective.is_multi_objective)
+        return to_fitness([*eval_metrics, *complexity_metrics], self._objective.is_multi_objective)

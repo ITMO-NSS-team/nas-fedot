@@ -83,3 +83,16 @@ class NasGraph(OptGraph):
 
     def unfit(self, **kwargs):
         pass
+
+    def get_singleton_node_by_name(self, node_name) -> NasNode:
+        for node in self.nodes:
+            if node.name == node_name:
+                return node
+        raise ValueError("One node with name {} should be in the graph".format(node_name))
+
+    def get_input_node(self):
+        """ Such that nodes_from is empty """
+        for node in self.nodes:
+            if not node.nodes_from:
+                return node
+        raise ValueError("Input node not found")

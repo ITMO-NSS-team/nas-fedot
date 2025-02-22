@@ -1,0 +1,3 @@
+venv/
+cases/mnist/MNIST/
+cases/mnist/mnist_dataset/

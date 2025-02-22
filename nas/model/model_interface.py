@@ -36,6 +36,8 @@ class BaseModelInterface(ABC):
         self.metrics = None
 
     def add_metric(self, *metric: Callable):
+        if self.metrics is None:
+            self.metrics = {}
         for m in metric:
             self.metrics[m.__name__] = m
 

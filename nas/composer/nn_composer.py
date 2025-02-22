@@ -9,6 +9,7 @@ from fedot.core.data.multi_modal import MultiModalData
 from fedot.core.optimisers.objective.data_source_splitter import DataSourceSplitter
 from fedot.core.pipelines.pipeline import Pipeline
 from golem.core.optimisers.genetic.gp_optimizer import EvoGraphOptimizer
+from torch.utils.data import Dataset
 
 from nas.composer.requirements import NNComposerRequirements
 from nas.data.dataset.builder import ImageDatasetBuilder
@@ -31,35 +32,38 @@ class NNComposer(Composer):
         self.preprocessing_cache = preprocessing_cache
         self.composer_requirements = composer_requirements
 
-    @property
-    def dataset_builder(self):
-        return self._dataset_builder
-
-    @dataset_builder.setter
-    def dataset_builder(self, val):
-        self._dataset_builder = val
-
-    def set_dataset_builder(self, dataset_builder: ImageDatasetBuilder):
-        self.dataset_builder = dataset_builder
-        return self
+    # @property
+    # def dataset_builder(self):
+    #     return self._dataset_builder
+    # 
+    # @dataset_builder.setter
+    # def dataset_builder(self, val):
+    #     self._dataset_builder = val
+    # 
+    # def set_dataset_builder(self, dataset_builder: ImageDatasetBuilder):
+    #     self.dataset_builder = dataset_builder
+    #     return self
 
     def set_trainer(self, trainer: BaseModelInterface):
         self.trainer = trainer
         return self
 
-    def compose_pipeline(self, data: Union[InputData, MultiModalData]) -> Union[Pipeline, List[Pipeline]]:
+    def compose_pipeline(self, data: Dataset) -> Union[Pipeline, List[Pipeline]]:
         if self.history:
             self.history.clean_results()
 
         # Data preparation phase
-        data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
+        # data_producer = DataSourceSplitter(self.composer_requirements.cv_folds).build(data)
+        assert self.composer_requirements.cv_folds is None
         objective_eval = NASObjectiveEvaluate(objective=self.optimizer.objective,
-                                              data_producer=data_producer,
+                                              # data_producer=data_producer,
+                                              dataset=data,
                                               model_trainer_builder=self.trainer,
                                               pipeline_cache=self.pipeline_cache,
                                               preprocessing_cache=self.preprocessing_cache,
                                               requirements=self.composer_requirements,
-                                              nn_dataset_builder=self.dataset_builder)
+                                              # nn_dataset_builder=self.dataset_builder
+                                              )
 
         if self.composer_requirements.collect_intermediate_metric:
             self.optimizer.set_evaluation_callback(objective_eval.evaluate_intermediate_metrics)
