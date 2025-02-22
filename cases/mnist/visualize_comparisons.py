@@ -110,8 +110,8 @@ dataset_results_dir = dir_dict_with_grid(
     result_root_dir,
     "ltr",
     [
-        ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"),
-        ("EuroSAT", "eurosat"), ("CIFAR10", 'cifar10')
+        ("CIFAR10", 'cifar10'),
+        # ("MNIST", "mnist"), ("FashionMNIST", "fashion-mnist"), ("EuroSAT", "eurosat"),
     ],
     ["cnn", "dense-kan", "cnn-kan",
      "kan"
@@ -153,7 +153,8 @@ dataset_results_dir = dir_dict_with_grid(
         ("cifar10", "kan"): [],
         ("cifar10", "dense-kan"): [
             # "cifar-bigger",
-            # "cifar-bigger-kan-conv"
+            "cifar-bigger-removed-stats",
+            "cifar-bigger-kan-conv"
         ],
     }
 )
@@ -273,8 +274,8 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
     tmp_pareto_obj_second = []
     real_x = -1e10
     for x, xys in groupby(list(zip(pareto_obj_first, pareto_obj_second)), lambda xy: xy[0]):
-        if x >= 800_000:  # Excessively large models hinder the study
-            continue
+        # if x >= 800_000:  # Excessively large models hinder the study
+        #     continue
         total_xs += 1
         if x - real_x < pareto_obj_first[-1] / 35:
             x = real_x
@@ -294,7 +295,7 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
     pareto_obj_first = tmp_pareto_obj_first
 
     print(f"{n_has_duplicates}/{total_xs} samples have duplicates")
-    has_duplicates = n_has_duplicates / total_xs >= 0.5
+    has_duplicates = n_has_duplicates / total_xs > 0.5
 
     if color is None:
         color = retrieve_next_color()
@@ -305,12 +306,14 @@ def visualise_pareto_front(front: Sequence[Individual | Tuple[float, float]],
         # dists_adj = [deduplicate_params[i + 1] - deduplicate_params[i] for i in range(len(deduplicate_params) - 1)]
         # target_width_anchor = min([d for d in dists_adj if d > deduplicate_params[-1] / 10])
         # anchored_width = min(dists_adj)
-        sns.boxplot(x=pareto_obj_first, y=pareto_obj_second,
-                    color=color,
-                    native_scale=True,
-                    # width=0.18 * target_width_anchor/anchored_width
-                    fliersize=0
-                    )
+
+        if has_duplicates:
+            sns.boxplot(x=pareto_obj_first, y=pareto_obj_second,
+                        color=color,
+                        native_scale=True,
+                        # width=0.18 * target_width_anchor/anchored_width
+                        fliersize=0
+                        )
         # plt.scatter([], [], color=color, label=label, alpha=1)
 
         seaborn.lineplot(x=pareto_obj_first, y=pareto_obj_second, label=label, color=color)
@@ -412,10 +415,16 @@ def plot_final_pareto_front(histories: List[OptHistory], final_results, case_nam
         # final_metric = -ind.fitness.values[0]  # For in-optimizer score
 
         this_extra_final_results = extra_results.get(ind.uid, [])
-        this_results = final_results[ind.uid]
+        this_results = final_results.get(ind.uid, [])
         if not isinstance(this_results, List):
             this_results = [this_results]
         this_results.extend(this_extra_final_results)
+        if not this_results:
+            print("NO STATS", ind, ind.fitness.values)
+            # continue
+            this_results.append({final_metric_name: abs(ind.fitness.values[0])})
+        else:
+            print("With stats", ind, ind.fitness.values)
 
         print(len(this_results))
         # max_measurements = 10
@@ -424,7 +433,7 @@ def plot_final_pareto_front(histories: List[OptHistory], final_results, case_nam
         metric_sum = 0
         for this_run in this_results:
             final_metric = this_run[final_metric_name]  # For after-learning
-            if final_metric < 0.6:
+            if final_metric < 0.45:
                 continue
 
             metric_sum += final_metric
@@ -654,7 +663,9 @@ def plot_all_pareto_fronts(remove_domniated: bool, merge_runs: bool,
                 group_model_names = [f"{graph_name_mapping[model]} ({parse_run_name(Path(path).name)[0]})" for path in
                                      base_eval_paths]
             for group_model_name, group_histories in zip(group_model_names, history_groups):
-                plot_final_pareto_front(group_histories, final_results, label=graph_name_mapping[group_model_name],
+                print("RUN PREFIX:", group_model_name)
+                plot_final_pareto_front(group_histories, final_results,
+                                        label=graph_name_mapping.get(group_model_name, group_model_name),
                                         case_name=dataset,
                                         final_metric_name="accuracy", extra_results=extra_results,
                                         remove_dominated=remove_domniated,
@@ -708,7 +719,7 @@ def plot_fitness_line():
 
 if __name__ == '__main__':
     # Boxplot
-    plot_all_pareto_fronts(remove_domniated=False, merge_runs=False, try_building_statintervals=False,
+    plot_all_pareto_fronts(remove_domniated=True, merge_runs=True, try_building_statintervals=False,
                            plot_line_between_points=False, only_best_run=False)
 
     # Non-dominated stat-intervals
